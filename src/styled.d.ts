@@ -1,6 +1,13 @@
 import "styled-components";
 
 declare module "styled-components" {
+  type TypographyStyle = {
+    fontSize: string;
+    fontWeight: number;
+    lineHeight: string;
+    letterSpacing?: string;
+  };
+
   export interface DefaultTheme {
     colors: {
       text: string;
@@ -8,6 +15,69 @@ declare module "styled-components" {
       surface: string;
       border: string;
       accent: string;
+    };
+    typography: {
+      body1Regular: TypographyStyle;
+      body1Semibold: TypographyStyle;
+      body2Regular: TypographyStyle;
+      body2Semibold: TypographyStyle;
+      captionRegular: TypographyStyle;
+      captionSemibold: TypographyStyle;
+      extraBodyRegular: TypographyStyle;
+      smallTextRegular: TypographyStyle;
+      smallTextSemibold: TypographyStyle;
+    };
+    tokens: {
+      current: {
+        core: {
+          text: {
+            primary: string;
+            secondary: string;
+            onColor: string;
+          };
+          border: {
+            strong: string;
+          };
+          background: {
+            default: string;
+          };
+          layer: {
+            "01": string;
+          };
+          accent: {
+            secondary: string;
+          };
+        };
+        interactive: {
+          hover: {
+            tertiary: string;
+          };
+        };
+        system: {
+          "20": string;
+          "30": string;
+        };
+        colors: {
+          blue: {
+            solid: {
+              10: string;
+              20: string;
+              30: string;
+              60: string;
+            };
+          };
+          green: {
+            solid: {
+              60: string;
+            };
+          };
+          orange: {
+            solid: {
+              60: string;
+            };
+          };
+        };
+      };
     };
   }
 }

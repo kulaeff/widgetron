@@ -178,8 +178,8 @@ export const TreeView: FC<TreeViewProps> = ({
           <Styled.Label>
             <Styled.Text>{item.label}</Styled.Text>
             <Tag $color="grey" $size="s">
+              {depth === 0 ? "root | " : ""}
               {item.type}
-              {depth === 0 ? "| root" : ""}
             </Tag>
           </Styled.Label>
         </Styled.Content>

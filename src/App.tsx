@@ -2,10 +2,13 @@ import { Link, Outlet } from "react-router-dom";
 import styled from "styled-components";
 
 const Root = styled.div`
-  min-height: 100dvh;
-  max-width: 960px;
-  margin: 0 auto;
-  padding: 24px;
+  display: grid;
+  grid-template-rows: auto 1fr;
+  height: 100%;
+`;
+
+const Main = styled.main`
+overflow: hidden;
 `;
 
 const Header = styled.header`
@@ -36,9 +39,9 @@ export function App() {
           <NavLink to="/">Home</NavLink>
         </Nav>
       </Header>
-      <main>
+      <Main>
         <Outlet />
-      </main>
+      </Main>
     </Root>
   );
 }

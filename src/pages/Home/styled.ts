@@ -3,7 +3,7 @@ import styled, { css } from "styled-components";
 export const Container = styled("div")({
   display: "flex",
   flexDirection: "column",
-  height: "100vh",
+  height: "100%",
   width: "100%",
   overflow: "hidden",
   fontFamily: '"SB Sans Text", Helvetica, Arial, sans-serif',

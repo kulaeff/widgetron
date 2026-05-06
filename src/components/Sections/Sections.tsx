@@ -1,4 +1,4 @@
-import { useCallback, useState, type FC, type PropsWithChildren } from "react";
+import { useCallback, useEffect, useState, type FC, type PropsWithChildren } from "react";
 import * as Styled from "./styled";
 import type { SectionsProps, Size } from "./types";
 import { SectionsContext } from "./Context";
@@ -9,8 +9,14 @@ export const Sections: FC<PropsWithChildren<SectionsProps>> = ({
 }) => {
   const [sizes, setSizes] = useState([] as Size[]);
 
+  console.log(sizes);
+
   const setSize = useCallback((size: Size) => {
     setSizes((p) => [...p, size]);
+  }, []);
+
+  useEffect(() => () => {
+    setSizes([]);
   }, []);
 
   return (

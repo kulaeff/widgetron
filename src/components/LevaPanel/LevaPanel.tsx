@@ -7,7 +7,6 @@ import { Switch } from "@pulse/ui/components/Switch";
 import { Tab, Tabs } from "@pulse/ui/components/Tabs";
 import { Fragment, useState, type FC } from "react";
 import * as Styled from "./styled";
-import { Placeholder } from "../../icons/Placeholder";
 import { useTranslation } from "react-i18next";
 import type { DynamicString } from "@json-render/core";
 import { Tag } from "@pulse/ui/components/Tags/Tag";
@@ -169,7 +168,7 @@ const ApplyExpressionButton = () => {
       isOpen={isOpen}
       trigger={
         <IconButton size="m-alt" $type="mono" onClick={() => setIsOpen(true)}>
-          <Placeholder />
+          #
         </IconButton>
       }
       withPadding
