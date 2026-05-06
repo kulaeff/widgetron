@@ -9,8 +9,6 @@ export const Sections: FC<PropsWithChildren<SectionsProps>> = ({
 }) => {
   const [sizes, setSizes] = useState([] as Size[]);
 
-  console.log(sizes);
-
   const setSize = useCallback((size: Size) => {
     setSizes((p) => [...p, size]);
   }, []);

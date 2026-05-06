@@ -804,30 +804,33 @@ export const Home: FC = () => {
         </Section>
         {/* PREVIEW */}
         <Section>
-          {/* SPEC HEADER */}
-          {/* <Toolbar>
-              <Tabs
-                items={[
-                  { id: 'preview', label: 'Preview' },
-                  { id: 'source', label: 'Source' },
-                  { id: 'stream', label: 'Stream' },
-                ]}
-                value={selectedTab}
-                onChange={handleTabChange}
-              />
-            </Toolbar> */}
-          {/* SPEC CONTENT */}
-          <Styled.Preview>
-            <Preview
-              loading={isStreaming}
-              spec={currentSpec}
-              state={currentState}
-              activeDropTargetId={draggedCatalogComponentName ? activeDropTargetId : null}
-              setState={setState}
-              selectedElementId={selectedElementId}
-            // onStateChange={handlePreviewStateChange}
-            />
-          </Styled.Preview>
+          {/* Preview */}
+          <Sections vertical>
+            <Section size="auto">
+              <Styled.Tabs>
+                <Tabs
+                  $type="tertiary"
+                  selectedIndex={activeTabLeft}
+                  onTabChange={(_, id) => setActiveTabLeft(id)}
+                >
+                  <Tab>{t("превью")}</Tab>
+                </Tabs>
+              </Styled.Tabs>
+            </Section>
+            <Section>
+              <Styled.Preview>
+                <Preview
+                  loading={isStreaming}
+                  spec={currentSpec}
+                  state={currentState}
+                  activeDropTargetId={draggedCatalogComponentName ? activeDropTargetId : null}
+                  setState={setState}
+                  selectedElementId={selectedElementId}
+                  // onStateChange={handlePreviewStateChange}
+                />
+              </Styled.Preview>
+            </Section>
+          </Sections>
         </Section>
         {/* PROPERTIES */}
         <Section size={400}>
