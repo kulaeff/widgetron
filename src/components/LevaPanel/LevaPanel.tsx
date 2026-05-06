@@ -1,17 +1,9 @@
-/* eslint-disable no-nested-ternary */
-import { Dropdown } from "@pulse/ui/components/Dropdown";
-import { IconButton } from "@pulse/ui/components/Button";
-import { ChipsInput } from "@pulse/ui/components/Input/variants/ChipsInput";
-import { Select, Option } from "@pulse/ui/components/Select";
-import { Switch } from "@pulse/ui/components/Switch";
-import { Tab, Tabs } from "@pulse/ui/components/Tabs";
-import { Fragment, useState, type FC } from "react";
-import * as Styled from "./styled";
-import { useTranslation } from "react-i18next";
-import type { DynamicString } from "@json-render/core";
 import { Tag } from "@pulse/ui/components/Tags/Tag";
-import { Chips } from "@pulse/ui/components/Tags/Chips";
-import { Input } from "@pulse/ui/components/Input";
+import * as Styled from "./styled";
+import type { DynamicString } from "@json-render/core";
+import { type FC, useMemo } from "react";
+import { Leva, LevaStoreProvider, useControls, useCreateStore } from "leva";
+import { useTheme } from "styled-components";
 
 type BaseControl = {
   id: string;
@@ -55,6 +47,17 @@ export type LevaControl =
   | SelectControl
   | TextControl;
 
+const toStableOnChange = (
+  onChange: (value: string | number | boolean) => void
+): ((value: unknown, path: string, context: { initial: boolean }) => void) => {
+  return (value, _path, context) => {
+    if (context.initial) {
+      return;
+    }
+    onChange(value as string | number | boolean);
+  };
+};
+
 interface LevaPanelProps {
   controls: LevaControl[];
   // Name of the element being inspected
@@ -64,138 +67,22 @@ interface LevaPanelProps {
   onControlChange: (id: string, value: string | number | boolean) => void;
 }
 
-const baseInputClassName =
-  "h-6 rounded border border-black/15 bg-white/90 px-2 text-xs text-black outline-none transition focus:border-accent-500/70 dark:border-white/15 dark:bg-black/35 dark:text-white";
-
-const Control: FC<{
-  control: LevaControl;
-  onChange: (id: string, value: string | number | boolean) => void;
-}> = ({ control, onChange }) => {
-  if (control.type === "number") {
-    return (
-      <Input
-        id={control.id}
-        className={`${baseInputClassName} w-24 text-right tabular-nums`}
-        min={control.min}
-        max={control.max}
-        step={control.step ?? 1}
-        type="number"
-        value={control.value}
-        onChange={(event) => {
-          onChange(control.id, event.target.valueAsNumber);
-        }}
-      />
-    );
-  }
-
-  if (control.type === "boolean") {
-    return (
-      <Switch
-        id={control.id}
-        checked={control.value}
-        onChange={(e) => onChange(control.id, e.target.checked)}
-      />
-    );
-  }
-
-  if (control.type === "select") {
-    return (
-      <Select
-        id={control.id}
-        value={control.value}
-        onChange={(value) => onChange(control.id, value)}
-      >
-        {control.options.map((option) => (
-          <Option
-            key={option}
-            selected={option === control.value}
-            value={option}
-          >
-            {option}
-          </Option>
-        ))}
-      </Select>
-    );
-  }
-
-  if (control.type === "color") {
-    return (
-      <div className="flex items-center gap-2">
-        <input
-          id={control.id}
-          className="h-6 w-6 rounded border border-black/15 bg-transparent p-0 dark:border-white/15"
-          type="color"
-          value={control.value}
-          onChange={(event) => onChange(control.id, event.target.value)}
-        />
-        <input
-          className={`${baseInputClassName} w-24`}
-          type="text"
-          value={control.value}
-          onChange={(event) => onChange(control.id, event.target.value)}
-        />
-      </div>
-    );
-  }
+const LevaControls: FC<{
+  schema: Record<string, any>;
+  theme: Record<string, any>;
+}> = ({ schema, theme }) => {
+  useControls(() => schema, [schema]);
 
   return (
-    <ChipsInput
-      $chips={
-        typeof control.value === "object"
-          ? [<Chips key="0">{control.value.$state}</Chips>]
-          : []
-      }
-      inputProps={{
-        id: control.id,
-        readOnly: typeof control.value === "object",
-        value: typeof control.value === "object" ? "" : control.value,
-        placeholder: control.placeholder,
-        onChange: (event) => onChange(control.id, event.target.value),
-      }}
+    <Leva
+      fill
+      flat
+      oneLineLabels
+      hideCopyButton
+      titleBar={false}
+      collapsed={false}
+      theme={theme}
     />
-  );
-};
-
-const ApplyExpressionButton = () => {
-  const { t } = useTranslation();
-
-  const [isOpen, setIsOpen] = useState(false);
-  const [activeTab, setActiveTab] = useState(0);
-
-  return (
-    <Dropdown
-      align="end"
-      isOpen={isOpen}
-      trigger={
-        <IconButton size="m-alt" $type="mono" onClick={() => setIsOpen(true)}>
-          #
-        </IconButton>
-      }
-      withPadding
-      onChange={(value) => setIsOpen(value)}
-    >
-      <Tabs
-        $type="secondary"
-        selectedIndex={activeTab}
-        onTabChange={(_, id) => setActiveTab(id)}
-      >
-        <Tab>{t("значение")}</Tab>
-        <Tab>{t("условие")}</Tab>
-        <Tab>{t("шаблон")}</Tab>
-        <Tab>{t("функция")}</Tab>
-      </Tabs>
-      <Styled.Panel>
-        {activeTab === 0 ? (
-          <div>{t("значение")}</div>
-        ) : activeTab === 1 ? (
-          <div>{t("условие")}</div>
-        ) : activeTab === 2 ? (
-          <div>{t("шаблон")}</div>
-        ) : (
-          <div>{t("функция")}</div>
-        )}
-      </Styled.Panel>
-    </Dropdown>
   );
 };
 
@@ -205,21 +92,170 @@ export const LevaPanel: FC<LevaPanelProps> = ({
   type,
   onControlChange,
 }) => {
+  const { tokens, typography } = useTheme();
+  const levaStore = useCreateStore();
+
+  const schema = useMemo(() => {
+    return controls.reduce<Record<string, any>>((acc, control) => {
+      if (control.type === "number") {
+        acc[control.id] = {
+          label: control.label,
+          value: control.value,
+          min: control.min,
+          max: control.max,
+          step: control.step ?? 1,
+          onChange: toStableOnChange((value) =>
+            onControlChange(control.id, value as number)
+          ),
+        };
+        return acc;
+      }
+
+      if (control.type === "boolean") {
+        acc[control.id] = {
+          label: control.label,
+          value: control.value,
+          onChange: toStableOnChange((value) =>
+            onControlChange(control.id, value as boolean)
+          ),
+        };
+        return acc;
+      }
+
+      if (control.type === "select") {
+        acc[control.id] = {
+          label: control.label,
+          value: control.value,
+          options: control.options,
+          onChange: toStableOnChange((value) =>
+            onControlChange(control.id, value as string)
+          ),
+        };
+        return acc;
+      }
+
+      if (control.type === "color") {
+        acc[control.id] = {
+          label: control.label,
+          value: control.value,
+          onChange: toStableOnChange((value) =>
+            onControlChange(control.id, value as string)
+          ),
+        };
+        return acc;
+      }
+
+      const isExpression =
+        typeof control.value === "object" &&
+        control.value !== null &&
+        "$state" in control.value;
+      const dynamicValue = isExpression
+        ? (control.value as { $state: string }).$state
+        : (control.value ?? "");
+
+      acc[control.id] = {
+        label: control.label,
+        value: dynamicValue,
+        disabled: isExpression,
+        onChange: toStableOnChange((value) =>
+          onControlChange(control.id, value as string)
+        ),
+      };
+
+      return acc;
+    }, {});
+  }, [controls, onControlChange]);
+
+  const levaTheme = useMemo(
+    () => ({
+      borderWidths: {
+        root: "1px",
+        input: "1px",
+        focus: "1px",
+        hover: "1px",
+        active: "1px",
+        folder: "1px",
+      },
+      colors: {
+        accent1: tokens.current.system["30"],
+        accent2: tokens.current.system["30"],
+        accent3: tokens.current.system["20"],
+        elevation1: "transparent",
+        elevation2: "transparent",
+        elevation3: tokens.current.core.layer["01"],
+        folderTextColor: tokens.current.core.text.primary,
+        folderWidgetColor: tokens.current.core.border.strong,
+        highlight1: tokens.current.core.text.primary,
+        highlight2: tokens.current.core.text.primary,
+        highlight3: tokens.current.core.text.primary,
+        toolTipBackground: tokens.current.core.layer["01"],
+        toolTipText: tokens.current.core.text.primary,
+        vivid1: tokens.current.core.text.primary,
+      },
+      fontSizes: {
+        root: typography.body2Regular.fontSize,
+        toolTip: typography.captionRegular.fontSize,
+      },
+      fonts: {
+        mono:
+          'ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace',
+        sans:
+          '"SB Sans Text", Inter, system-ui, -apple-system, Segoe UI, Roboto, Helvetica, Arial, sans-serif',
+      },
+      fontWeights: {
+        button: String(typography.body2Semibold.fontWeight),
+        folder: String(typography.body2Semibold.fontWeight),
+        label: String(typography.body2Regular.fontWeight),
+      },
+      radii: {
+        lg: "8px",
+        sm: "6px",
+        xs: "4px",
+      },
+      shadows: {
+        level1: "none",
+        level2: "none",
+      },
+      sizes: {
+        checkboxSize: "16px",
+        colorPickerHeight: "112px",
+        colorPickerWidth: "212px",
+        controlWidth: "130px",
+        folderTitleHeight: "28px",
+        imagePreviewHeight: "100px",
+        imagePreviewWidth: "100%",
+        joystickHeight: "100px",
+        joystickWidth: "100px",
+        monitorHeight: "56px",
+        numberInputMinWidth: "64px",
+        rootWidth: "100%",
+        rowHeight: "28px",
+        scrubberHeight: "8px",
+        scrubberWidth: "8px",
+        titleBarHeight: "32px",
+      },
+      space: {
+        colGap: "8px",
+        md: "10px",
+        rowGap: "8px",
+        sm: "6px",
+        xs: "3px",
+      },
+    }),
+    [tokens, typography]
+  );
+
   return (
     <Styled.Container>
       <Styled.Header>
         <Tag>{type}</Tag>
         {name ? <Styled.Name>{name}</Styled.Name> : null}
       </Styled.Header>
-      <Styled.Sections>
-        {controls.map((control) => (
-          <Fragment key={control.id}>
-            <label htmlFor={control.id}>{control.label}</label>
-            <Control control={control} onChange={onControlChange} />
-            <ApplyExpressionButton />
-          </Fragment>
-        ))}
-      </Styled.Sections>
+      <Styled.Panel>
+        <LevaStoreProvider store={levaStore}>
+          <LevaControls schema={schema} theme={levaTheme} />
+        </LevaStoreProvider>
+      </Styled.Panel>
     </Styled.Container>
   );
 };
