@@ -1,6 +1,6 @@
-import type { DragEvent, FC } from "react";
+import { useDraggable } from "@dnd-kit/react";
+import type { FC } from "react";
 import type { CatalogComponentInfo } from "../../utils/catalog-data";
-import { encodeCatalogDragPayload } from "../../utils/catalog-dnd";
 import * as Styled from "./styled";
 
 type ToolbarProps = {
@@ -8,20 +8,31 @@ type ToolbarProps = {
 };
 
 export const ToolBar: FC<ToolbarProps> = ({ items }) => {
-  const handleDragStart = (
-    event: DragEvent<HTMLLIElement>,
-    componentName: string,
-    group: string
-  ) => {
-    event.dataTransfer.effectAllowed = "copy";
-    event.dataTransfer.setData(
-      "application/x-catalog-component",
-      JSON.stringify({ componentName, group })
-    );
-    // event.dataTransfer.setData("text/plain", componentName);
-  };
+  const Tool = ({
+    componentName,
+    group,
+    icon,
+  }: {
+    componentName: string;
+    group: string;
+    icon?: string;
+  }) => {
+    const { ref, isDragging } = useDraggable({
+      id: `toolbar:${group}:${componentName}`,
+      data: {
+        kind: "catalog-component",
+        componentName,
+        group,
+      },
+    });
 
-  console.log("TOOLBAR", items);
+    return (
+      <Styled.Tool ref={ref} $isDragging={isDragging}>
+        <Styled.Icon aria-hidden>{icon ?? componentName.slice(0, 1)}</Styled.Icon>
+        <Styled.Label>{componentName}</Styled.Label>
+      </Styled.Tool>
+    );
+  };
 
   return (
     <Styled.Container>
@@ -30,18 +41,12 @@ export const ToolBar: FC<ToolbarProps> = ({ items }) => {
           <Styled.Header>{group}</Styled.Header>
           <Styled.Tools>
             {components.map((component) => (
-              <Styled.Tool
+              <Tool
                 key={`${group}:${component.name}`}
-                draggable
-                onDragStart={(event) =>
-                  handleDragStart(event, component.name, group)
-                }
-              >
-                <Styled.Icon aria-hidden>
-                  {component.icon ?? component.name.slice(0, 1)}
-                </Styled.Icon>
-                <Styled.Label>{component.name}</Styled.Label>
-              </Styled.Tool>
+                componentName={component.name}
+                group={group}
+                icon={component.icon}
+              />
             ))}
           </Styled.Tools>
         </Styled.Group>

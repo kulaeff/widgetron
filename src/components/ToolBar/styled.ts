@@ -35,12 +35,14 @@ export const Label = styled.span(
   `
 );
 
-export const Tool = styled.li(
-  ({ theme }) => css`
+export const Tool = styled.li<{ $isDragging?: boolean }>(
+  ({ theme, $isDragging }) => css`
     align-content: center;
     background-color: rgba(0, 0, 0, 0.05);
     border-radius: 6px;
+    cursor: grab;
     height: 64px;
+    opacity: ${$isDragging ? 0.5 : 1};
     padding: 8px;
     overflow: hidden;
     text-align: center;

@@ -1,12 +1,13 @@
 import type { Spec } from "@json-render/core";
-import { useCallback, useMemo, useRef, type DragEvent, type FC } from "react";
+import { useDroppable } from "@dnd-kit/react";
+import { useEffect, useMemo, type FC } from "react";
 import * as Styled from "./styled";
 import { Renderer, type RendererProps } from "../../components/Renderer";
 
 interface PreviewProps extends Omit<RendererProps, "spec"> {
   spec: Spec | null;
-  selectedElementId?: string | null;
-  onDropComponent: (targetElementId: string, componentName: string) => void;
+  activeDropTargetId?: string | null;
+  selectedElementId?: string;
 }
 
 export const Preview: FC<PreviewProps> = ({
@@ -14,10 +15,34 @@ export const Preview: FC<PreviewProps> = ({
   state,
   loading = false,
   setState,
-  onDropComponent,
+  activeDropTargetId,
+  selectedElementId,
   onStateChange,
 }) => {
-  const containerRef = useRef<HTMLDivElement>(null);
+  const { ref: previewDropRef } = useDroppable({
+    id: "preview",
+    data: {
+      kind: "preview",
+    },
+  });
+
+  const resolveHighlightElement = (targetId: string): HTMLElement | null => {
+    const markerElement = document.querySelector(
+      `[data-element-id="${targetId}"]`
+    );
+
+    if (!(markerElement instanceof HTMLElement)) {
+      return null;
+    }
+
+    if (window.getComputedStyle(markerElement).display !== "contents") {
+      return markerElement;
+    }
+
+    const childElement = markerElement.firstElementChild;
+
+    return childElement instanceof HTMLElement ? childElement : null;
+  };
 
   const markedSpec = useMemo(() => {
     if (!spec || spec.root.length === 0) {
@@ -43,64 +68,36 @@ export const Preview: FC<PreviewProps> = ({
     };
   }, [spec]);
 
-  const handleDragEnter = useCallback((event: DragEvent<HTMLDivElement>) => {
-    if (!event.dataTransfer.types.includes("application/x-catalog-component"))
-      return;
-
-    event.preventDefault();
-    event.dataTransfer.dropEffect = "copy";
-
-    const targetElement = (event.target as HTMLElement).closest<HTMLElement>(
-      "[data-element-id]"
-    );
-
-    if (!targetElement) return;
-
-    targetElement.style.outline = "1px dashed red";
-  }, []);
-
-  const handleDragLeave = useCallback((event: DragEvent<HTMLDivElement>) => {
-    const targetElement = (event.target as HTMLElement).closest<HTMLElement>(
-      "[data-element-id]"
-    );
-
-    if (!targetElement) return;
-
-    targetElement.style.outline = "";
-  }, []);
-
-  const handleDrop = useCallback(
-    (event: DragEvent<HTMLDivElement>) => {
-      const payload = JSON.parse(
-        event.dataTransfer.getData("application/x-catalog-component")
-      );
-
-      // event.preventDefault();
-
-      const targetElement = (event.target as HTMLElement).closest(
-        "[data-element-id]"
-      ) as HTMLElement;
-      const targetElementId = targetElement.getAttribute(
-        "data-element-id"
-      ) as string;
-
-      targetElement.style.outline = "";
-
-      if (payload) {
-        onDropComponent(targetElementId, payload.componentName);
+  useEffect(() => {
+    const highlightedElements = document.querySelectorAll("[data-preview-highlight]");
+    highlightedElements.forEach((element) => {
+      if (element instanceof HTMLElement) {
+        element.style.outline = "";
+        element.removeAttribute("data-preview-highlight");
       }
-    },
-    [onDropComponent]
-  );
+    });
+
+    const highlightId = activeDropTargetId ?? selectedElementId;
+
+    if (!highlightId) return;
+
+    const targetElement = resolveHighlightElement(highlightId);
+
+    if (targetElement instanceof HTMLElement) {
+      if (activeDropTargetId) {
+        targetElement.style.outline = "1px dashed red";
+        targetElement.setAttribute("data-preview-highlight", "drop");
+      } else {
+        targetElement.style.outline = "2px solid rgba(35, 111, 255, 0.9)";
+        targetElement.setAttribute("data-preview-highlight", "selected");
+      }
+    }
+  }, [activeDropTargetId, selectedElementId]);
 
   return (
     <Styled.Container
       data-element-id="preview"
-      ref={containerRef}
-      onDragEnter={handleDragEnter}
-      onDragOver={(e) => e.preventDefault()}
-      onDragLeave={handleDragLeave}
-      onDrop={handleDrop}
+      ref={previewDropRef}
     >
       {/* eslint-disable-next-line no-nested-ternary */}
       {markedSpec && markedSpec.root.length > 0 ? (

@@ -49,7 +49,11 @@ const withSpecMarker = <T extends Record<string, unknown>>(
 
   if (!id) return node;
 
-  return <div data-element-id={id}>{node}</div>;
+  return (
+    <div data-element-id={id} style={{ display: "contents" }}>
+      {node}
+    </div>
+  );
 };
 
 export const { registry, handlers, executeAction } = defineRegistry(catalog, {

@@ -25,6 +25,13 @@ import { CodeBlock } from "../../components/CodeBlock";
 import { Version } from "./types";
 import { Button } from "@pulse/ui/components/Button";
 import { Option, Select } from "@pulse/ui/components/Select";
+import {
+  DragDropProvider,
+  DragOverlay,
+  type DragEndEvent,
+  type DragMoveEvent,
+  type DragStartEvent,
+} from "@dnd-kit/react";
 
 const EDITOR_RULES = [
   "Никогда не используй Card как root.",
@@ -112,6 +119,8 @@ export const Home: FC = () => {
   const [url, setUrl] = useState("");
   const [method, setMethod] = useState("GET");
   const [versions, setVersions] = useState<Version[]>([]);
+  const [activeDropTargetId, setActiveDropTargetId] = useState<string | null>(null);
+  const [draggedCatalogComponentName, setDraggedCatalogComponentName] = useState<string | null>(null);
 
   const generatingVersionIdRef = useRef<string>();
 
@@ -469,6 +478,72 @@ export const Home: FC = () => {
     [components, selectedVersionId]
   );
 
+  const resolveDropTargetFromNativeEvent = (event?: Event): string | null => {
+    if (!(event instanceof MouseEvent || event instanceof PointerEvent)) {
+      return null;
+    }
+
+    const hoveredElement = document
+      .elementFromPoint(event.clientX, event.clientY)
+      ?.closest<HTMLElement>("[data-element-id]");
+
+    if (!hoveredElement) {
+      return null;
+    }
+
+    return hoveredElement.getAttribute("data-element-id");
+  };
+
+  const handleDragStart = useCallback((event: DragStartEvent) => {
+    const data = event.operation.source?.data;
+
+    if (data?.kind === "catalog-component") {
+      setDraggedCatalogComponentName(data.componentName);
+    } else {
+      setDraggedCatalogComponentName(null);
+    }
+
+    setActiveDropTargetId(null);
+  }, []);
+
+  const handleDragMove = useCallback((event: DragMoveEvent) => {
+    const sourceData = event.operation.source?.data;
+
+    if (sourceData?.kind !== "catalog-component") {
+      return;
+    }
+
+    if (event.operation.target?.id !== "preview") {
+      setActiveDropTargetId(null);
+      return;
+    }
+
+    setActiveDropTargetId(resolveDropTargetFromNativeEvent(event.nativeEvent) ?? "preview");
+  }, []);
+
+  const handleDragEnd = useCallback(
+    (event: DragEndEvent) => {
+      const sourceData = event.operation.source?.data;
+
+      if (
+        sourceData?.kind === "catalog-component" &&
+        event.operation.target?.id === "preview"
+      ) {
+        const resolvedTargetId =
+          resolveDropTargetFromNativeEvent(event.nativeEvent) ?? "preview";
+
+        handlePreviewDropComponent(
+          resolvedTargetId,
+          sourceData.componentName as string
+        );
+      }
+
+      setDraggedCatalogComponentName(null);
+      setActiveDropTargetId(null);
+    },
+    [handlePreviewDropComponent]
+  );
+
   const handlePreviewStateChange = useCallback(
     (changes: Array<{ path: string; value: unknown }>) => {
       console.log("SET STATE");
@@ -600,7 +675,17 @@ export const Home: FC = () => {
   }, [isStreaming, raw, spec, state, usage]);
 
   return (
-    <Styled.Container>
+    <DragDropProvider
+      onDragStart={handleDragStart}
+      onDragMove={handleDragMove}
+      onDragEnd={handleDragEnd}
+    >
+      <DragOverlay>
+        {draggedCatalogComponentName ? (
+          <Styled.DragOverlayItem>{draggedCatalogComponentName}</Styled.DragOverlayItem>
+        ) : null}
+      </DragOverlay>
+      <Styled.Container>
       <Sections>
         <Section size={358}>
           <Sections vertical>
@@ -737,9 +822,9 @@ export const Home: FC = () => {
               loading={isStreaming}
               spec={currentSpec}
               state={currentState}
-              selectedElementId={selectedElementId}
+              activeDropTargetId={draggedCatalogComponentName ? activeDropTargetId : null}
               setState={setState}
-              onDropComponent={handlePreviewDropComponent}
+              selectedElementId={selectedElementId}
             // onStateChange={handlePreviewStateChange}
             />
           </Styled.Preview>
@@ -815,6 +900,7 @@ export const Home: FC = () => {
           </Sections>
         </Section>
       </Sections>
-    </Styled.Container>
+      </Styled.Container>
+    </DragDropProvider>
   );
 };
