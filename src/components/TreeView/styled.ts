@@ -33,7 +33,8 @@ export const Item = styled.li<{ $isSelected?: boolean }>`
 `;
 
 export const Content = styled.div<{
-  $isDraggingOver: boolean;
+  $dragPlacement: "inside" | "before" | "after" | null;
+  $isDetached: boolean;
   $isSelected: boolean;
 }>`
   align-items: center;
@@ -43,11 +44,32 @@ export const Content = styled.div<{
   display: grid;
   gap: 4px;
   grid-template-columns: auto 1fr;
-  outline: ${({ $isDraggingOver }) =>
-    $isDraggingOver ? "1px solid rgba(0, 0, 0, 0.5)" : "none"};
+  position: relative;
+  outline: ${({ $dragPlacement }) =>
+    $dragPlacement === "inside" ? "1px solid rgba(0, 0, 0, 0.5)" : "none"};
   padding: 8px;
+  color: ${({ $isDetached }) => ($isDetached ? "rgba(180, 48, 48, 0.9)" : "inherit")};
   transition: background-color 40ms, color 40ms;
   user-select: none;
+  &::before,
+  &::after {
+    background-color: rgba(0, 0, 0, 0.5);
+    border-radius: 1px;
+    content: "";
+    height: 2px;
+    left: var(--drop-line-offset, 0px);
+    pointer-events: none;
+    position: absolute;
+    right: 0;
+  }
+  &::before {
+    opacity: ${({ $dragPlacement }) => ($dragPlacement === "before" ? 1 : 0)};
+    top: -1px;
+  }
+  &::after {
+    bottom: -1px;
+    opacity: ${({ $dragPlacement }) => ($dragPlacement === "after" ? 1 : 0)};
+  }
   &:hover {
     background-color: ${({ $isSelected, theme }) =>
       $isSelected

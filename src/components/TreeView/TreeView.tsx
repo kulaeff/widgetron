@@ -1,5 +1,5 @@
 import { Tag } from "@pulse/ui/components/Tags/Tag";
-import type { DragEvent, DragEventHandler, FC, ReactNode } from "react";
+import type { CSSProperties, DragEvent, DragEventHandler, FC, ReactNode } from "react";
 import { useRef, useState } from "react";
 import { ReactComponent as AddIcon } from "$common/icons/add-icon.svg";
 import * as Styled from "./styled";
@@ -7,8 +7,10 @@ import * as Styled from "./styled";
 export type TreeItem = {
   children: TreeItem[];
   canDrop?: boolean;
+  detached?: boolean;
   icon?: ReactNode;
   id: string;
+  isRoot?: boolean;
   label: string;
   type: string;
 };
@@ -17,11 +19,13 @@ export type TreeViewProps = {
   items: TreeItem[];
   value?: string;
   onChange?: (id: string) => void;
-  onItemPositionChange?: (
-    parentId: string,
-    sourceId: string,
-    targetId: string
-  ) => void;
+  onItemPositionChange?: (payload: {
+    sourceParentId: string | null;
+    sourceId: string;
+    targetParentId: string;
+    targetId: string;
+    placement: "inside" | "before" | "after";
+  }) => void;
 };
 
 const INDENT_PER_LEVEL = 16;
@@ -36,16 +40,45 @@ export const TreeView: FC<TreeViewProps> = ({
   const [collapsedIds, setCollapsedIds] = useState<Set<string>>(
     () => new Set()
   );
-  const [draggingItem, setDraggingItem] = useState<TreeItem | null>(null);
+  const [dragTarget, setDragTarget] = useState<{
+    itemId: string;
+    placement: "inside" | "before" | "after";
+    lineOffset: number;
+  } | null>(null);
 
   const parentItemRef = useRef<TreeItem | null>(null);
   const sourceItemRef = useRef<TreeItem | null>(null);
 
-  const canDrop = (source: TreeItem | null, target: TreeItem) =>
-    source?.children.findIndex((child) => child.id === target.id) === -1 &&
-    target.children.findIndex((child) => child.id === source?.id) === -1 &&
-    source.id !== target.id &&
-    target.canDrop;
+  const hasDescendant = (item: TreeItem, id: string): boolean =>
+    item.children.some(
+      (child) => child.id === id || hasDescendant(child, id)
+    );
+
+  const canDropInside = (
+    source: TreeItem | null,
+    sourceParent: TreeItem | null,
+    target: TreeItem
+  ) =>
+    Boolean(
+      source &&
+        source.id !== target.id &&
+        sourceParent?.id !== target.id &&
+        target.canDrop &&
+        !hasDescendant(source, target.id)
+    );
+
+  const canDropBeforeAfter = (
+    source: TreeItem | null,
+    target: TreeItem,
+    targetParent: TreeItem | null
+  ) =>
+    Boolean(
+      source &&
+        source.id !== target.id &&
+        targetParent &&
+        targetParent.id !== source.id &&
+        !hasDescendant(source, targetParent.id)
+    );
 
   const toggleCollapsed = (id: string) => {
     setCollapsedIds((prev) => {
@@ -70,29 +103,96 @@ export const TreeView: FC<TreeViewProps> = ({
     console.log(item);
   };
 
-  const handleDragEnter = (item: TreeItem) => {
-    setDraggingItem(canDrop(sourceItemRef.current, item) ? item : null);
+  const resolveDropPlacement = (
+    e: DragEvent<HTMLDivElement>,
+    item: TreeItem
+  ): "inside" | "before" | "after" => {
+    const bounds = e.currentTarget.getBoundingClientRect();
+    const offsetY = e.clientY - bounds.top;
+    const offsetX = e.clientX - bounds.left;
+    const threshold = bounds.height / 3;
+    const insideThresholdX = 28;
+
+    if (offsetY < threshold) {
+      return "before";
+    }
+
+    if (offsetY > bounds.height - threshold) {
+      return "after";
+    }
+
+    if (item.canDrop && offsetX > insideThresholdX) {
+      return "inside";
+    }
+
+    return "after";
+  };
+
+  const handleDragEnter = (
+    e: DragEvent<HTMLDivElement>,
+    parent: TreeItem | null,
+    item: TreeItem,
+    depth: number
+  ) => {
+    const placement = resolveDropPlacement(e, item);
+
+    const canDrop =
+      placement === "inside"
+        ? canDropInside(sourceItemRef.current, parentItemRef.current, item)
+        : canDropBeforeAfter(sourceItemRef.current, item, parent);
+
+    const lineOffset = placement === "inside" ? 0 : depth === 0 ? 0 : depth * INDENT_PER_LEVEL + BASE_PADDING;
+
+    setDragTarget(
+      canDrop
+        ? {
+          itemId: item.id,
+          placement,
+          lineOffset,
+        }
+        : null
+    );
   };
 
   const handleDragLeave: DragEventHandler<HTMLDivElement> = (e) => {
     if (!e.currentTarget.contains(e.relatedTarget as Node)) {
-      setDraggingItem(null);
+      setDragTarget(null);
     }
   };
 
-  const handleDragOver = (e: DragEvent<HTMLDivElement>, item: TreeItem) => {
+  const handleDragOver = (
+    e: DragEvent<HTMLDivElement>,
+    parent: TreeItem | null,
+    item: TreeItem,
+    depth: number
+  ) => {
     e.preventDefault();
 
-    if (canDrop(sourceItemRef.current, item)) {
+    const placement = resolveDropPlacement(e, item);
+    const canDrop =
+      placement === "inside"
+        ? canDropInside(sourceItemRef.current, parentItemRef.current, item)
+        : canDropBeforeAfter(sourceItemRef.current, item, parent);
+
+    if (canDrop) {
       e.dataTransfer.dropEffect = "move";
+      const lineOffset =
+        placement === "inside"
+          ? 0
+          : depth === 0
+            ? 0
+            : depth * INDENT_PER_LEVEL + BASE_PADDING;
+
+      setDragTarget({ itemId: item.id, placement, lineOffset });
     } else {
       e.dataTransfer.dropEffect = "none";
+      setDragTarget(null);
     }
   };
 
   const handleDragStart = (
     e: DragEvent<HTMLDivElement>,
-    parent: TreeItem,
+    parent: TreeItem | null,
     item: TreeItem
   ) => {
     e.dataTransfer.effectAllowed = "move";
@@ -100,24 +200,45 @@ export const TreeView: FC<TreeViewProps> = ({
     parentItemRef.current = parent;
     sourceItemRef.current = item;
 
-    setDraggingItem(item);
+    setDragTarget(null);
   };
 
-  const handleDrop = (item: TreeItem) => {
-    if (canDrop(sourceItemRef.current, item)) {
-      setDraggingItem(null);
+  const handleDragEnd = () => {
+    setDragTarget(null);
+    parentItemRef.current = null;
+    sourceItemRef.current = null;
+  };
 
-      if (parentItemRef.current && sourceItemRef.current) {
-        onItemPositionChange?.(
-          parentItemRef.current.id,
-          sourceItemRef.current.id,
-          item.id
-        );
-      }
-
-      parentItemRef.current = null;
-      sourceItemRef.current = null;
+  const handleDrop = (parent: TreeItem | null, item: TreeItem) => {
+    if (
+      !dragTarget ||
+      dragTarget.itemId !== item.id ||
+      !sourceItemRef.current
+    ) {
+      return;
     }
+
+    const canDrop =
+      dragTarget.placement === "inside"
+        ? canDropInside(sourceItemRef.current, parentItemRef.current, item)
+        : canDropBeforeAfter(sourceItemRef.current, item, parent);
+
+    if (!canDrop) {
+      return;
+    }
+
+    onItemPositionChange?.({
+      sourceParentId: parentItemRef.current?.id ?? null,
+      sourceId: sourceItemRef.current.id,
+      targetParentId:
+        dragTarget.placement === "inside" ? item.id : (parent as TreeItem).id,
+      targetId: item.id,
+      placement: dragTarget.placement,
+    });
+
+    setDragTarget(null);
+    parentItemRef.current = null;
+    sourceItemRef.current = null;
   };
 
   const renderNode = (
@@ -133,22 +254,24 @@ export const TreeView: FC<TreeViewProps> = ({
         <Styled.Content
           aria-expanded={!isCollapsed}
           aria-selected={isSelected}
-          $isDraggingOver={
-            draggingItem?.id === item.id &&
-            draggingItem?.id !== sourceItemRef.current?.id
+          $dragPlacement={
+            dragTarget?.itemId === item.id ? dragTarget.placement : null
           }
+          $isDetached={Boolean(item.detached)}
           $isSelected={isSelected}
-          draggable={depth !== 0}
+          draggable={!item.isRoot}
           style={{
+            "--drop-line-offset": `${dragTarget?.itemId === item.id ? dragTarget.lineOffset : 0}px`,
             paddingLeft: `${depth * INDENT_PER_LEVEL + BASE_PADDING}px`,
-          }}
+          } as CSSProperties}
           tabIndex={isSelected ? 0 : -1}
           onClick={() => handleClick(item)}
-          onDragStart={(e) => handleDragStart(e, parent as TreeItem, item)}
-          onDragEnter={() => handleDragEnter(item)}
+          onDragStart={(e) => handleDragStart(e, parent, item)}
+          onDragEnd={handleDragEnd}
+          onDragEnter={(e) => handleDragEnter(e, parent, item, depth)}
           onDragLeave={handleDragLeave}
-          onDragOver={(e) => handleDragOver(e, item)}
-          onDrop={() => handleDrop(item)}
+          onDragOver={(e) => handleDragOver(e, parent, item, depth)}
+          onDrop={() => handleDrop(parent, item)}
         >
           {item.children.length > 0 ? (
             <Styled.Arrow
@@ -180,6 +303,7 @@ export const TreeView: FC<TreeViewProps> = ({
             <Tag $color="grey" $size="s">
               {depth === 0 ? "root | " : ""}
               {item.type}
+              {item.detached ? " | detached" : ""}
             </Tag>
           </Styled.Label>
         </Styled.Content>
