@@ -1,0 +1,26 @@
+import type { CSSProperties } from "react";
+
+export interface GridProps {
+  /**
+   * Выравнивание по основной оси
+   */
+  align?: Extract<
+    CSSProperties["alignItems"],
+    "start" | "center" | "end" | "stretch"
+  >;
+  /**
+   * Количество колонок
+   */
+  columns?: string;
+  /**
+   * Отступы
+   */
+  gap?: 0 | 1 | 2 | 3 | 4 | 5 | 6 | 7 | 8;
+  /**
+   * Выравнивание по вспомогательной оси
+   */
+  justify?: Extract<
+    CSSProperties["justifyContent"],
+    "start" | "center" | "end" | "stretch" | "space-around" | "space-between"
+  >;
+}
