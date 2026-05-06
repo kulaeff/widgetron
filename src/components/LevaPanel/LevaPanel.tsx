@@ -2,7 +2,7 @@ import { Tag } from "@pulse/ui/components/Tags/Tag";
 import * as Styled from "./styled";
 import type { DynamicString } from "@json-render/core";
 import { type FC, useMemo } from "react";
-import { Leva, LevaStoreProvider, useControls, useCreateStore } from "leva";
+import { Leva, useControls } from "leva";
 import { useTheme } from "styled-components";
 
 type BaseControl = {
@@ -67,25 +67,6 @@ interface LevaPanelProps {
   onControlChange: (id: string, value: string | number | boolean) => void;
 }
 
-const LevaControls: FC<{
-  schema: Record<string, any>;
-  theme: Record<string, any>;
-}> = ({ schema, theme }) => {
-  useControls(() => schema, [schema]);
-
-  return (
-    <Leva
-      fill
-      flat
-      oneLineLabels
-      hideCopyButton
-      titleBar={false}
-      collapsed={false}
-      theme={theme}
-    />
-  );
-};
-
 export const LevaPanel: FC<LevaPanelProps> = ({
   controls,
   name,
@@ -93,80 +74,24 @@ export const LevaPanel: FC<LevaPanelProps> = ({
   onControlChange,
 }) => {
   const { tokens, typography } = useTheme();
-  const levaStore = useCreateStore();
+
+  console.log(controls);
 
   const schema = useMemo(() => {
     return controls.reduce<Record<string, any>>((acc, control) => {
-      if (control.type === "number") {
-        acc[control.id] = {
-          label: control.label,
-          value: control.value,
-          min: control.min,
-          max: control.max,
-          step: control.step ?? 1,
-          onChange: toStableOnChange((value) =>
-            onControlChange(control.id, value as number)
-          ),
-        };
-        return acc;
-      }
-
-      if (control.type === "boolean") {
-        acc[control.id] = {
-          label: control.label,
-          value: control.value,
-          onChange: toStableOnChange((value) =>
-            onControlChange(control.id, value as boolean)
-          ),
-        };
-        return acc;
-      }
-
-      if (control.type === "select") {
-        acc[control.id] = {
-          label: control.label,
-          value: control.value,
-          options: control.options,
-          onChange: toStableOnChange((value) =>
-            onControlChange(control.id, value as string)
-          ),
-        };
-        return acc;
-      }
-
-      if (control.type === "color") {
-        acc[control.id] = {
-          label: control.label,
-          value: control.value,
-          onChange: toStableOnChange((value) =>
-            onControlChange(control.id, value as string)
-          ),
-        };
-        return acc;
-      }
-
-      const isExpression =
-        typeof control.value === "object" &&
-        control.value !== null &&
-        "$state" in control.value;
-      const dynamicValue = isExpression
-        ? (control.value as { $state: string }).$state
-        : (control.value ?? "");
-
       acc[control.id] = {
-        label: control.label,
-        value: dynamicValue,
-        disabled: isExpression,
+        ...control,
         onChange: toStableOnChange((value) =>
-          onControlChange(control.id, value as string)
+          onControlChange(control.id, value as number)
         ),
       };
-
       return acc;
     }, {});
   }, [controls, onControlChange]);
 
-  const levaTheme = useMemo(
+  console.log(schema);
+
+  const theme = useMemo(
     () => ({
       borderWidths: {
         root: "1px",
@@ -245,6 +170,8 @@ export const LevaPanel: FC<LevaPanelProps> = ({
     [tokens, typography]
   );
 
+  useControls(() => schema, [schema]);
+
   return (
     <Styled.Container>
       <Styled.Header>
@@ -252,9 +179,14 @@ export const LevaPanel: FC<LevaPanelProps> = ({
         {name ? <Styled.Name>{name}</Styled.Name> : null}
       </Styled.Header>
       <Styled.Panel>
-        <LevaStoreProvider store={levaStore}>
-          <LevaControls schema={schema} theme={levaTheme} />
-        </LevaStoreProvider>
+        <Leva
+          fill
+          flat
+          hideCopyButton
+          titleBar={false}
+          collapsed={false}
+          theme={theme}
+        />
       </Styled.Panel>
     </Styled.Container>
   );

@@ -170,7 +170,7 @@ export const Home: FC = () => {
     const element = currentSpec?.elements[selectedElementId];
     const component = components.find((c) => c.name === element.type);
     const controls = component
-      ? component.props.map<LevaControl>((prop) => {
+      ? component.props.map((prop) => {
         const id = prop.name.replace("?", "");
         const value = element.props?.[prop.name] ?? prop.default;
 
@@ -179,22 +179,19 @@ export const Home: FC = () => {
             return {
               id,
               label: id,
-              value: value as boolean,
-              type: "boolean",
+              value: value ?? false,
             };
           case "number":
             return {
               id,
               label: id,
-              value: value as number,
-              type: "number",
+              value: value ?? 0,
             };
           case "string":
             return {
               id,
               label: id,
-              value: value as string,
-              type: "string",
+              value: value ?? "",
             };
           default: {
             const options = prop.type.split("|").map((item) => item.trim());
@@ -203,8 +200,7 @@ export const Home: FC = () => {
               id,
               label: id,
               options,
-              value: value as string,
-              type: "select",
+              value: value ?? "",
             };
           }
         }
