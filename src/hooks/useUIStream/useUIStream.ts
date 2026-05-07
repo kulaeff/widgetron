@@ -209,7 +209,7 @@ export const useUIStream = ({
           return;
         }
 
-        setError(e);
+        setError(e instanceof Error ? e : new Error(String(e)));
       } finally {
         setIsStreaming(false);
       }

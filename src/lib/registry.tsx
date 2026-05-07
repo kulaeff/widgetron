@@ -141,7 +141,7 @@ export const { registry, handlers, executeAction } = defineRegistry(catalog, {
       withSpecMarker(props, <Stack {...props}>{children}</Stack>),
     Skeleton: ({ props, children }) =>
       withSpecMarker(props, <SkeletonRect {...props}>{children}</SkeletonRect>),
-    Divider: ({ props }) => withSpecMarker(props, <Divider {...props} />),
+    Separator: ({ props }) => withSpecMarker(props, <Divider />),
     // Table: ({ props }) => withSpecMarker(props, <Table {...props} />),
     Tag: ({ props }) =>
       withSpecMarker(
@@ -161,7 +161,62 @@ export const { registry, handlers, executeAction } = defineRegistry(catalog, {
         </Title>
       ),
     Image: ({ props }) => withSpecMarker(props, <Image {...props} />),
-    Loader: ({ props }) => withSpecMarker(props, <Loader {...props} />),
+    Progress: ({ props }) =>
+      withSpecMarker(
+        props,
+        <div>
+          {props.label ? <span>{String(props.label)}</span> : null}
+          <progress value={Number(props.value ?? 0)} max={100} />
+        </div>
+      ),
+    Table: ({ props }) =>
+      withSpecMarker(
+        props,
+        <table>
+          {props.caption ? <caption>{String(props.caption)}</caption> : null}
+          <thead>
+            <tr>
+              {(props.columns ?? []).map((column, index) => (
+                <th key={index}>{String(column)}</th>
+              ))}
+            </tr>
+          </thead>
+          <tbody>
+            {(props.rows ?? []).map((row, rowIndex) => (
+              <tr key={rowIndex}>
+                {row.map((cell, cellIndex) => (
+                  <td key={cellIndex}>{String(cell)}</td>
+                ))}
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      ),
+    Spinner: ({ props }) => withSpecMarker(props, <Loader />),
+    BarGraph: ({ props }) =>
+      withSpecMarker(
+        props,
+        <div>
+          {props.title ? <strong>{String(props.title)}</strong> : null}
+          {(props.data ?? []).map((item, index) => (
+            <div key={index}>
+              {String(item.label)}: {Number(item.value)}
+            </div>
+          ))}
+        </div>
+      ),
+    LineGraph: ({ props }) =>
+      withSpecMarker(
+        props,
+        <div>
+          {props.title ? <strong>{String(props.title)}</strong> : null}
+          {(props.data ?? []).map((item, index) => (
+            <div key={index}>
+              {String(item.label)}: {Number(item.value)}
+            </div>
+          ))}
+        </div>
+      ),
     Rating: ({ props }) => withSpecMarker(props, <Rating {...props} />),
     Input: ({ props, bindings, emit }) => {
       const [boundValue, setBoundValue] = useBoundProp(
@@ -224,8 +279,8 @@ export const { registry, handlers, executeAction } = defineRegistry(catalog, {
         <Select
           {...props}
           value={value}
-          onChange={(e) => {
-            setValue(e.target.value);
+          onChange={(value) => {
+            setValue(value);
 
             emit?.("change");
           }}
@@ -270,26 +325,26 @@ export const { registry, handlers, executeAction } = defineRegistry(catalog, {
         />
       );
     },
-    // Link: ({ props, children }) =>
-    // withSpecMarker(props, <Link {...props}>{children}</Link>),
-    /* Pagination: ({ props, bindings, emit }) => {
-      const { page, ...rest } = props;
-
-      const [boundPage, setBoundPage] = useBoundProp(page, bindings?.page);
+    Link: ({ props, children }) =>
+      withSpecMarker(props, <a href={props.to}>{children}</a>),
+    Pagination: ({ props, bindings, emit }) => {
+      const [page, setPage] = useBoundProp(props.page, bindings?.page);
 
       return withSpecMarker(
         props,
-        <Pagination
-          {...rest}
-          page={boundPage}
-          onChange={(page) => {
-            setBoundPage(page);
+        <input
+          max={props.totalPages}
+          min={1}
+          type="number"
+          value={page ?? 1}
+          onChange={(event) => {
+            setPage(Number(event.target.value));
 
             emit("change");
           }}
         />
       );
-    }, */
+    },
   },
   actions: {
     // Demo actions — show toasts

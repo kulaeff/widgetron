@@ -6,5 +6,5 @@ type Props = {
 };
 
 export function Line(props: Props) {
-  return <textarea rows={3} {...props} />;
+  return <textarea rows={3} style={{ border: "none", outline: "none", resize: "none" }} {...props} />;
 }
