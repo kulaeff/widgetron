@@ -1,6 +1,6 @@
-import type { ReactNode } from "react";
+import type { ReactNode, TextareaHTMLAttributes } from "react";
 
-type Props = {
+type Props = TextareaHTMLAttributes<HTMLTextAreaElement> & {
   children?: ReactNode;
   [key: string]: unknown;
 };
