@@ -1,5 +1,7 @@
 import { Outlet } from "react-router-dom";
 import styled from "styled-components";
+import '@xyflow/react/dist/style.css';
+import { ReactFlowProvider } from "@xyflow/react";
 
 const Root = styled.div`
   height: 100%;
@@ -8,7 +10,9 @@ const Root = styled.div`
 export function App() {
   return (
     <Root>
-      <Outlet />
+      <ReactFlowProvider>
+        <Outlet />
+      </ReactFlowProvider>
     </Root>
   );
 }

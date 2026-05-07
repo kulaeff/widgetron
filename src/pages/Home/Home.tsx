@@ -13,7 +13,7 @@ import { useTranslation } from "react-i18next";
 import { useTheme } from "styled-components";
 import * as Styled from "./styled";
 import { Island } from "../../components/Island";
-import { Preview } from "../../components/Preview";
+import { Preview, type PreviewProps } from "../../components/Preview";
 import { useUIStream } from "../../hooks/useUIStream";
 import { OmniBox } from "../../components/OmniBox";
 import { ToolBar } from "../../components/ToolBar";
@@ -37,6 +37,7 @@ import {
   type DragMoveEvent,
   type DragStartEvent,
 } from "@dnd-kit/react";
+import { Background, Node, NodeOrigin, NodeProps, Panel, ReactFlow, useReactFlow } from "@xyflow/react";
 
 const EDITOR_RULES = [
   "Никогда не используй Card как root.",
@@ -119,11 +120,10 @@ const VIEWPORT_OPTIONS: Array<
 ];
 
 const ZOOM_OPTIONS: ZoomOption[] = [
-  { id: "50", label: "50%", value: 0.5 },
-  { id: "75", label: "75%", value: 0.75 },
-  { id: "100", label: "100%", value: 1 },
-  { id: "125", label: "125%", value: 1.25 },
-  { id: "150", label: "150%", value: 1.5 },
+  { id: "in", label: "Zoom in" },
+  { id: "out", label: "Zoom out" },
+  { id: "100", label: "Zoom to 100%" },
+  { id: "fit", label: "Zoom to fit" },
 ];
 
 const DESIGN_TOOLS: ToolPickerItem[] = [
@@ -131,9 +131,20 @@ const DESIGN_TOOLS: ToolPickerItem[] = [
   { id: "component", title: "Component" },
 ];
 
+type PreviewNode = Node<PreviewProps, 'renderer'>;
+
+const RendererNode: FC<NodeProps<PreviewNode>> = ({ data, selected }) => {
+  return <Preview {...data} selected={selected} />;
+};
+
+const nodeTypes = {
+  renderer: RendererNode,
+};
+
 export const Home: FC = () => {
   const { t } = useTranslation();
   const { tokens, typography } = useTheme();
+  const { fitView, zoomIn, zoomOut,zoomTo, getZoom } = useReactFlow();
 
   const [activeTab, setActiveTab] = useState(0);
   const [activeRightTab, setActiveRightTab] = useState(0);
@@ -148,7 +159,7 @@ export const Home: FC = () => {
   const [draggedCatalogComponentName, setDraggedCatalogComponentName] = useState<string | null>(null);
   const [isDesignMode, setIsDesignMode] = useState(false);
   const [selectedDesignToolId, setSelectedDesignToolId] = useState("select");
-  const [viewportId, setViewportId] = useState(VIEWPORT_OPTIONS[1]!.id);
+  const [viewportId, setViewportId] = useState(VIEWPORT_OPTIONS[0].id);
   const [zoom, setZoom] = useState(1);
 
   const generatingVersionIdRef = useRef<string>();
@@ -174,7 +185,7 @@ export const Home: FC = () => {
   const selectedViewport = useMemo(
     () =>
       VIEWPORT_OPTIONS.find((option) => option.id === viewportId) ??
-      VIEWPORT_OPTIONS[1]!,
+      VIEWPORT_OPTIONS[0],
     [viewportId]
   );
 
@@ -183,6 +194,25 @@ export const Home: FC = () => {
     ...(currentVersion?.spec?.state ?? spec?.state),
     ...state,
   };
+
+  const currentNodes = [
+    {
+      id: 'n1',
+      position: { x: 0, y: 0 },
+      data: {
+        activeDropTargetId,
+        viewportSize: selectedViewport,
+        selectedElementId,
+        spec: currentSpec,
+        state,
+        setState,
+      },
+      draggable: false,
+      origin: [0.5, 0.5] as NodeOrigin,
+      selectable: false,
+      type: "renderer",
+    },
+  ];
 
   console.log("CURRENT VERSION", currentVersion);
   console.log("CURRENT SPEC", currentSpec);
@@ -718,8 +748,20 @@ export const Home: FC = () => {
         ) : null}
       </DragOverlay>
       <Styled.Container>
-        <Styled.Workspace>
-          <Styled.Preview>
+        <ReactFlow
+          fitView
+          fitViewOptions={{
+            maxZoom: 1,
+          }}
+          nodes={currentNodes}
+          nodeTypes={nodeTypes}
+          panOnDrag={false}
+          panOnScroll
+          proOptions={{ hideAttribution: true }}
+          zoomActivationKeyCode={["Control", "Meta", "z"]}
+        >
+          <Background />
+          {/* <Styled.Preview>
             <Preview
               loading={isStreaming}
               spec={currentSpec}
@@ -734,220 +776,245 @@ export const Home: FC = () => {
               selectedElementId={selectedElementId}
               // onStateChange={handlePreviewStateChange}
             />
-          </Styled.Preview>
-          <Island position="top">
-            <SizeSelector
-              options={VIEWPORT_OPTIONS}
-              value={viewportId}
-              onChange={(value) => setViewportId(value)}
-            />
-          </Island>
-          <Island position={["right", "top"]}>
-            <Styled.ModeSwitch>
-              <Styled.ModeLabel $active={!isDesignMode}>AI mode</Styled.ModeLabel>
-              <Switch
-                checked={isDesignMode}
-                onChange={(event) => setIsDesignMode(event.target.checked)}
+          </Styled.Preview> */}
+
+          <Panel position="top-center">
+            <Island>
+              <SizeSelector
+                options={VIEWPORT_OPTIONS}
+                value={viewportId}
+                onChange={(value) => setViewportId(value)}
               />
-              <Styled.ModeLabel $active={isDesignMode}>Design mode</Styled.ModeLabel>
-            </Styled.ModeSwitch>
-          </Island>
-          <Island position={["right", "bottom"]}>
-            <ZoomControl
-              value={zoom}
-              options={ZOOM_OPTIONS}
-              onChange={(value) => setZoom(value)}
-            />
-          </Island>
+            </Island>
+          </Panel>
+
+          <Panel position="top-right">
+            <Island>
+              <Styled.ModeSwitch>
+                <Styled.ModeLabel $active={!isDesignMode}>AI mode</Styled.ModeLabel>
+                <Switch
+                  checked={isDesignMode}
+                  onChange={(event) => setIsDesignMode(event.target.checked)}
+                />
+                <Styled.ModeLabel $active={isDesignMode}>Design mode</Styled.ModeLabel>
+              </Styled.ModeSwitch>
+            </Island>
+          </Panel>
+
+          <Panel position="bottom-right">
+            <Island>
+              <ZoomControl
+                options={ZOOM_OPTIONS}
+                onChange={(id) => {
+                  if (id === "in") {
+                    zoomIn({ duration: 120, interpolate: "smooth" });
+                  } else if (id === "out") {
+                    zoomOut({ duration: 120, interpolate: "smooth" });
+                  } else if (id === "100") {
+                    zoomTo(1, { duration: 120, interpolate: "smooth" });
+                  } else if (id === "fit") {
+                    fitView({ duration: 120, interpolate: "smooth" });
+                  }
+                }}
+              />
+            </Island>
+          </Panel>
 
           {!isDesignMode && (
             <>
-              <Island
-                title={t("версии")}
-                position="left"
-                width={360}
-                height={420}
-              >
-                <Versions
-                  disabled={isStreaming}
-                  items={versions}
-                  value={selectedVersionId}
-                  onChange={(id) => {
-                    setSelectedVersionId(id);
-                    setSelectedElementId(undefined);
-                  }}
-                />
-              </Island>
-
-              <Island position="bottom" width={620}>
-                <OmniBox
-                  loading={isStreaming}
-                  onSubmit={handleOmniBoxSubmit}
-                  onReset={clear}
-                />
-              </Island>
+              <Panel position="center-left">
+                <Island title={t("версии")} width={360} height="75vh">
+                  <Versions
+                    disabled={isStreaming}
+                    items={versions}
+                    value={selectedVersionId}
+                    onChange={(id) => {
+                      setSelectedVersionId(id);
+                      setSelectedElementId(undefined);
+                    }}
+                  />
+                </Island>
+              </Panel>
+              <Panel position="bottom-center">
+                <Island width={620}>
+                  <OmniBox
+                    loading={isStreaming}
+                    onSubmit={handleOmniBoxSubmit}
+                    onReset={clear}
+                  />
+                </Island>
+              </Panel>
             </>
           )}
 
           {isDesignMode && (
             <>
               {selectedDesignToolId === "component" ? (
-                <Island position="bottom" offset={[16, 88]} width={360} height="50%">
-                  <ToolBar items={toolBarItems} />
-                </Island>
+                <Panel position="bottom-center">
+                  <Island width={360} height="50%">
+                    <ToolBar items={toolBarItems} />
+                  </Island>
+                </Panel>
               ) : null}
 
-              <Island position="left" width={360} height="75%">
-                <Sections vertical>
-                  <Section size="auto">
-                    <Styled.Tabs>
-                      <Tabs
-                        $type="tertiary"
-                        selectedIndex={activeTab}
-                        onTabChange={(_, id) => setActiveTab(id)}
-                      >
-                        <Tab>{t("элементы")}</Tab>
-                        <Tab>{t("стейт")}</Tab>
-                        <Tab>{t("поток")}</Tab>
-                        <Tab>{t("код")}</Tab>
-                      </Tabs>
-                    </Styled.Tabs>
-                  </Section>
-                  <Section>
-                    {activeTab === 0 ? (
-                      <TreeView
-                        items={treeViewElementsItems}
-                        value={selectedElementId}
-                        onChange={handleTreeViewElementsChange}
-                        onItemPositionChange={handleTreeViewMove}
-                      />
-                    ) : null}
-                    {activeTab === 1 ? (
-                      <JsonEditor
-                        height="100%"
-                        readOnly={isStreaming}
-                        sidebarOpen={false}
-                        style={
-                          {
-                            "--vj-bg": "transparent",
-                            "--vj-bg-panel": tokens.current.core.background.default,
-                            "--vj-bg-hover": tokens.current.interactive.hover.tertiary,
-                            "--vj-bg-selected": tokens.current.system["30"],
-                            "--vj-bg-selected-muted": tokens.current.system["20"],
-                            "--vj-border": tokens.current.core.border.strong,
-                            "--vj-input-font-size": typography.body1Regular.fontSize,
-                            "--vj-text": tokens.current.core.text.primary,
-                            "--vj-text-muted": tokens.current.core.text.secondary,
-                            "--vj-text-selected": tokens.current.core.text.onColor,
-                            "--vj-boolean": tokens.current.colors.green.solid["60"],
-                            "--vj-number": tokens.current.colors.blue.solid["60"],
-                            "--vj-string": tokens.current.colors.orange.solid["60"],
-                          } as CSSProperties
-                        }
-                        value={currentState as JsonValue}
-                        onChange={handleJsonEditorChange}
-                      />
-                    ) : null}
-                    {activeTab === 2 ? (
-                      <CodeBlock
-                        code={currentVersion?.raw.join("\n") ?? ""}
-                        fillHeight
-                        lang="json"
-                      />
-                    ) : null}
-                    {activeTab === 3 ? (
-                      <MonacoEditor
-                        language="json"
-                        options={{
-                          readOnly: isStreaming,
-                        }}
-                        value={JSON.stringify(currentVersion?.spec, null, 2)}
-                        onChange={handleMonacoEditorChange}
-                      />
-                    ) : null}
-                  </Section>
-                </Sections>
-              </Island>
-
-              <Island position="right" width={320} height="calc(100% - 144px)">
-                <Sections vertical>
-                  <Section size="auto">
-                    <Styled.Tabs>
-                      <Tabs
-                        $type="tertiary"
-                        selectedIndex={activeRightTab}
-                        onTabChange={(_, id) => setActiveRightTab(id)}
-                      >
-                        <Tab>{t("свойства")}</Tab>
-                        <Tab>{t("api")}</Tab>
-                      </Tabs>
-                    </Styled.Tabs>
-                  </Section>
-                  <Section>
-                    {/* eslint-disable-next-line no-nested-ternary */}
-                    {activeRightTab === 0 ? (
-                      selectedElement ? (
-                        <LevaPanel
-                          name={selectedElement.id}
-                          type={selectedElement.type}
-                          controls={selectedElement.controls}
-                          onControlChange={handleLevaControlChange}
+              <Panel position="center-left">
+                <Island width={300} height="calc(100vh - 30px)">
+                  <Sections vertical>
+                    <Section size="auto">
+                      <Styled.Tabs>
+                        <Tabs
+                          $type="tertiary"
+                          selectedIndex={activeTab}
+                          onTabChange={(_, id) => setActiveTab(id)}
+                        >
+                          <Tab>{t("элементы")}</Tab>
+                          <Tab>{t("стейт")}</Tab>
+                          <Tab>{t("поток")}</Tab>
+                          <Tab>{t("код")}</Tab>
+                        </Tabs>
+                      </Styled.Tabs>
+                    </Section>
+                    <Section>
+                      {activeTab === 0 ? (
+                        <TreeView
+                          items={treeViewElementsItems}
+                          value={selectedElementId}
+                          onChange={handleTreeViewElementsChange}
+                          onItemPositionChange={handleTreeViewMove}
                         />
-                      ) : (
-                        <Styled.Placeholder>
-                          {t("Выберите узел дерева для редактирования его свойств")}
-                        </Styled.Placeholder>
-                      )
-                    ) : null}
-                    {activeRightTab === 1 && (
-                      <>
-                        <FormField>
-                          <Label>
-                            <label htmlFor="url">url</label>
-                          </Label>
-                          <Control>
-                            <Input id="url" value={url} onChange={(e) => setUrl(e.target.value)} />
-                          </Control>
-                        </FormField>
-                        <FormField>
-                          <Label>
-                            <label htmlFor="method">method</label>
-                          </Label>
-                          <Control>
-                            <Select
-                              id="method"
-                              value={method}
-                              onChange={(value) => setMethod(value)}
-                            >
-                              <Option value="GET">GET</Option>
-                              <Option value="POST">POST</Option>
-                            </Select>
-                          </Control>
-                        </FormField>
-                        <FormField>
-                          <Label>
-                            <label htmlFor="type">type</label>
-                          </Label>
-                          <Control>
-                            <TextArea id="type" rows={5} value={type} onChange={(e) => setType(e.target.value)} />
-                          </Control>
-                        </FormField>
-                        <Button onClick={handleButtonFetchDataSourceClick}>{t("получить")}</Button>
-                      </>
-                    )}
-                  </Section>
-                </Sections>
-              </Island>
-              <Island position="bottom">
-                <ToolPicker
-                  tools={DESIGN_TOOLS}
-                  defaultSelectedId={selectedDesignToolId}
-                  onSelect={setSelectedDesignToolId}
-                />
-              </Island>
+                      ) : null}
+                      {activeTab === 1 ? (
+                        <JsonEditor
+                          height="100%"
+                          readOnly={isStreaming}
+                          sidebarOpen={false}
+                          style={
+                            {
+                              "--vj-bg": "transparent",
+                              "--vj-bg-panel": tokens.current.core.background.default,
+                              "--vj-bg-hover": tokens.current.interactive.hover.tertiary,
+                              "--vj-bg-selected": tokens.current.system["30"],
+                              "--vj-bg-selected-muted": tokens.current.system["20"],
+                              "--vj-border": tokens.current.core.border.strong,
+                              "--vj-input-font-size": typography.body1Regular.fontSize,
+                              "--vj-text": tokens.current.core.text.primary,
+                              "--vj-text-muted": tokens.current.core.text.secondary,
+                              "--vj-text-selected": tokens.current.core.text.onColor,
+                              "--vj-boolean": tokens.current.colors.green.solid["60"],
+                              "--vj-number": tokens.current.colors.blue.solid["60"],
+                              "--vj-string": tokens.current.colors.orange.solid["60"],
+                            } as CSSProperties
+                          }
+                          value={currentState as JsonValue}
+                          onChange={handleJsonEditorChange}
+                        />
+                      ) : null}
+                      {activeTab === 2 ? (
+                        <CodeBlock
+                          code={currentVersion?.raw.join("\n") ?? ""}
+                          fillHeight
+                          lang="json"
+                        />
+                      ) : null}
+                      {activeTab === 3 ? (
+                        <MonacoEditor
+                          language="json"
+                          options={{
+                            readOnly: isStreaming,
+                          }}
+                          value={JSON.stringify(currentVersion?.spec, null, 2)}
+                          onChange={handleMonacoEditorChange}
+                        />
+                      ) : null}
+                    </Section>
+                  </Sections>
+                </Island>
+              </Panel>
+
+              <Panel position="center-right">
+                <Island width={300} height="calc(100vh - 136px)">
+                  <Sections vertical>
+                    <Section size="auto">
+                      <Styled.Tabs>
+                        <Tabs
+                          $type="tertiary"
+                          selectedIndex={activeRightTab}
+                          onTabChange={(_, id) => setActiveRightTab(id)}
+                        >
+                          <Tab>{t("свойства")}</Tab>
+                          <Tab>{t("api")}</Tab>
+                        </Tabs>
+                      </Styled.Tabs>
+                    </Section>
+                    <Section>
+                      {/* eslint-disable-next-line no-nested-ternary */}
+                      {activeRightTab === 0 ? (
+                        selectedElement ? (
+                          <LevaPanel
+                            name={selectedElement.id}
+                            type={selectedElement.type}
+                            controls={selectedElement.controls}
+                            onControlChange={handleLevaControlChange}
+                          />
+                        ) : (
+                          <Styled.Placeholder>
+                            {t("Выберите узел дерева для редактирования его свойств")}
+                          </Styled.Placeholder>
+                        )
+                      ) : null}
+                      {activeRightTab === 1 && (
+                        <>
+                          <FormField>
+                            <Label>
+                              <label htmlFor="url">url</label>
+                            </Label>
+                            <Control>
+                              <Input id="url" value={url} onChange={(e) => setUrl(e.target.value)} />
+                            </Control>
+                          </FormField>
+                          <FormField>
+                            <Label>
+                              <label htmlFor="method">method</label>
+                            </Label>
+                            <Control>
+                              <Select
+                                id="method"
+                                value={method}
+                                onChange={(value) => setMethod(value)}
+                              >
+                                <Option value="GET">GET</Option>
+                                <Option value="POST">POST</Option>
+                              </Select>
+                            </Control>
+                          </FormField>
+                          <FormField>
+                            <Label>
+                              <label htmlFor="type">type</label>
+                            </Label>
+                            <Control>
+                              <TextArea id="type" rows={5} value={type} onChange={(e) => setType(e.target.value)} />
+                            </Control>
+                          </FormField>
+                          <Button onClick={handleButtonFetchDataSourceClick}>{t("получить")}</Button>
+                        </>
+                      )}
+                    </Section>
+                  </Sections>
+                </Island>
+              </Panel>
+
+              <Panel position="bottom-center">
+                <Island>
+                  <ToolPicker
+                    tools={DESIGN_TOOLS}
+                    defaultSelectedId={selectedDesignToolId}
+                    onSelect={setSelectedDesignToolId}
+                  />
+                </Island>
+              </Panel>
             </>
           )}
-        </Styled.Workspace>
+        </ReactFlow>
       </Styled.Container>
     </DragDropProvider>
   );

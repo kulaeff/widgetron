@@ -30,12 +30,9 @@ export const Dropdown = styled("div")(({ theme }) => ({
   zIndex: 2,
 }));
 
-export const OptionButton = styled("button")<{ $active: boolean }>(
-  ({ $active, theme }) => ({
+export const OptionButton = styled("button")(
+  ({ theme }) => ({
     ...theme.typography.body2Regular,
-    backgroundColor: $active
-      ? theme.tokens.current.system["20"]
-      : theme.tokens.current.core.background.default,
     border: "none",
     color: theme.tokens.current.core.text.primary,
     cursor: "pointer",

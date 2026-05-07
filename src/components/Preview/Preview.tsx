@@ -4,9 +4,10 @@ import { useEffect, useMemo, type FC } from "react";
 import * as Styled from "./styled";
 import { Renderer, type RendererProps } from "../../components/Renderer";
 
-interface PreviewProps extends Omit<RendererProps, "spec"> {
+export interface PreviewProps extends Omit<RendererProps, "spec">, Record<string, unknown> {
   spec: Spec | null;
   activeDropTargetId?: string | null;
+  selected?: boolean;
   selectedElementId?: string;
   viewportSize?: {
     width: number;
@@ -18,6 +19,7 @@ interface PreviewProps extends Omit<RendererProps, "spec"> {
 export const Preview: FC<PreviewProps> = ({
   spec,
   state,
+  selected = false,
   loading = false,
   setState,
   activeDropTargetId,
@@ -103,6 +105,7 @@ export const Preview: FC<PreviewProps> = ({
 
   return (
     <Styled.Container
+      $selected={selected}
       data-element-id="preview"
       ref={previewDropRef}
       style={{
