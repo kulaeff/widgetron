@@ -15,7 +15,6 @@ import { useUIStream } from "../../hooks/useUIStream";
 import { OmniBox } from "../../components/OmniBox";
 import { ToolBar } from "../../components/ToolBar";
 import { TreeView } from "../../components/TreeView";
-import type { TreeItem } from "../../components/TreeView/TreeView";
 import { catalog } from "../../lib/catalog";
 import { buildCatalogData, type CatalogComponentInfo } from "../../utils/catalog-data";
 import { type LevaControl, LevaPanel } from "../../components/LevaPanel";
@@ -32,6 +31,11 @@ import {
   type DragMoveEvent,
   type DragStartEvent,
 } from "@dnd-kit/react";
+import {
+  addCatalogComponentToVersions,
+  buildSpecTreeItems,
+  moveElementInSpec,
+} from "./spec-utils";
 
 const EDITOR_RULES = [
   "Никогда не используй Card как root.",
@@ -218,61 +222,10 @@ export const Home: FC = () => {
     };
   }, [components, currentVersion, selectedElementId]);
 
-  // Convert the spec elements into a nested tree
-  const treeViewElementsItems = useMemo(() => {
-    if (!currentSpec) {
-      return [];
-    }
-
-    const { elements, root } = currentSpec;
-    const visited = new Set<string>();
-
-    const resolveNode = (id: string, detached = false): TreeItem | null => {
-      const node = elements[id];
-
-      if (!node) {
-        return null;
-      }
-
-      if (visited.has(id) && !detached) {
-        return null;
-      }
-
-      if (!detached) {
-        visited.add(id);
-      }
-
-      const data = components.find((c) => c.name === node.type);
-
-      return {
-        canDrop: Boolean(data && data.slots.length >= 1),
-        detached,
-        id,
-        isRoot: !detached && id === root,
-        label: id,
-        type: node.type,
-        children: (node.children ?? [])
-          .map((childId) => resolveNode(childId, detached))
-          .filter(Boolean) as TreeItem[],
-      };
-    };
-
-    const treeItems: TreeItem[] = [];
-
-    if (root && root.length > 0) {
-      const rootNode = resolveNode(root);
-      if (rootNode) {
-        treeItems.push(rootNode);
-      }
-    }
-
-    const detachedItems = Object.keys(elements)
-      .filter((id) => !visited.has(id))
-      .map((id) => resolveNode(id, true))
-      .filter(Boolean) as TreeItem[];
-
-    return [...treeItems, ...detachedItems];
-  }, [components, currentSpec]);
+  const treeViewElementsItems = useMemo(
+    () => buildSpecTreeItems(currentSpec, components),
+    [components, currentSpec]
+  );
 
   const handleButtonFetchDataSourceClick = async () => {
     const response = await fetch(url, {
@@ -403,79 +356,24 @@ export const Home: FC = () => {
 
       if (!component) return;
 
-      let nextElementKey = "";
       const nextVersionId = Date.now().toString();
-
-      setVersions((p) => {
-        if (p.length === 0) {
-          nextElementKey = `root-${componentName.toLocaleLowerCase()}`;
-
-          return [
-            {
-              id: nextVersionId,
-              prompt: "xxx",
-              raw: [],
-              spec: {
-                root: nextElementKey,
-                elements: {
-                  [nextElementKey]: {
-                    type: componentName,
-                    props: {},
-                  },
-                },
-              },
-              status: "complete",
-              usage: null,
-            },
-          ];
-        }
-
-        return p.map((v) => {
-          const index = Object.keys(v.spec?.elements ?? {}).filter((k) =>
-            k.startsWith(componentName)
-          ).length;
-
-          nextElementKey = `${componentName.toLocaleLowerCase()}${index === 0 ? "" : `-${index + 1}`
-            }`;
-
-          const targetElement = v.spec?.elements[targetElementId];
-
-          return v.id === selectedVersionId
-            ? {
-              ...v,
-              spec: {
-                ...v.spec,
-                elements: {
-                  ...v.spec?.elements,
-                  [nextElementKey]: {
-                    type: componentName,
-                    props: {},
-                  },
-                  ...(targetElementId === "preview"
-                    ? {}
-                    : {
-                      [targetElementId]: {
-                        ...targetElement,
-                        children: [
-                          ...(targetElement?.children ?? []),
-                          nextElementKey,
-                        ],
-                      },
-                    }),
-                },
-              },
-            }
-            : v;
-        });
+      const result = addCatalogComponentToVersions({
+        component,
+        nextVersionId,
+        selectedVersionId,
+        targetElementId,
+        versions,
       });
 
-      if (!selectedVersionId) {
-        setSelectedVersionId(nextVersionId);
+      if (!result.nextElementKey) {
+        return;
       }
 
-      setSelectedElementId(nextElementKey);
+      setVersions(result.versions);
+      setSelectedVersionId(result.selectedVersionId);
+      setSelectedElementId(result.nextElementKey);
     },
-    [components, selectedVersionId]
+    [components, selectedVersionId, versions]
   );
 
   const resolveDropTargetFromNativeEvent = (event?: Event): string | null => {
@@ -588,69 +486,21 @@ export const Home: FC = () => {
       targetId: string;
       placement: "inside" | "before" | "after";
     }) => {
-      if (sourceId === targetId) return;
-
       setVersions((p) =>
-        p.map((v) => {
-          const sourceParent = sourceParentId
-            ? v.spec?.elements[sourceParentId]
-            : null;
-          const targetParent = v.spec?.elements[targetParentId];
-
-          if (!targetParent) {
-            return v;
-          }
-
-          const sourceParentChildren = sourceParent?.children ?? [];
-          const nextSourceParentChildren = sourceParentChildren.filter((id) => id !== sourceId);
-          const targetParentChildren =
-            sourceParentId && sourceParentId === targetParentId
-              ? nextSourceParentChildren
-              : (targetParent.children ?? []);
-
-          const nextTargetParentChildren = [...targetParentChildren];
-
-          if (placement === "inside") {
-            nextTargetParentChildren.push(sourceId);
-          } else {
-            const targetIndex = nextTargetParentChildren.findIndex(
-              (id) => id === targetId
-            );
-
-            if (targetIndex === -1) {
-              return v;
-            }
-
-            const nextIndex =
-              placement === "before" ? targetIndex : targetIndex + 1;
-
-            nextTargetParentChildren.splice(nextIndex, 0, sourceId);
-          }
-
-          return v.id === selectedVersionId
+        p.map((v) =>
+          v.id === selectedVersionId
             ? {
               ...v,
-              spec: {
-                ...(v.spec ?? { root: "", elements: {} }),
-                elements: {
-                  ...v.spec?.elements,
-                  ...(sourceParentId && sourceParent
-                    ? {
-                      [sourceParentId]: {
-                        ...sourceParent,
-                        children: nextSourceParentChildren,
-                      },
-                    }
-                    : {}),
-                  [targetParentId]: {
-                    ...targetParent,
-                    children: nextTargetParentChildren,
-                  },
-                },
-              },
+              spec: moveElementInSpec(v.spec, {
+                sourceParentId,
+                sourceId,
+                targetParentId,
+                targetId,
+                placement,
+              }),
             }
-            : v;
-        })
+            : v
+        )
       );
     },
     [selectedVersionId]
