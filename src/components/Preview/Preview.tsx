@@ -8,6 +8,11 @@ interface PreviewProps extends Omit<RendererProps, "spec"> {
   spec: Spec | null;
   activeDropTargetId?: string | null;
   selectedElementId?: string;
+  viewportSize?: {
+    width: number;
+    height: number;
+  };
+  zoom?: number;
 }
 
 export const Preview: FC<PreviewProps> = ({
@@ -18,6 +23,8 @@ export const Preview: FC<PreviewProps> = ({
   activeDropTargetId,
   selectedElementId,
   onStateChange,
+  viewportSize,
+  zoom = 1,
 }) => {
   const { ref: previewDropRef } = useDroppable({
     id: "preview",
@@ -98,6 +105,11 @@ export const Preview: FC<PreviewProps> = ({
     <Styled.Container
       data-element-id="preview"
       ref={previewDropRef}
+      style={{
+        ...viewportSize,
+        transform: `scale(${zoom})`,
+        transformOrigin: "center center",
+      }}
     >
       {/* eslint-disable-next-line no-nested-ternary */}
       {markedSpec && markedSpec.root.length > 0 ? (

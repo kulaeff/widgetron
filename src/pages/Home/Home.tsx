@@ -6,14 +6,19 @@ import { Control, FormField, Label } from "@pulse/ui/components/FormField";
 import { Input } from "@pulse/ui/components/Input";
 import { Tab, Tabs } from "@pulse/ui/components/Tabs";
 import { TextArea } from "@pulse/ui/components/Input/TextArea";
+import { SizeSelector, type SizeSelectorOption } from "@pulse/ui/components/SizeSelector";
+import { Switch } from "@pulse/ui/components/Switch";
 import { CSSProperties, type FC, useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { useTheme } from "styled-components";
 import * as Styled from "./styled";
+import { Island } from "../../components/Island";
 import { Preview } from "../../components/Preview";
 import { useUIStream } from "../../hooks/useUIStream";
 import { OmniBox } from "../../components/OmniBox";
 import { ToolBar } from "../../components/ToolBar";
+import { ToolPicker, type ToolPickerItem } from "../../components/ToolPicker";
+import { ZoomControl, type ZoomOption } from "../../components/ZoomControl";
 import { TreeView } from "../../components/TreeView";
 import type { TreeItem } from "../../components/TreeView/TreeView";
 import { catalog } from "../../lib/catalog";
@@ -105,12 +110,32 @@ const DEFAULT_SPEC = {
   },
 };
 
+const VIEWPORT_OPTIONS: Array<
+  SizeSelectorOption & { width: number; height: number }
+> = [
+  { id: "sm", label: "SM", width: 290, height: 290 },
+  { id: "md", label: "MD", width: 512, height: 512 },
+  { id: "lg", label: "LG", width: 800, height: 800 },
+];
+
+const ZOOM_OPTIONS: ZoomOption[] = [
+  { id: "50", label: "50%", value: 0.5 },
+  { id: "75", label: "75%", value: 0.75 },
+  { id: "100", label: "100%", value: 1 },
+  { id: "125", label: "125%", value: 1.25 },
+  { id: "150", label: "150%", value: 1.5 },
+];
+
+const DESIGN_TOOLS: ToolPickerItem[] = [
+  { id: "select", title: "Select" },
+  { id: "component", title: "Component" },
+];
+
 export const Home: FC = () => {
   const { t } = useTranslation();
   const { tokens, typography } = useTheme();
 
   const [activeTab, setActiveTab] = useState(0);
-  const [activeTabLeft, setActiveTabLeft] = useState(0);
   const [activeRightTab, setActiveRightTab] = useState(0);
   const [selectedElementId, setSelectedElementId] = useState<string>();
   const [selectedVersionId, setSelectedVersionId] = useState<string>();
@@ -121,6 +146,10 @@ export const Home: FC = () => {
   const [versions, setVersions] = useState<Version[]>([]);
   const [activeDropTargetId, setActiveDropTargetId] = useState<string | null>(null);
   const [draggedCatalogComponentName, setDraggedCatalogComponentName] = useState<string | null>(null);
+  const [isDesignMode, setIsDesignMode] = useState(false);
+  const [selectedDesignToolId, setSelectedDesignToolId] = useState("select");
+  const [viewportId, setViewportId] = useState(VIEWPORT_OPTIONS[1]!.id);
+  const [zoom, setZoom] = useState(1);
 
   const generatingVersionIdRef = useRef<string>();
 
@@ -141,6 +170,12 @@ export const Home: FC = () => {
   const currentVersion = useMemo(
     () => versions.find((v) => v.id === selectedVersionId),
     [selectedVersionId, versions]
+  );
+  const selectedViewport = useMemo(
+    () =>
+      VIEWPORT_OPTIONS.find((option) => option.id === viewportId) ??
+      VIEWPORT_OPTIONS[1]!,
+    [viewportId]
   );
 
   const currentSpec = currentVersion?.spec ?? spec;
@@ -495,6 +530,7 @@ export const Home: FC = () => {
 
     if (data?.kind === "catalog-component") {
       setDraggedCatalogComponentName(data.componentName);
+      setSelectedDesignToolId("select");
     } else {
       setDraggedCatalogComponentName(null);
     }
@@ -682,223 +718,236 @@ export const Home: FC = () => {
         ) : null}
       </DragOverlay>
       <Styled.Container>
-      <Sections>
-        <Section size={358}>
-          <Sections vertical>
-            <Section size="auto">
-              <Styled.Tabs>
-                <Tabs
-                  $type="tertiary"
-                  selectedIndex={activeTabLeft}
-                  onTabChange={(_, id) => setActiveTabLeft(id)}
-                >
-                  <Tab>{t("версии")}</Tab>
-                  <Tab>{t("компоненты")}</Tab>
-                </Tabs>
-              </Styled.Tabs>
-            </Section>
-            <Section>
-              {activeTabLeft === 0 && (
+        <Styled.Workspace>
+          <Styled.Preview>
+            <Preview
+              loading={isStreaming}
+              spec={currentSpec}
+              state={currentState}
+              viewportSize={{
+                width: selectedViewport.width,
+                height: selectedViewport.height,
+              }}
+              zoom={zoom}
+              activeDropTargetId={draggedCatalogComponentName ? activeDropTargetId : null}
+              setState={setState}
+              selectedElementId={selectedElementId}
+              // onStateChange={handlePreviewStateChange}
+            />
+          </Styled.Preview>
+          <Island position="top">
+            <SizeSelector
+              options={VIEWPORT_OPTIONS}
+              value={viewportId}
+              onChange={(value) => setViewportId(value)}
+            />
+          </Island>
+          <Island position={["right", "top"]}>
+            <Styled.ModeSwitch>
+              <Styled.ModeLabel $active={!isDesignMode}>AI mode</Styled.ModeLabel>
+              <Switch
+                checked={isDesignMode}
+                onChange={(event) => setIsDesignMode(event.target.checked)}
+              />
+              <Styled.ModeLabel $active={isDesignMode}>Design mode</Styled.ModeLabel>
+            </Styled.ModeSwitch>
+          </Island>
+          <Island position={["right", "bottom"]}>
+            <ZoomControl
+              value={zoom}
+              options={ZOOM_OPTIONS}
+              onChange={(value) => setZoom(value)}
+            />
+          </Island>
+
+          {!isDesignMode && (
+            <>
+              <Island
+                title={t("версии")}
+                position="left"
+                width={360}
+                height={420}
+              >
+                <Versions
+                  disabled={isStreaming}
+                  items={versions}
+                  value={selectedVersionId}
+                  onChange={(id) => {
+                    setSelectedVersionId(id);
+                    setSelectedElementId(undefined);
+                  }}
+                />
+              </Island>
+
+              <Island position="bottom" width={620}>
+                <OmniBox
+                  loading={isStreaming}
+                  onSubmit={handleOmniBoxSubmit}
+                  onReset={clear}
+                />
+              </Island>
+            </>
+          )}
+
+          {isDesignMode && (
+            <>
+              {selectedDesignToolId === "component" ? (
+                <Island position="bottom" offset={[16, 88]} width={360} height="50%">
+                  <ToolBar items={toolBarItems} />
+                </Island>
+              ) : null}
+
+              <Island position="left" width={360} height="75%">
                 <Sections vertical>
-                  <Section>
-                    <Versions
-                      disabled={isStreaming}
-                      items={versions}
-                      value={selectedVersionId}
-                      onChange={(id) => {
-                        setSelectedVersionId(id);
-                        setSelectedElementId(undefined);
-                      }}
-                    />
-                  </Section>
                   <Section size="auto">
-                    <OmniBox
-                      loading={isStreaming}
-                      onSubmit={handleOmniBoxSubmit}
-                      onReset={clear}
-                    />
+                    <Styled.Tabs>
+                      <Tabs
+                        $type="tertiary"
+                        selectedIndex={activeTab}
+                        onTabChange={(_, id) => setActiveTab(id)}
+                      >
+                        <Tab>{t("элементы")}</Tab>
+                        <Tab>{t("стейт")}</Tab>
+                        <Tab>{t("поток")}</Tab>
+                        <Tab>{t("код")}</Tab>
+                      </Tabs>
+                    </Styled.Tabs>
+                  </Section>
+                  <Section>
+                    {activeTab === 0 ? (
+                      <TreeView
+                        items={treeViewElementsItems}
+                        value={selectedElementId}
+                        onChange={handleTreeViewElementsChange}
+                        onItemPositionChange={handleTreeViewMove}
+                      />
+                    ) : null}
+                    {activeTab === 1 ? (
+                      <JsonEditor
+                        height="100%"
+                        readOnly={isStreaming}
+                        sidebarOpen={false}
+                        style={
+                          {
+                            "--vj-bg": "transparent",
+                            "--vj-bg-panel": tokens.current.core.background.default,
+                            "--vj-bg-hover": tokens.current.interactive.hover.tertiary,
+                            "--vj-bg-selected": tokens.current.system["30"],
+                            "--vj-bg-selected-muted": tokens.current.system["20"],
+                            "--vj-border": tokens.current.core.border.strong,
+                            "--vj-input-font-size": typography.body1Regular.fontSize,
+                            "--vj-text": tokens.current.core.text.primary,
+                            "--vj-text-muted": tokens.current.core.text.secondary,
+                            "--vj-text-selected": tokens.current.core.text.onColor,
+                            "--vj-boolean": tokens.current.colors.green.solid["60"],
+                            "--vj-number": tokens.current.colors.blue.solid["60"],
+                            "--vj-string": tokens.current.colors.orange.solid["60"],
+                          } as CSSProperties
+                        }
+                        value={currentState as JsonValue}
+                        onChange={handleJsonEditorChange}
+                      />
+                    ) : null}
+                    {activeTab === 2 ? (
+                      <CodeBlock
+                        code={currentVersion?.raw.join("\n") ?? ""}
+                        fillHeight
+                        lang="json"
+                      />
+                    ) : null}
+                    {activeTab === 3 ? (
+                      <MonacoEditor
+                        language="json"
+                        options={{
+                          readOnly: isStreaming,
+                        }}
+                        value={JSON.stringify(currentVersion?.spec, null, 2)}
+                        onChange={handleMonacoEditorChange}
+                      />
+                    ) : null}
                   </Section>
                 </Sections>
-              )}
-              {activeTabLeft === 1 && (
-                <ToolBar items={toolBarItems} />
-              )}
-            </Section>
-          </Sections>
-        </Section>
-        {/* COMPONENTS */}
-        <Section size={400}>
-          <Sections vertical>
-            <Section size="auto">
-              <Styled.Tabs>
-                <Tabs
-                  $type="tertiary"
-                  selectedIndex={activeTab}
-                  onTabChange={(_, id) => setActiveTab(id)}
-                >
-                  <Tab>{t("элементы")}</Tab>
-                  <Tab>{t("стейт")}</Tab>
-                  <Tab>{t("поток")}</Tab>
-                  <Tab>{t("код")}</Tab>
-                </Tabs>
-              </Styled.Tabs>
-            </Section>
-            <Section>
-              {activeTab === 0 ? (
-                <TreeView
-                  items={treeViewElementsItems}
-                  value={selectedElementId}
-                  onChange={handleTreeViewElementsChange}
-                  onItemPositionChange={handleTreeViewMove}
-                />
-              ) : null}
-              {activeTab === 1 ? (
-                <JsonEditor
-                  height="100%"
-                  readOnly={isStreaming}
-                  sidebarOpen={false}
-                  style={
-                    {
-                      "--vj-bg": "transparent",
-                      "--vj-bg-panel": tokens.current.core.background.default,
-                      "--vj-bg-hover": tokens.current.interactive.hover.tertiary,
-                      "--vj-bg-selected": tokens.current.system["30"],
-                      "--vj-bg-selected-muted": tokens.current.system["20"],
-                      "--vj-border": tokens.current.core.border.strong,
-                      "--vj-input-font-size": typography.body1Regular.fontSize,
-                      "--vj-text": tokens.current.core.text.primary,
-                      "--vj-text-muted": tokens.current.core.text.secondary,
-                      "--vj-text-selected": tokens.current.core.text.onColor,
-                      "--vj-boolean": tokens.current.colors.green.solid["60"],
-                      "--vj-number": tokens.current.colors.blue.solid["60"],
-                      "--vj-string": tokens.current.colors.orange.solid["60"],
-                    } as CSSProperties
-                  }
-                  value={currentState as JsonValue}
-                  onChange={handleJsonEditorChange}
-                />
-              ) : null}
-              {activeTab === 2 ? (
-                <CodeBlock
-                  code={currentVersion?.raw.join("\n") ?? ""}
-                  fillHeight
-                  lang="json"
-                />
-              ) : null}
-              {activeTab === 3 ? (
-                <MonacoEditor
-                  language="json"
-                  options={{
-                    readOnly: isStreaming,
-                  }}
-                  value={JSON.stringify(currentVersion?.spec, null, 2)}
-                  onChange={handleMonacoEditorChange}
-                />
-              ) : null}
-            </Section>
-          </Sections>
-        </Section>
-        {/* PREVIEW */}
-        <Section>
-          {/* Preview */}
-          <Sections vertical>
-            <Section size="auto">
-              <Styled.Tabs>
-                <Tabs
-                  $type="tertiary"
-                  selectedIndex={activeTabLeft}
-                  onTabChange={(_, id) => setActiveTabLeft(id)}
-                >
-                  <Tab>{t("превью")}</Tab>
-                </Tabs>
-              </Styled.Tabs>
-            </Section>
-            <Section>
-              <Styled.Preview>
-                <Preview
-                  loading={isStreaming}
-                  spec={currentSpec}
-                  state={currentState}
-                  activeDropTargetId={draggedCatalogComponentName ? activeDropTargetId : null}
-                  setState={setState}
-                  selectedElementId={selectedElementId}
-                  // onStateChange={handlePreviewStateChange}
-                />
-              </Styled.Preview>
-            </Section>
-          </Sections>
-        </Section>
-        {/* PROPERTIES */}
-        <Section size={400}>
-          <Sections vertical>
-            <Section size="auto">
-              <Styled.Tabs>
-                <Tabs
-                  $type="tertiary"
-                  selectedIndex={activeRightTab}
-                  onTabChange={(_, id) => setActiveRightTab(id)}
-                >
-                  <Tab>{t("свойства")}</Tab>
-                  <Tab>{t("api")}</Tab>
-                </Tabs>
-              </Styled.Tabs>
-            </Section>
-            <Section>
-              {/* eslint-disable-next-line no-nested-ternary */}
-              {activeRightTab === 0 ? (
-                selectedElement ? (
-                  <LevaPanel
-                    name={selectedElement.id}
-                    type={selectedElement.type}
-                    controls={selectedElement.controls}
-                    onControlChange={handleLevaControlChange}
-                  />
-                ) : (
-                  <Styled.Placeholder>
-                    {t("Выберите узел дерева для редактирования его свойств")}
-                  </Styled.Placeholder>
-                )
-              ) : null}
-              {activeRightTab === 1 && (
-                <>
-                  <FormField>
-                    <Label>
-                      <label htmlFor="url">url</label>
-                    </Label>
-                    <Control>
-                      <Input id="url" value={url} onChange={(e) => setUrl(e.target.value)} />
-                    </Control>
-                  </FormField>
-                  <FormField>
-                    <Label>
-                      <label htmlFor="method">method</label>
-                    </Label>
-                    <Control>
-                      <Select
-                        id="method"
-                        value={method}
-                        onChange={(value) => setMethod(value)}
+              </Island>
+
+              <Island position="right" width={320} height="calc(100% - 144px)">
+                <Sections vertical>
+                  <Section size="auto">
+                    <Styled.Tabs>
+                      <Tabs
+                        $type="tertiary"
+                        selectedIndex={activeRightTab}
+                        onTabChange={(_, id) => setActiveRightTab(id)}
                       >
-                        <Option value="GET">GET</Option>
-                        <Option value="POST">POST</Option>
-                      </Select>
-                    </Control>
-                  </FormField>
-                  <FormField>
-                    <Label>
-                      <label htmlFor="type">type</label>
-                    </Label>
-                    <Control>
-                      <TextArea id="type" rows={5} value={type} onChange={(e) => setType(e.target.value)} />
-                    </Control>
-                  </FormField>
-                  <Button onClick={handleButtonFetchDataSourceClick}>{t("получить")}</Button>
-                </>
-              )}
-            </Section>
-          </Sections>
-        </Section>
-      </Sections>
+                        <Tab>{t("свойства")}</Tab>
+                        <Tab>{t("api")}</Tab>
+                      </Tabs>
+                    </Styled.Tabs>
+                  </Section>
+                  <Section>
+                    {/* eslint-disable-next-line no-nested-ternary */}
+                    {activeRightTab === 0 ? (
+                      selectedElement ? (
+                        <LevaPanel
+                          name={selectedElement.id}
+                          type={selectedElement.type}
+                          controls={selectedElement.controls}
+                          onControlChange={handleLevaControlChange}
+                        />
+                      ) : (
+                        <Styled.Placeholder>
+                          {t("Выберите узел дерева для редактирования его свойств")}
+                        </Styled.Placeholder>
+                      )
+                    ) : null}
+                    {activeRightTab === 1 && (
+                      <>
+                        <FormField>
+                          <Label>
+                            <label htmlFor="url">url</label>
+                          </Label>
+                          <Control>
+                            <Input id="url" value={url} onChange={(e) => setUrl(e.target.value)} />
+                          </Control>
+                        </FormField>
+                        <FormField>
+                          <Label>
+                            <label htmlFor="method">method</label>
+                          </Label>
+                          <Control>
+                            <Select
+                              id="method"
+                              value={method}
+                              onChange={(value) => setMethod(value)}
+                            >
+                              <Option value="GET">GET</Option>
+                              <Option value="POST">POST</Option>
+                            </Select>
+                          </Control>
+                        </FormField>
+                        <FormField>
+                          <Label>
+                            <label htmlFor="type">type</label>
+                          </Label>
+                          <Control>
+                            <TextArea id="type" rows={5} value={type} onChange={(e) => setType(e.target.value)} />
+                          </Control>
+                        </FormField>
+                        <Button onClick={handleButtonFetchDataSourceClick}>{t("получить")}</Button>
+                      </>
+                    )}
+                  </Section>
+                </Sections>
+              </Island>
+              <Island position="bottom">
+                <ToolPicker
+                  tools={DESIGN_TOOLS}
+                  defaultSelectedId={selectedDesignToolId}
+                  onSelect={setSelectedDesignToolId}
+                />
+              </Island>
+            </>
+          )}
+        </Styled.Workspace>
       </Styled.Container>
     </DragDropProvider>
   );

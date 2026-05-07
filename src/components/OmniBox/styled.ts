@@ -3,16 +3,14 @@ import styled from "styled-components";
 export const Buttons = styled("div")`
   display: flex;
   justify-content: space-between;
-  padding: 0 16px 12px 16px;
 `;
 
-export const OmniBox = styled("div")`
-  padding: 4px 0;
-`;
+export const OmniBox = styled("div")``;
 
 export const Flex = styled("div")({
   display: "flex",
   flexDirection: "column",
+  gap: "8px",
 });
 
 export const Input = styled("textarea")(({ theme }) => ({

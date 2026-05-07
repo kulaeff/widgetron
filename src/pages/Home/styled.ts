@@ -9,6 +9,31 @@ export const Container = styled("div")({
   fontFamily: '"SB Sans Text", Helvetica, Arial, sans-serif',
 });
 
+export const Workspace = styled("div")`
+  height: 100%;
+  overflow: hidden;
+  position: relative;
+`;
+
+export const ModeSwitch = styled("div")(
+  ({ theme }) => css`
+    ${theme.typography.body2Regular}
+    align-items: center;
+    color: ${theme.tokens.current.core.text.secondary};
+    display: inline-flex;
+    gap: 8px;
+  `
+);
+
+export const ModeLabel = styled("span")<{ $active?: boolean }>(
+  ({ $active, theme }) => css`
+    color: ${$active
+      ? theme.tokens.current.core.text.primary
+      : theme.tokens.current.core.text.secondary};
+    transition: color 0.15s ease;
+  `
+);
+
 export const Placeholder = styled.div(
   ({ theme }) => css`
     ${theme.typography.body2Regular}
@@ -24,6 +49,12 @@ export const Placeholder = styled.div(
 export const Preview = styled("div")`
   align-items: center;
   background-color: ${({ theme }) => theme.tokens.current.core.layer["01"]};
+  background-image: radial-gradient(
+    ${({ theme }) => theme.tokens.current.core.border.strong} 1px,
+    transparent 1px
+  );
+  background-position: 0 0;
+  background-size: 16px 16px;
   box-sizing: border-box;
   display: flex;
   height: 100%;
