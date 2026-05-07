@@ -9,7 +9,7 @@ const buildAvailableActions = (actions: CatalogActionInfo[]) =>
   actions.map(
     (c) =>
       `- ${c.name}: { ${c.params
-        .map((p) => `${p.name}: ${p.type}${p.default ? ` = ${p.default}` : ""}`)
+        .map(formatCatalogField)
         .join("; ")} } - ${c.description}`
   );
 
@@ -17,7 +17,7 @@ const buildAvailableComponents = (components: CatalogComponentInfo[]) =>
   components.map(
     (c) =>
       `- ${c.name}: { ${c.props
-        .map((p) => `${p.name}: ${p.type}${p.default ? ` = ${p.default}` : ""}`)
+        .map(formatCatalogField)
         .join("; ")} } - ${c.description} ${
         c.slots.length > 0 ? "[принимает children]" : ""
       }${c.events.length > 0 ? ` [события: ${c.events.join(", ")}]` : ""}`
@@ -27,9 +27,18 @@ const buildAvailableFunctions = (functions: CatalogFunctionInfo[]) =>
   functions.map(
     (c) =>
       `- ${c.name}: { ${c.params
-        .map((p) => `${p.name}: ${p.type}${p.default ? ` = ${p.default}` : ""}`)
+        .map(formatCatalogField)
         .join("; ")} } - ${c.description}`
   );
+
+const formatCatalogField = (
+  field: CatalogActionInfo["params"][number]
+): string => {
+  const defaultValue =
+    field.default === undefined ? "" : ` = ${String(field.default)}`;
+
+  return `${field.name}: ${field.type}${defaultValue}`;
+};
 
 export const buildSystemPrompt = (
   catalog: CatalogDisplayData,

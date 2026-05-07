@@ -1,7 +1,7 @@
 import { Loader } from "@pulse/ui/components/Loader";
 import type { FC } from "react";
 import * as Styled from "./styled";
-import type { Version } from "../../types";
+import type { Version } from "../../pages/Home/types";
 
 export type VersionsProps = {
   disabled?: boolean;

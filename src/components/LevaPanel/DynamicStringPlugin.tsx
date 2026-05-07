@@ -12,7 +12,7 @@ interface DynamicStringPluginSettings {
 
 interface DynamicStringPluginProps extends LevaInputProps<string, DynamicStringPluginSettings> {}
 
-const { Row, Label, Number, } = Components
+const { Row, Label, Number: NumberInput } = Components;
 
 const DynamicStringComponent: FC = () => {
   const { label, value, displayValue, onUpdate, settings } = useInputContext<DynamicStringPluginProps>();
@@ -20,7 +20,10 @@ const DynamicStringComponent: FC = () => {
   return (
     <Row input>
       <Label>{label}</Label>
-      <Number value={displayValue} onUpdate={(v) => onUpdate(v + settings.multiplier)} />
+      <NumberInput
+        value={displayValue}
+        onUpdate={(v: number) => onUpdate(String(v + settings.multiplier))}
+      />
       <span>× {settings.multiplier}</span>
     </Row>
   );
@@ -33,6 +36,6 @@ const dynamicStringPlugin: Plugin<DynamicStringPluginInput, string, DynamicStrin
     settings: { multiplier: multiplier ?? 1 },
   }),
   sanitize: (value) => String(value),
-  format: (value, settings) => (value * settings.multiplier).toFixed(2),
-}
-
+  format: (value, settings) =>
+    (globalThis.Number(value) * settings.multiplier).toFixed(2),
+};

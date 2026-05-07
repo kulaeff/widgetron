@@ -1,7 +1,7 @@
-import type { JsonPatch, UIElement } from "@json-render/core";
 import type { Spec } from "@json-render/react";
 import { useCallback, useEffect, useRef, useState } from "react";
 import type { CatalogDisplayData } from "../../utils/catalog-data";
+import { applySpecPatch } from "./patch";
 import { buildSystemPrompt } from "./prompt";
 import { Usage } from "./types";
 
@@ -46,143 +46,6 @@ payload.append("grant_type", "password");
 // payload.append("username", config.username);
 // payload.append("password", config.password);
 payload.append("client_id", config.clientId);
-
-const removeByPath = (obj: Record<string, unknown>, path: string) => {
-  const segments = path.split("/");
-
-  let current = obj;
-
-  for (let i = 0; i < segments.length - 1; i++) {
-    const segment = segments[i];
-
-    if (Array.isArray(current)) {
-      const index = parseInt(segment, 10);
-
-      if (current[index] !== undefined) {
-        current = current[index] as Record<string, unknown>;
-      }
-    } else if (segment in current) {
-      current = current[segment] as Record<string, unknown>;
-    }
-  }
-
-  const lastSegment = segments[segments.length - 1];
-
-  if (Array.isArray(current)) {
-    const index = parseInt(lastSegment, 10);
-
-    current.splice(index, 1);
-  } else {
-    delete current[lastSegment];
-  }
-};
-
-const setByPath = (
-  obj: Record<string, unknown>,
-  path: string,
-  value: unknown
-) => {
-  const segments = path.split("/").filter(Boolean);
-
-  let current = obj;
-
-  for (let i = 0; i < segments.length - 1; i++) {
-    const segment = segments[i];
-    const nextSegment = segments[i + 1];
-    const isNextSegmentNumeric =
-      nextSegment !== undefined && !Number.isNaN(Number(nextSegment));
-
-    if (Array.isArray(current)) {
-      const index = parseInt(segment, 10);
-
-      if (current[index] === undefined) {
-        current[index] = isNextSegmentNumeric ? [] : {};
-      }
-
-      current = current[index] as Record<string, unknown>;
-    } else {
-      if (!(segment in current)) {
-        current[segment] = isNextSegmentNumeric ? [] : {};
-      }
-
-      current = current[segment] as Record<string, unknown>;
-    }
-  }
-
-  const lastSegment = segments[segments.length - 1];
-
-  if (Array.isArray(current)) {
-    const index = parseInt(lastSegment, 10);
-
-    current[index] = value;
-  } else {
-    current[lastSegment] = value;
-  }
-};
-
-const setSpecValue = (spec: Spec, path: string, value: unknown) => {
-  if (path === "/root") {
-    spec.root = value as string;
-  }
-
-  if (path.startsWith("/elements/")) {
-    const key = path.slice(10); // "/elements/main" -> "main"
-
-    spec.elements[key] = value as UIElement;
-  }
-
-  if (path.startsWith("/state/")) {
-    if (!spec.state) {
-      spec.state = {};
-    }
-
-    const statePath = path.slice(6); // "/state/posts/0/title" -> "/posts/0/title"
-
-    setByPath(spec.state, statePath, value);
-  }
-};
-
-const removeSpecValue = (spec: Spec, path: string) => {
-  if (path === "/state") {
-    delete spec.state;
-    return;
-  }
-
-  if (path.startsWith("/state/") && spec.state) {
-    const pathToRemove = path.slice(7); // "/state/posts/0/title" -> "posts/0/title"
-
-    removeByPath(spec.state, pathToRemove);
-  }
-
-  if (path.startsWith("/elements/")) {
-    const parts = path.slice(10).split("/");
-    const elementKey = parts[0];
-
-    delete spec.elements[elementKey];
-  }
-};
-
-const applyPatch = (spec: Spec, patch: JsonPatch) => {
-  const newSpec = {
-    ...spec,
-    elements: { ...spec.elements },
-    ...(spec.state ? { state: { ...spec.state } } : {}),
-  };
-
-  switch (patch.op) {
-    case "add":
-    case "replace":
-      setSpecValue(newSpec, patch.path, patch.value);
-      break;
-    case "remove":
-      removeSpecValue(newSpec, patch.path);
-      break;
-    default:
-      return spec;
-  }
-
-  return newSpec;
-};
 
 const httpRequest = {
   name: "http_request",
@@ -336,7 +199,7 @@ export const useUIStream = ({
           setRaw(lines);
 
           for (const patch of patches) {
-            currentSpec = applyPatch(currentSpec, patch);
+            currentSpec = applySpecPatch(currentSpec, patch);
           }
 
           setSpec({ ...currentSpec });
@@ -346,7 +209,7 @@ export const useUIStream = ({
           return;
         }
 
-        setError(e);
+        setError(e instanceof Error ? e : new Error(String(e)));
       } finally {
         setIsStreaming(false);
       }

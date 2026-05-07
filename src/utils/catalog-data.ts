@@ -1,10 +1,12 @@
-import { ZodObject } from "zod";
-import { JSONSchema } from "zod/v4/core";
+import type { ZodObject } from "zod";
+import type { JSONSchema } from "zod/v4/core";
 import { catalog } from "../lib/catalog";
 
 export interface CatalogField {
   default?: boolean | number | string;
+  description?: string | null;
   name: string;
+  optional?: boolean;
   type: string;
 }
 
@@ -36,13 +38,12 @@ export interface CatalogDisplayData {
   functions: CatalogFunctionInfo[];
 }
 
-const parseDef = (def: JSONSchema._JSONSchema) => {
+const parseDef = (def: JSONSchema._JSONSchema): string => {
   if (typeof def === "boolean") {
     return "boolean";
   }
 
   if (def.anyOf) {
-    console.log(def);
     return def.anyOf
       .filter((item) => item.type !== "null")
       .map((item) => parseDef(item))
@@ -58,7 +59,7 @@ const parseDef = (def: JSONSchema._JSONSchema) => {
   }
 
   if (def.type === "number" && "const" in def) {
-    return def.const;
+    return String(def.const);
   }
 
   if (def.type === "string" && def.enum) {
@@ -68,16 +69,28 @@ const parseDef = (def: JSONSchema._JSONSchema) => {
   return def.type ?? "unknown";
 };
 
+const parseDefault = (value: unknown): CatalogField["default"] => {
+  if (
+    typeof value === "boolean" ||
+    typeof value === "number" ||
+    typeof value === "string"
+  ) {
+    return value;
+  }
+
+  return undefined;
+};
+
 export function parseProps(zodObject: ZodObject) {
   if (!zodObject) return [];
 
   const schema = zodObject.toJSONSchema({ unrepresentable: "any" });
 
-  return Object.entries(schema.properties ?? {}).map(([name, def]) => {
+  return Object.entries(schema.properties ?? {}).map<CatalogField>(([name, def]) => {
     // TODO: add support for dates
     return {
-      default: typeof def !== "boolean" ? def.default : null,
-      description: typeof def !== "boolean" ? def.description : null,
+      default: typeof def !== "boolean" ? parseDefault(def.default) : undefined,
+      description: typeof def !== "boolean" ? def.description ?? null : null,
       name,
       optional: !schema.required?.includes(name),
       type: parseDef(def),
