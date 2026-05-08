@@ -152,6 +152,7 @@ export const Home: FC = () => {
   const [activeTreeDropTargetId, setActiveTreeDropTargetId] = useState<string | null>(null);
   const [draggedCatalogComponentName, setDraggedCatalogComponentName] = useState<string | null>(null);
   const [isDesignMode, setIsDesignMode] = useState(false);
+  const [isCodeModalOpen, setIsCodeModalOpen] = useState(false);
   const [selectedDesignToolId, setSelectedDesignToolId] = useState("select");
   const [viewportId, setViewportId] = useState(VIEWPORT_OPTIONS[1]!.id);
   const [zoom, setZoom] = useState(1);
@@ -184,6 +185,7 @@ export const Home: FC = () => {
   );
 
   const currentSpec = currentVersion?.spec ?? spec;
+  const currentSpecCode = JSON.stringify(currentSpec, null, 2);
   const currentState = {
     ...(currentVersion?.spec?.state ?? spec?.state),
     ...state,
@@ -692,6 +694,24 @@ export const Home: FC = () => {
     };
   }, [isDesignMode, selectedDesignToolId]);
 
+  useEffect(() => {
+    if (!isCodeModalOpen) {
+      return undefined;
+    }
+
+    const handleKeyDown = (event: KeyboardEvent) => {
+      if (event.key === "Escape") {
+        setIsCodeModalOpen(false);
+      }
+    };
+
+    document.addEventListener("keydown", handleKeyDown);
+
+    return () => {
+      document.removeEventListener("keydown", handleKeyDown);
+    };
+  }, [isCodeModalOpen]);
+
   return (
     <DragDropProvider
       onDragStart={handleDragStart}
@@ -856,14 +876,25 @@ export const Home: FC = () => {
                       />
                     ) : null}
                     {activeTab === 3 ? (
-                      <MonacoEditor
-                        language="json"
-                        options={{
-                          readOnly: isStreaming,
-                        }}
-                        value={JSON.stringify(currentVersion?.spec, null, 2)}
-                        onChange={handleMonacoEditorChange}
-                      />
+                      <Styled.CodePanel>
+                        <Styled.CodeExpandButton
+                          type="button"
+                          aria-label={t("Развернуть код")}
+                          title={t("Развернуть код")}
+                          onClick={() => setIsCodeModalOpen(true)}
+                        >
+                          ⤢
+                        </Styled.CodeExpandButton>
+                        <MonacoEditor
+                          language="json"
+                          options={{
+                            minimap: { enabled: false },
+                            readOnly: isStreaming,
+                          }}
+                          value={currentSpecCode}
+                          onChange={handleMonacoEditorChange}
+                        />
+                      </Styled.CodePanel>
                     ) : null}
                   </Section>
                 </Sections>
@@ -942,6 +973,44 @@ export const Home: FC = () => {
                   </Section>
                 </Sections>
               </Island>
+              {isCodeModalOpen ? (
+                <Styled.CodeModalBackdrop
+                  role="presentation"
+                  onMouseDown={(event) => {
+                    if (event.target === event.currentTarget) {
+                      setIsCodeModalOpen(false);
+                    }
+                  }}
+                >
+                  <Styled.CodeModal
+                    aria-label={t("Код спецификации")}
+                    role="dialog"
+                    aria-modal="true"
+                  >
+                    <Styled.CodeModalHeader>
+                      <Styled.CodeModalTitle>
+                        {t("Код спецификации")}
+                      </Styled.CodeModalTitle>
+                      <Button
+                        type="button"
+                        onClick={() => setIsCodeModalOpen(false)}
+                      >
+                        {t("Закрыть")}
+                      </Button>
+                    </Styled.CodeModalHeader>
+                    <Styled.CodeModalBody>
+                      <MonacoEditor
+                        language="json"
+                        options={{
+                          readOnly: isStreaming,
+                        }}
+                        value={currentSpecCode}
+                        onChange={handleMonacoEditorChange}
+                      />
+                    </Styled.CodeModalBody>
+                  </Styled.CodeModal>
+                </Styled.CodeModalBackdrop>
+              ) : null}
               <Island position="bottom">
                 <div data-component-picker-trigger>
                   <ToolPicker
