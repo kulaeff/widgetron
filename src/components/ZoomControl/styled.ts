@@ -27,7 +27,7 @@ export const Dropdown = styled("div")(({ theme }) => ({
   minWidth: 86,
   overflow: "hidden",
   position: "absolute",
-  zIndex: 2,
+  zIndex: 20,
 }));
 
 export const OptionButton = styled("button")(

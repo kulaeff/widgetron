@@ -13,7 +13,6 @@ export interface PreviewProps extends Omit<RendererProps, "spec">, Record<string
     width: number;
     height: number;
   };
-  zoom?: number;
 }
 
 export const Preview: FC<PreviewProps> = ({
@@ -26,7 +25,6 @@ export const Preview: FC<PreviewProps> = ({
   selectedElementId,
   onStateChange,
   viewportSize,
-  zoom = 1,
 }) => {
   const { ref: previewDropRef } = useDroppable({
     id: "preview",
@@ -110,8 +108,6 @@ export const Preview: FC<PreviewProps> = ({
       ref={previewDropRef}
       style={{
         ...viewportSize,
-        transform: `scale(${zoom})`,
-        transformOrigin: "center center",
       }}
     >
       {/* eslint-disable-next-line no-nested-ternary */}

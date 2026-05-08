@@ -148,7 +148,7 @@ const nodeTypes = {
 export const Home: FC = () => {
   const { t } = useTranslation();
   const { tokens, typography } = useTheme();
-  const { fitView, zoomIn, zoomOut,zoomTo, getZoom } = useReactFlow();
+  const { fitView, zoomIn, zoomOut,zoomTo } = useReactFlow();
 
   const [activeTab, setActiveTab] = useState(0);
   const [activeRightTab, setActiveRightTab] = useState(0);
@@ -205,6 +205,7 @@ export const Home: FC = () => {
       position: { x: 0, y: 0 },
       data: {
         activeDropTargetId,
+        loading: isStreaming,
         viewportSize: selectedViewport,
         selectedElementId,
         spec: currentSpec,
@@ -248,21 +249,18 @@ export const Home: FC = () => {
             return {
               id,
               label: id,
-              type: "boolean",
               value: typeof value === "boolean" ? value : false,
             };
           case "number":
             return {
               id,
               label: id,
-              type: "number",
               value: typeof value === "number" ? value : 0,
             };
           case "string":
             return {
               id,
               label: id,
-              type: "string",
               value: typeof value === "string" ? value : "",
             };
           default: {
@@ -272,7 +270,6 @@ export const Home: FC = () => {
               id,
               label: id,
               options,
-              type: "select",
               value: typeof value === "string" ? value : "",
             };
           }
@@ -623,23 +620,6 @@ export const Home: FC = () => {
           zoomActivationKeyCode={["Control", "Meta", "z"]}
         >
           <Background />
-          {/* <Styled.Preview>
-            <Preview
-              loading={isStreaming}
-              spec={currentSpec}
-              state={currentState}
-              viewportSize={{
-                width: selectedViewport.width,
-                height: selectedViewport.height,
-              }}
-              zoom={zoom}
-              activeDropTargetId={draggedCatalogComponentName ? activeDropTargetId : null}
-              setState={setState}
-              selectedElementId={selectedElementId}
-              // onStateChange={handlePreviewStateChange}
-            />
-          </Styled.Preview> */}
-
           <Panel position="top-center">
             <Island>
               <SizeSelector
@@ -649,7 +629,6 @@ export const Home: FC = () => {
               />
             </Island>
           </Panel>
-
           <Panel position="top-right">
             <Island>
               <Styled.ModeSwitch>
@@ -662,7 +641,6 @@ export const Home: FC = () => {
               </Styled.ModeSwitch>
             </Island>
           </Panel>
-
           <Panel position="bottom-right">
             <Island>
               <ZoomControl
@@ -681,7 +659,6 @@ export const Home: FC = () => {
               />
             </Island>
           </Panel>
-
           {!isDesignMode && (
             <>
               <Panel position="center-left">
@@ -708,7 +685,6 @@ export const Home: FC = () => {
               </Panel>
             </>
           )}
-
           {isDesignMode && (
             <>
               {selectedDesignToolId === "component" ? (
@@ -718,7 +694,6 @@ export const Home: FC = () => {
                   </Island>
                 </Panel>
               ) : null}
-
               <Panel position="center-left">
                 <Island width={300} height="calc(100vh - 30px)">
                   <Sections vertical>
@@ -792,7 +767,6 @@ export const Home: FC = () => {
                   </Sections>
                 </Island>
               </Panel>
-
               <Panel position="center-right">
                 <Island width={300} height="calc(100vh - 136px)">
                   <Sections vertical>
@@ -864,7 +838,6 @@ export const Home: FC = () => {
                   </Sections>
                 </Island>
               </Panel>
-
               <Panel position="bottom-center">
                 <Island>
                   <ToolPicker
