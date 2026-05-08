@@ -13,6 +13,7 @@ interface PreviewProps extends Omit<RendererProps, "spec"> {
     height: number;
   };
   zoom?: number;
+  emptyLabel?: string | null;
 }
 
 export const Preview: FC<PreviewProps> = ({
@@ -25,6 +26,7 @@ export const Preview: FC<PreviewProps> = ({
   onStateChange,
   viewportSize,
   zoom = 1,
+  emptyLabel = "Сгенерируйте интерфейс в AI mode или перетащите компонент в Design mode",
 }) => {
   const { ref: previewDropRef } = useDroppable({
     id: "preview",
@@ -120,7 +122,11 @@ export const Preview: FC<PreviewProps> = ({
           setState={setState}
           onStateChange={onStateChange}
         />
-      ) : null}
+      ) : emptyLabel ? (
+        <Styled.Label>{emptyLabel}</Styled.Label>
+      ) : (
+        null
+      )}
     </Styled.Container>
   );
 };

@@ -36,10 +36,11 @@ export const Island = styled("div")<IslandStyleProps>(
       backgroundColor: theme.tokens.current.core.background.default,
       border: `1px solid ${theme.tokens.current.core.border.strong}`,
       borderRadius: 8,
-      boxShadow: "0 8px 24px rgba(0, 0, 0, 0.16)",
+      boxShadow: "0 10px 30px rgba(15, 23, 42, 0.10)",
       boxSizing: "border-box",
       padding: 8,
       position: "fixed",
+      zIndex: 10,
       ...($horizontal ? { [$horizontal]: offsetX } : {}),
       ...($vertical ? { [$vertical]: offsetY } : {}),
       ...($centerMissingAxis && !$horizontal ? { left: "50%" } : {}),
@@ -52,7 +53,9 @@ export const Island = styled("div")<IslandStyleProps>(
 );
 
 export const Title = styled("div")(({ theme }) => ({
-  ...theme.typography.captionRegular,
+  ...theme.typography.captionSemibold,
   color: theme.tokens.current.core.text.secondary,
+  letterSpacing: 0,
   marginBottom: 8,
+  padding: "0 2px",
 }));

@@ -592,12 +592,13 @@ export const Home: FC = () => {
               }}
               zoom={zoom}
               activeDropTargetId={draggedCatalogComponentName ? activeDropTargetId : null}
+              emptyLabel={isDesignMode ? null : undefined}
               setState={setState}
               selectedElementId={selectedElementId}
               // onStateChange={handlePreviewStateChange}
             />
           </Styled.Preview>
-          <Island position="top">
+          <Island position={["left", "top"]}>
             <SizeSelector
               options={VIEWPORT_OPTIONS}
               value={viewportId}
@@ -641,7 +642,7 @@ export const Home: FC = () => {
                 />
               </Island>
 
-              <Island position="bottom" width={620}>
+              <Island position="bottom" offset={24} width="min(620px, calc(100vw - 32px))">
                 <OmniBox
                   loading={isStreaming}
                   onSubmit={handleOmniBoxSubmit}
@@ -654,12 +655,22 @@ export const Home: FC = () => {
           {isDesignMode && (
             <>
               {selectedDesignToolId === "component" ? (
-                <Island position="bottom" offset={[16, 88]} width={360} height="50%">
+                <Island
+                  position="bottom"
+                  offset={[16, 88]}
+                  style={{ zIndex: 20 }}
+                  width="min(360px, calc(100vw - 32px))"
+                  height="50%"
+                >
                   <ToolBar items={toolBarItems} />
                 </Island>
               ) : null}
 
-              <Island position="left" width={360} height="75%">
+              <Island
+                position="left"
+                width="min(360px, calc((100vw - 56px) / 2))"
+                height="75%"
+              >
                 <Sections vertical>
                   <Section size="auto">
                     <Styled.Tabs>
@@ -731,7 +742,11 @@ export const Home: FC = () => {
                 </Sections>
               </Island>
 
-              <Island position="right" width={320} height="calc(100% - 144px)">
+              <Island
+                position="right"
+                width="min(320px, calc((100vw - 56px) / 2))"
+                height="calc(100% - 144px)"
+              >
                 <Sections vertical>
                   <Section size="auto">
                     <Styled.Tabs>

@@ -22,27 +22,36 @@ export const Versions: FC<VersionsProps> = ({
 
   return (
     <Styled.Container>
-      {items.map((item, i) => (
-        <Styled.Item
-          key={item.id}
-          $isDisabled={disabled}
-          $isSelected={value === item.id}
-          onClick={() => handleClick(item.id)}
-        >
-          <Styled.Content>
-            <Styled.Id>{`v${i + 1}`}</Styled.Id>
-            <Styled.Main>
-              <Styled.Prompt>{item.prompt}</Styled.Prompt>
-              <Styled.Tokens>
-                {item.usage
-                  ? `${item.usage.prompt} промпт · ${item.usage.completion} ответ`
-                  : "—"}
-              </Styled.Tokens>
-            </Styled.Main>
-            {item.status === "pending" ? <Loader /> : null}
-          </Styled.Content>
-        </Styled.Item>
-      ))}
+      {items.length === 0 ? (
+        <Styled.EmptyState>
+          <Styled.EmptyTitle>Пока нет версий</Styled.EmptyTitle>
+          <Styled.EmptyText>
+            Опишите задачу ниже, и здесь появится история сгенерированных вариантов.
+          </Styled.EmptyText>
+        </Styled.EmptyState>
+      ) : (
+        items.map((item, i) => (
+          <Styled.Item
+            key={item.id}
+            $isDisabled={disabled}
+            $isSelected={value === item.id}
+            onClick={() => handleClick(item.id)}
+          >
+            <Styled.Content>
+              <Styled.Id>{`v${i + 1}`}</Styled.Id>
+              <Styled.Main>
+                <Styled.Prompt>{item.prompt}</Styled.Prompt>
+                <Styled.Tokens>
+                  {item.usage
+                    ? `${item.usage.prompt} промпт · ${item.usage.completion} ответ`
+                    : "—"}
+                </Styled.Tokens>
+              </Styled.Main>
+              {item.status === "pending" ? <Loader /> : null}
+            </Styled.Content>
+          </Styled.Item>
+        ))
+      )}
     </Styled.Container>
   );
 };

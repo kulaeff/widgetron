@@ -60,11 +60,13 @@ export const Preview = styled("div")`
   height: 100%;
   justify-content: center;
   overflow: auto;
-  padding: 24px;
+  padding: 80px 24px 120px;
 `;
 
 export const Tabs = styled("div")`
+  overflow-x: auto;
   padding: 8px;
+  white-space: nowrap;
 `;
 
 export const DragOverlayItem = styled("div")(
