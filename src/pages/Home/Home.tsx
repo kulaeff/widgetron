@@ -19,7 +19,7 @@ import { OmniBox } from "../../components/OmniBox";
 import { ToolBar } from "../../components/ToolBar";
 import { ToolPicker, type ToolPickerItem } from "../../components/ToolPicker";
 import { ZoomControl, type ZoomOption } from "../../components/ZoomControl";
-import { TreeView } from "../../components/TreeView";
+import { TREE_ROOT_DROP_TARGET_ID, TreeView } from "../../components/TreeView";
 import { catalog } from "../../lib/catalog";
 import { buildCatalogData, type CatalogComponentInfo } from "../../utils/catalog-data";
 import { type LevaControl, LevaPanel } from "../../components/LevaPanel";
@@ -149,6 +149,7 @@ export const Home: FC = () => {
   const [method, setMethod] = useState("GET");
   const [versions, setVersions] = useState<Version[]>([]);
   const [activeDropTargetId, setActiveDropTargetId] = useState<string | null>(null);
+  const [activeTreeDropTargetId, setActiveTreeDropTargetId] = useState<string | null>(null);
   const [draggedCatalogComponentName, setDraggedCatalogComponentName] = useState<string | null>(null);
   const [isDesignMode, setIsDesignMode] = useState(false);
   const [selectedDesignToolId, setSelectedDesignToolId] = useState("select");
@@ -392,7 +393,14 @@ export const Home: FC = () => {
   );
 
   const handlePreviewDropComponent = useCallback(
-    (targetElementId: string, componentName: string) => {
+    (
+      targetElementId: string,
+      componentName: string,
+      options: {
+        placement?: "inside" | "before" | "after";
+        targetParentId?: string | null;
+      } = {}
+    ) => {
       const component = components.find((c) => c.name === componentName);
 
       console.log(targetElementId, componentName, components);
@@ -403,7 +411,9 @@ export const Home: FC = () => {
       const result = addCatalogComponentToVersions({
         component,
         nextVersionId,
+        placement: options.placement,
         selectedVersionId,
+        targetParentId: options.targetParentId,
         targetElementId,
         versions,
       });
@@ -435,6 +445,54 @@ export const Home: FC = () => {
     return hoveredElement.getAttribute("data-element-id");
   };
 
+  const resolveTreeDropTargetFromNativeEvent = (
+    event?: Event
+  ): {
+    placement: "inside" | "before" | "after";
+    targetElementId: string;
+    targetParentId?: string | null;
+  } | null => {
+    if (!(event instanceof MouseEvent || event instanceof PointerEvent)) {
+      return null;
+    }
+
+    const element = document.elementFromPoint(event.clientX, event.clientY);
+    const treeElement = element?.closest<HTMLElement>("[data-tree-element-id]");
+
+    if (!treeElement) {
+      return element?.closest("[data-tree-root-drop-zone]")
+        ? { placement: "inside", targetElementId: "preview" }
+        : null;
+    }
+
+    const targetElementId = treeElement.dataset.treeElementId;
+
+    if (!targetElementId) {
+      return null;
+    }
+
+    const bounds = treeElement.getBoundingClientRect();
+    const offsetY = event.clientY - bounds.top;
+    const threshold = bounds.height / 3;
+    const canDropInside = treeElement.dataset.treeCanDrop === "true";
+    const targetParentId = treeElement.dataset.treeParentId || null;
+    let placement: "inside" | "before" | "after" = "inside";
+
+    if (offsetY < threshold) {
+      placement = "before";
+    } else if (offsetY > bounds.height - threshold) {
+      placement = "after";
+    } else if (!canDropInside) {
+      placement = "after";
+    }
+
+    if (placement !== "inside" && !targetParentId) {
+      return { placement: "inside", targetElementId: "preview" };
+    }
+
+    return { placement, targetElementId, targetParentId };
+  };
+
   const handleDragStart = useCallback((event: DragStartEvent) => {
     const data = event.operation.source?.data;
 
@@ -446,6 +504,7 @@ export const Home: FC = () => {
     }
 
     setActiveDropTargetId(null);
+    setActiveTreeDropTargetId(null);
   }, []);
 
   const handleDragMove = useCallback((event: DragMoveEvent) => {
@@ -455,11 +514,27 @@ export const Home: FC = () => {
       return;
     }
 
-    if (event.operation.target?.id !== "preview") {
+    const treeDropTarget = resolveTreeDropTargetFromNativeEvent(event.nativeEvent);
+
+    if (treeDropTarget?.targetElementId === "preview") {
       setActiveDropTargetId(null);
+      setActiveTreeDropTargetId(TREE_ROOT_DROP_TARGET_ID);
       return;
     }
 
+    if (treeDropTarget?.targetElementId) {
+      setActiveDropTargetId(null);
+      setActiveTreeDropTargetId(treeDropTarget.targetElementId);
+      return;
+    }
+
+    if (event.operation.target?.id !== "preview") {
+      setActiveDropTargetId(null);
+      setActiveTreeDropTargetId(null);
+      return;
+    }
+
+    setActiveTreeDropTargetId(null);
     setActiveDropTargetId(resolveDropTargetFromNativeEvent(event.nativeEvent) ?? "preview");
   }, []);
 
@@ -467,21 +542,32 @@ export const Home: FC = () => {
     (event: DragEndEvent) => {
       const sourceData = event.operation.source?.data;
 
-      if (
-        sourceData?.kind === "catalog-component" &&
-        event.operation.target?.id === "preview"
-      ) {
-        const resolvedTargetId =
-          resolveDropTargetFromNativeEvent(event.nativeEvent) ?? "preview";
+      if (sourceData?.kind === "catalog-component") {
+        const treeDropTarget = resolveTreeDropTargetFromNativeEvent(event.nativeEvent);
 
-        handlePreviewDropComponent(
-          resolvedTargetId,
-          sourceData.componentName as string
-        );
+        if (treeDropTarget) {
+          handlePreviewDropComponent(
+            treeDropTarget.targetElementId,
+            sourceData.componentName as string,
+            {
+              placement: treeDropTarget.placement,
+              targetParentId: treeDropTarget.targetParentId,
+            }
+          );
+        } else if (event.operation.target?.id === "preview") {
+          const resolvedTargetId =
+            resolveDropTargetFromNativeEvent(event.nativeEvent) ?? "preview";
+
+          handlePreviewDropComponent(
+            resolvedTargetId,
+            sourceData.componentName as string
+          );
+        }
       }
 
       setDraggedCatalogComponentName(null);
       setActiveDropTargetId(null);
+      setActiveTreeDropTargetId(null);
     },
     [handlePreviewDropComponent]
   );
@@ -567,6 +653,44 @@ export const Home: FC = () => {
       );
     }
   }, [isStreaming, raw, spec, state, usage]);
+
+  useEffect(() => {
+    if (!isDesignMode || selectedDesignToolId !== "component") {
+      return undefined;
+    }
+
+    const handlePointerDown = (event: PointerEvent) => {
+      const target = event.target;
+
+      if (!(target instanceof Element)) {
+        return;
+      }
+
+      if (
+        target.closest(
+          "[data-component-picker-surface], [data-component-picker-trigger]"
+        )
+      ) {
+        return;
+      }
+
+      setSelectedDesignToolId("select");
+    };
+
+    const handleKeyDown = (event: KeyboardEvent) => {
+      if (event.key === "Escape") {
+        setSelectedDesignToolId("select");
+      }
+    };
+
+    document.addEventListener("pointerdown", handlePointerDown, true);
+    document.addEventListener("keydown", handleKeyDown);
+
+    return () => {
+      document.removeEventListener("pointerdown", handlePointerDown, true);
+      document.removeEventListener("keydown", handleKeyDown);
+    };
+  }, [isDesignMode, selectedDesignToolId]);
 
   return (
     <DragDropProvider
@@ -658,11 +782,13 @@ export const Home: FC = () => {
                 <Island
                   position="bottom"
                   offset={[16, 88]}
-                  style={{ zIndex: 20 }}
+                  style={{ overflow: "hidden", zIndex: 20 }}
                   width="min(360px, calc(100vw - 32px))"
                   height="50%"
                 >
-                  <ToolBar items={toolBarItems} />
+                  <Styled.ComponentPickerSurface data-component-picker-surface>
+                    <ToolBar items={toolBarItems} />
+                  </Styled.ComponentPickerSurface>
                 </Island>
               ) : null}
 
@@ -689,6 +815,7 @@ export const Home: FC = () => {
                   <Section>
                     {activeTab === 0 ? (
                       <TreeView
+                        activeCatalogDropTargetId={activeTreeDropTargetId}
                         items={treeViewElementsItems}
                         value={selectedElementId}
                         onChange={handleTreeViewElementsChange}
@@ -816,11 +943,13 @@ export const Home: FC = () => {
                 </Sections>
               </Island>
               <Island position="bottom">
-                <ToolPicker
-                  tools={DESIGN_TOOLS}
-                  defaultSelectedId={selectedDesignToolId}
-                  onSelect={setSelectedDesignToolId}
-                />
+                <div data-component-picker-trigger>
+                  <ToolPicker
+                    tools={DESIGN_TOOLS}
+                    defaultSelectedId={selectedDesignToolId}
+                    onSelect={setSelectedDesignToolId}
+                  />
+                </div>
               </Island>
             </>
           )}

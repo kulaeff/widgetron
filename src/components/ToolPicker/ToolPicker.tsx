@@ -1,4 +1,4 @@
-import { useMemo, useState, type FC } from "react";
+import { useEffect, useMemo, useState, type FC } from "react";
 import * as Styled from "./styled";
 
 export type ToolPickerItem = {
@@ -24,6 +24,10 @@ export const ToolPicker: FC<ToolPickerProps> = ({
   }, [defaultSelectedId, tools]);
 
   const [selectedId, setSelectedId] = useState(initialSelectedId);
+
+  useEffect(() => {
+    setSelectedId(initialSelectedId);
+  }, [initialSelectedId]);
 
   return (
     <Styled.Container>

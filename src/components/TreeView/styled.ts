@@ -18,9 +18,46 @@ export const Arrow = styled.button<{
   }
 `;
 
-export const Container = styled.ul<{ $isRoot?: boolean }>`
+export const Container = styled.ul<{
+  $isCatalogDropTarget?: boolean;
+  $isRoot?: boolean;
+}>`
+  background-color: ${({ $isCatalogDropTarget, theme }) =>
+    $isCatalogDropTarget ? theme.tokens.current.colors.blue.solid[10] : "transparent"};
+  box-sizing: border-box;
+  border: ${({ $isCatalogDropTarget, theme }) =>
+    $isCatalogDropTarget
+      ? `1px dashed ${theme.tokens.current.colors.blue.solid[60]}`
+      : "1px dashed transparent"};
+  border-radius: 6px;
+  height: ${({ $isRoot }) => ($isRoot ? "100%" : "auto")};
   margin: 0;
+  min-height: ${({ $isRoot }) => ($isRoot ? "100%" : "0")};
+  overflow: ${({ $isRoot }) => ($isRoot ? "auto" : "visible")};
   padding: ${({ $isRoot }) => ($isRoot ? "8px" : 0)};
+  transition: background-color 120ms ease, border-color 120ms ease;
+`;
+
+export const EmptyDropZone = styled.li<{ $isActive?: boolean }>`
+  ${({ theme }) => theme.typography.body2Regular};
+  align-items: center;
+  border: ${({ $isActive, theme }) =>
+    $isActive
+      ? `1px dashed ${theme.tokens.current.colors.blue.solid[60]}`
+      : `1px dashed ${theme.tokens.current.core.border.strong}`};
+  border-radius: 6px;
+  color: ${({ $isActive, theme }) =>
+    $isActive
+      ? theme.tokens.current.colors.blue.solid[60]
+      : theme.tokens.current.core.text.secondary};
+  display: flex;
+  height: 100%;
+  justify-content: center;
+  list-style: none;
+  min-height: 160px;
+  padding: 16px;
+  text-align: center;
+  transition: border-color 120ms ease, color 120ms ease;
 `;
 
 export const Item = styled.li<{ $isSelected?: boolean }>`

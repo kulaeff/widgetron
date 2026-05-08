@@ -343,4 +343,51 @@ describe("Home spec utils", () => {
       },
     });
   });
+
+  it("adds catalog components as siblings in tree order", () => {
+    const versions: Version[] = [
+      {
+        id: "v1",
+        prompt: "existing",
+        raw: [],
+        spec: {
+          root: "root",
+          elements: {
+            root: {
+              type: "Stack",
+              props: {},
+              children: ["title", "text"],
+            },
+            title: {
+              type: "Text",
+              props: { text: "Title" },
+            },
+            text: {
+              type: "Text",
+              props: { text: "Body" },
+            },
+          },
+        },
+        status: "complete",
+        usage: null,
+      },
+    ];
+
+    const result = addCatalogComponentToVersions({
+      component: components[2],
+      nextVersionId: "v2",
+      placement: "after",
+      selectedVersionId: "v1",
+      targetElementId: "title",
+      targetParentId: "root",
+      versions,
+    });
+
+    expect(result.nextElementKey).toBe("button");
+    expect(result.versions[0].spec?.elements.root.children).toEqual([
+      "title",
+      "button",
+      "text",
+    ]);
+  });
 });

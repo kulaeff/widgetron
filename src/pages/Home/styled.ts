@@ -69,6 +69,12 @@ export const Tabs = styled("div")`
   white-space: nowrap;
 `;
 
+export const ComponentPickerSurface = styled("div")`
+  height: 100%;
+  min-height: 0;
+  overflow: hidden;
+`;
+
 export const DragOverlayItem = styled("div")(
   ({ theme }) => css`
     ${theme.typography.body2Regular}
