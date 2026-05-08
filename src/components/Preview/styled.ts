@@ -1,14 +1,11 @@
 import styled, { css } from "styled-components";
 
 export const Container = styled("div")<{ $selected?: boolean }>(({ $selected }) => ({
-  alignItems: "center",
   backgroundColor: "rgba(255, 255, 255, 0.72)",
   border: "1px solid rgba(209, 213, 219, 0.8)",
   borderRadius: "12px",
   boxShadow: "0 14px 42px rgba(15, 23, 42, 0.10)",
   boxSizing: "border-box",
-  display: "flex",
-  justifyContent: "center",
   minWidth: "294px",
   outline: $selected ? "1px solid rgba(35, 111, 255, 0.9)" : "none",
   padding: "20px",
