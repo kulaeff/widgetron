@@ -689,7 +689,7 @@ export const Home: FC = () => {
             <>
               {selectedDesignToolId === "component" ? (
                 <Panel position="bottom-center">
-                  <Island width={360} height="50%">
+                  <Island width="100%" height={360}>
                     <ToolBar items={toolBarItems} />
                   </Island>
                 </Panel>
@@ -842,7 +842,7 @@ export const Home: FC = () => {
                 <Island>
                   <ToolPicker
                     tools={DESIGN_TOOLS}
-                    defaultSelectedId={selectedDesignToolId}
+                    value={selectedDesignToolId}
                     onSelect={setSelectedDesignToolId}
                   />
                 </Island>

@@ -8,32 +8,23 @@ export type ToolPickerItem = {
 
 type ToolPickerProps = {
   tools: ToolPickerItem[];
-  defaultSelectedId?: string;
+  value?: string;
   onSelect: (toolId: string) => void;
 };
 
 export const ToolPicker: FC<ToolPickerProps> = ({
   tools,
-  defaultSelectedId,
+  value,
   onSelect,
 }) => {
-  const initialSelectedId = useMemo(() => {
-    if (defaultSelectedId) return defaultSelectedId;
-
-    return tools[0]?.id ?? "";
-  }, [defaultSelectedId, tools]);
-
-  const [selectedId, setSelectedId] = useState(initialSelectedId);
-
   return (
     <Styled.Container>
       {tools.map((tool) => (
         <Styled.Button
           key={tool.id}
           type="button"
-          $active={tool.id === selectedId}
+          $active={tool.id === value}
           onClick={() => {
-            setSelectedId(tool.id);
             onSelect(tool.id);
           }}
         >
