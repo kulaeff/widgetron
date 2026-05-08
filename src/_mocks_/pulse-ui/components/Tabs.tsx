@@ -20,13 +20,35 @@ export function Tabs({ children, selectedIndex = 0, onTabChange }: TabsProps) {
   const items = React.Children.toArray(children);
 
   return (
-    <div style={{ display: "flex", gap: 8, marginBottom: 8 }}>
+    <div
+      style={{
+        background: "#f3f4f6",
+        border: "1px solid #d1d5db",
+        borderRadius: 8,
+        display: "inline-flex",
+        gap: 2,
+        padding: 2,
+      }}
+    >
       {items.map((child, index) => (
         <button
           key={index}
           type="button"
           onClick={(event) => onTabChange?.(event, index)}
-          style={{ fontWeight: selectedIndex === index ? 700 : 400 }}
+          style={{
+            background: selectedIndex === index ? "#ffffff" : "transparent",
+            border: "none",
+            borderRadius: 6,
+            boxShadow:
+              selectedIndex === index
+                ? "0 1px 2px rgba(15, 23, 42, 0.08)"
+                : "none",
+            color: selectedIndex === index ? "#111827" : "#6b7280",
+            cursor: "pointer",
+            font: "inherit",
+            fontWeight: selectedIndex === index ? 600 : 400,
+            padding: "5px 9px",
+          }}
         >
           {child}
         </button>

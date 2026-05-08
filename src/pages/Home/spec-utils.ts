@@ -172,13 +172,17 @@ const createCatalogElementKey = (
 export const addCatalogComponentToVersions = ({
   component,
   nextVersionId,
+  placement = "inside",
   selectedVersionId,
+  targetParentId,
   targetElementId,
   versions,
 }: {
   component: CatalogComponentInfo;
   nextVersionId: string;
+  placement?: "inside" | "before" | "after";
   selectedVersionId?: string;
+  targetParentId?: string | null;
   targetElementId: string;
   versions: Version[];
 }): {
@@ -234,6 +238,49 @@ export const addCatalogComponentToVersions = ({
       return version;
     }
 
+    const targetParent =
+      targetParentId && placement !== "inside"
+        ? version.spec.elements[targetParentId]
+        : null;
+
+    if (placement !== "inside" && !targetParent) {
+      return {
+        ...version,
+        spec: {
+          ...version.spec,
+          elements: {
+            ...version.spec.elements,
+            [nextElementKey]: {
+              type: component.name,
+              props: defaultProps,
+            },
+          },
+        },
+      };
+    }
+
+    const targetParentChildren = targetParent?.children ?? [];
+    const targetIndex = targetParentChildren.findIndex(
+      (id) => id === targetElementId
+    );
+    const nextSiblingChildren =
+      placement === "inside" || !targetParent
+        ? []
+        : [...targetParentChildren];
+
+    if (placement !== "inside" && targetIndex === -1) {
+      nextElementKey = "";
+      return version;
+    }
+
+    if (placement !== "inside") {
+      nextSiblingChildren.splice(
+        placement === "before" ? targetIndex : targetIndex + 1,
+        0,
+        nextElementKey
+      );
+    }
+
     return {
       ...version,
       spec: {
@@ -242,9 +289,9 @@ export const addCatalogComponentToVersions = ({
           ...version.spec.elements,
           [nextElementKey]: {
             type: component.name,
-            props: defaultProps,
-          },
-          ...(targetElementId === "preview"
+              props: defaultProps,
+            },
+          ...(targetElementId === "preview" || placement !== "inside"
             ? {}
             : {
                 [targetElementId]: {
@@ -255,6 +302,14 @@ export const addCatalogComponentToVersions = ({
                   ],
                 },
               }),
+          ...(targetParent && placement !== "inside"
+            ? {
+                [targetParentId as string]: {
+                  ...targetParent,
+                  children: nextSiblingChildren,
+                },
+              }
+            : {}),
         },
       },
     };

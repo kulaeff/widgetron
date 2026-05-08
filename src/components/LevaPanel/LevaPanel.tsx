@@ -79,8 +79,10 @@ export const LevaPanel: FC<LevaPanelProps> = ({
 
   const schema = useMemo(() => {
     return controls.reduce<Record<string, any>>((acc, control) => {
+      const { type: _type, ...schemaControl } = control;
+
       acc[control.id] = {
-        ...control,
+        ...schemaControl,
         onChange: toStableOnChange((value) =>
           onControlChange(control.id, value as number)
         ),

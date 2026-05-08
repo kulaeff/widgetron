@@ -14,18 +14,22 @@ export interface PreviewProps extends Omit<RendererProps, "spec">, Record<string
     width: number;
     height: number;
   };
+  zoom?: number;
+  emptyLabel?: string | null;
 }
 
 export const Preview: FC<PreviewProps> = ({
   spec,
   state,
-  selected = false,
   loading = false,
   setState,
   activeDropTargetId,
+  selected = false,
   selectedElementId,
   onStateChange,
   viewportSize,
+  zoom = 1,
+  emptyLabel = "Сгенерируйте интерфейс в AI mode или перетащите компонент в Design mode",
 }) => {
   const { ref: previewDropRef } = useDroppable({
     collisionPriority: CollisionPriority.Low,
@@ -110,6 +114,8 @@ export const Preview: FC<PreviewProps> = ({
       ref={previewDropRef}
       style={{
         ...viewportSize,
+        transform: `scale(${zoom})`,
+        transformOrigin: "center center",
       }}
     >
       {/* eslint-disable-next-line no-nested-ternary */}
@@ -121,7 +127,11 @@ export const Preview: FC<PreviewProps> = ({
           setState={setState}
           onStateChange={onStateChange}
         />
-      ) : null}
+      ) : emptyLabel ? (
+        <Styled.Label>{emptyLabel}</Styled.Label>
+      ) : (
+        null
+      )}
     </Styled.Container>
   );
 };

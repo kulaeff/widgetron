@@ -19,7 +19,7 @@ import { OmniBox } from "../../components/OmniBox";
 import { ToolBar } from "../../components/ToolBar";
 import { ToolPicker, type ToolPickerItem } from "../../components/ToolPicker";
 import { ZoomControl, type ZoomOption } from "../../components/ZoomControl";
-import { TreeView } from "../../components/TreeView";
+import { TREE_ROOT_DROP_TARGET_ID, TreeView } from "../../components/TreeView";
 import { catalog } from "../../lib/catalog";
 import { buildCatalogData, type CatalogComponentInfo } from "../../utils/catalog-data";
 import { type LevaControl, LevaPanel } from "../../components/LevaPanel";
@@ -135,7 +135,7 @@ const DESIGN_TOOLS: ToolPickerItem[] = [
   { id: "component", title: "Component" },
 ];
 
-type PreviewNode = Node<PreviewProps, 'renderer'>;
+type PreviewNode = Node<PreviewProps, "renderer">;
 
 const RendererNode: FC<NodeProps<PreviewNode>> = ({ data, selected }) => {
   return <Preview {...data} selected={selected} />;
@@ -148,7 +148,7 @@ const nodeTypes = {
 export const Home: FC = () => {
   const { t } = useTranslation();
   const { tokens, typography } = useTheme();
-  const { fitView, zoomIn, zoomOut,zoomTo } = useReactFlow();
+  const { fitView, zoomIn, zoomOut, zoomTo } = useReactFlow();
 
   const [activeTab, setActiveTab] = useState(0);
   const [activeRightTab, setActiveRightTab] = useState(0);
@@ -160,11 +160,12 @@ export const Home: FC = () => {
   const [method, setMethod] = useState("GET");
   const [versions, setVersions] = useState<Version[]>([]);
   const [activeDropTargetId, setActiveDropTargetId] = useState<string | null>(null);
+  const [activeTreeDropTargetId, setActiveTreeDropTargetId] = useState<string | null>(null);
   const [draggedCatalogComponentName, setDraggedCatalogComponentName] = useState<string | null>(null);
   const [isDesignMode, setIsDesignMode] = useState(false);
+  const [isCodeModalOpen, setIsCodeModalOpen] = useState(false);
   const [selectedDesignToolId, setSelectedDesignToolId] = useState("select");
   const [viewportId, setViewportId] = useState(VIEWPORT_OPTIONS[0].id);
-  const [zoom, setZoom] = useState(1);
 
   const generatingVersionIdRef = useRef<string>();
 
@@ -194,6 +195,7 @@ export const Home: FC = () => {
   );
 
   const currentSpec = currentVersion?.spec ?? spec;
+  const currentSpecCode = JSON.stringify(currentSpec, null, 2);
   const currentState = {
     ...(currentVersion?.spec?.state ?? spec?.state),
     ...state,
@@ -204,12 +206,13 @@ export const Home: FC = () => {
       id: 'n1',
       position: { x: 0, y: 0 },
       data: {
-        activeDropTargetId,
+        activeDropTargetId: draggedCatalogComponentName ? activeDropTargetId : null,
+        emptyLabel: isDesignMode ? null : undefined,
         loading: isStreaming,
         viewportSize: selectedViewport,
         selectedElementId,
         spec: currentSpec,
-        state,
+        state: currentState,
         setState,
       },
       draggable: false,
@@ -249,18 +252,21 @@ export const Home: FC = () => {
             return {
               id,
               label: id,
+              type: "boolean",
               value: typeof value === "boolean" ? value : false,
             };
           case "number":
             return {
               id,
               label: id,
+              type: "number",
               value: typeof value === "number" ? value : 0,
             };
           case "string":
             return {
               id,
               label: id,
+              type: "string",
               value: typeof value === "string" ? value : "",
             };
           default: {
@@ -270,6 +276,7 @@ export const Home: FC = () => {
               id,
               label: id,
               options,
+              type: "select",
               value: typeof value === "string" ? value : "",
             };
           }
@@ -419,7 +426,14 @@ export const Home: FC = () => {
   );
 
   const handlePreviewDropComponent = useCallback(
-    (targetElementId: string, componentName: string) => {
+    (
+      targetElementId: string,
+      componentName: string,
+      options: {
+        placement?: "inside" | "before" | "after";
+        targetParentId?: string | null;
+      } = {}
+    ) => {
       const component = components.find((c) => c.name === componentName);
 
       if (!component) return;
@@ -428,7 +442,9 @@ export const Home: FC = () => {
       const result = addCatalogComponentToVersions({
         component,
         nextVersionId,
+        placement: options.placement,
         selectedVersionId,
+        targetParentId: options.targetParentId,
         targetElementId,
         versions,
       });
@@ -452,6 +468,66 @@ export const Home: FC = () => {
     return typeof targetId === "string" ? targetId : null;
   };
 
+  const resolveDropTargetFromNativeEvent = (event?: Event): string | null => {
+    if (!(event instanceof MouseEvent || event instanceof PointerEvent)) {
+      return null;
+    }
+
+    const hoveredElement = document
+      .elementFromPoint(event.clientX, event.clientY)
+      ?.closest<HTMLElement>("[data-element-id]");
+
+    return hoveredElement?.getAttribute("data-element-id") ?? null;
+  };
+
+  const resolveTreeDropTargetFromNativeEvent = (
+    event?: Event
+  ): {
+    placement: "inside" | "before" | "after";
+    targetElementId: string;
+    targetParentId?: string | null;
+  } | null => {
+    if (!(event instanceof MouseEvent || event instanceof PointerEvent)) {
+      return null;
+    }
+
+    const element = document.elementFromPoint(event.clientX, event.clientY);
+    const treeElement = element?.closest<HTMLElement>("[data-tree-element-id]");
+
+    if (!treeElement) {
+      return element?.closest("[data-tree-root-drop-zone]")
+        ? { placement: "inside", targetElementId: "preview" }
+        : null;
+    }
+
+    const targetElementId = treeElement.dataset.treeElementId;
+
+    if (!targetElementId) {
+      return null;
+    }
+
+    const bounds = treeElement.getBoundingClientRect();
+    const offsetY = event.clientY - bounds.top;
+    const threshold = bounds.height / 3;
+    const canDropInside = treeElement.dataset.treeCanDrop === "true";
+    const targetParentId = treeElement.dataset.treeParentId || null;
+    let placement: "inside" | "before" | "after" = "inside";
+
+    if (offsetY < threshold) {
+      placement = "before";
+    } else if (offsetY > bounds.height - threshold) {
+      placement = "after";
+    } else if (!canDropInside) {
+      placement = "after";
+    }
+
+    if (placement !== "inside" && !targetParentId) {
+      return { placement: "inside", targetElementId: "preview" };
+    }
+
+    return { placement, targetElementId, targetParentId };
+  };
+
   const handleDragStart = useCallback((event: DragStartEvent) => {
     const data = event.operation.source?.data;
 
@@ -463,6 +539,7 @@ export const Home: FC = () => {
     }
 
     setActiveDropTargetId(null);
+    setActiveTreeDropTargetId(null);
   }, []);
 
   const handleDragMove = useCallback((event: DragMoveEvent) => {
@@ -472,13 +549,31 @@ export const Home: FC = () => {
       return;
     }
 
-    const resolvedTargetId = resolveDropTargetFromOperation(event.operation.target);
+    const treeDropTarget = resolveTreeDropTargetFromNativeEvent(event.nativeEvent);
 
-    if (!resolvedTargetId) {
+    if (treeDropTarget?.targetElementId === "preview") {
       setActiveDropTargetId(null);
+      setActiveTreeDropTargetId(TREE_ROOT_DROP_TARGET_ID);
       return;
     }
 
+    if (treeDropTarget?.targetElementId) {
+      setActiveDropTargetId(null);
+      setActiveTreeDropTargetId(treeDropTarget.targetElementId);
+      return;
+    }
+
+    const resolvedTargetId =
+      resolveDropTargetFromOperation(event.operation.target) ??
+      resolveDropTargetFromNativeEvent(event.nativeEvent);
+
+    if (!resolvedTargetId) {
+      setActiveDropTargetId(null);
+      setActiveTreeDropTargetId(null);
+      return;
+    }
+
+    setActiveTreeDropTargetId(null);
     setActiveDropTargetId(resolvedTargetId);
   }, []);
 
@@ -487,24 +582,39 @@ export const Home: FC = () => {
       const sourceData = event.operation.source?.data;
 
       if (sourceData?.kind === "catalog-component") {
-        const resolvedTargetId = resolveDropTargetFromOperation(
-          event.operation.target
-        );
+        const treeDropTarget = resolveTreeDropTargetFromNativeEvent(event.nativeEvent);
 
-        if (!resolvedTargetId) {
-          setDraggedCatalogComponentName(null);
-          setActiveDropTargetId(null);
-          return;
+        if (treeDropTarget) {
+          handlePreviewDropComponent(
+            treeDropTarget.targetElementId,
+            sourceData.componentName as string,
+            {
+              placement: treeDropTarget.placement,
+              targetParentId: treeDropTarget.targetParentId,
+            }
+          );
+        } else {
+          const resolvedTargetId =
+            resolveDropTargetFromOperation(event.operation.target) ??
+            resolveDropTargetFromNativeEvent(event.nativeEvent);
+
+          if (!resolvedTargetId) {
+            setDraggedCatalogComponentName(null);
+            setActiveDropTargetId(null);
+            setActiveTreeDropTargetId(null);
+            return;
+          }
+
+          handlePreviewDropComponent(
+            resolvedTargetId,
+            sourceData.componentName as string
+          );
         }
-
-        handlePreviewDropComponent(
-          resolvedTargetId,
-          sourceData.componentName as string
-        );
       }
 
       setDraggedCatalogComponentName(null);
       setActiveDropTargetId(null);
+      setActiveTreeDropTargetId(null);
     },
     [handlePreviewDropComponent]
   );
@@ -589,6 +699,62 @@ export const Home: FC = () => {
       );
     }
   }, [isStreaming, raw, spec, state, usage]);
+
+  useEffect(() => {
+    if (!isDesignMode || selectedDesignToolId !== "component") {
+      return undefined;
+    }
+
+    const handlePointerDown = (event: PointerEvent) => {
+      const target = event.target;
+
+      if (!(target instanceof Element)) {
+        return;
+      }
+
+      if (
+        target.closest(
+          "[data-component-picker-surface], [data-component-picker-trigger]"
+        )
+      ) {
+        return;
+      }
+
+      setSelectedDesignToolId("select");
+    };
+
+    const handleKeyDown = (event: KeyboardEvent) => {
+      if (event.key === "Escape") {
+        setSelectedDesignToolId("select");
+      }
+    };
+
+    document.addEventListener("pointerdown", handlePointerDown, true);
+    document.addEventListener("keydown", handleKeyDown);
+
+    return () => {
+      document.removeEventListener("pointerdown", handlePointerDown, true);
+      document.removeEventListener("keydown", handleKeyDown);
+    };
+  }, [isDesignMode, selectedDesignToolId]);
+
+  useEffect(() => {
+    if (!isCodeModalOpen) {
+      return undefined;
+    }
+
+    const handleKeyDown = (event: KeyboardEvent) => {
+      if (event.key === "Escape") {
+        setIsCodeModalOpen(false);
+      }
+    };
+
+    document.addEventListener("keydown", handleKeyDown);
+
+    return () => {
+      document.removeEventListener("keydown", handleKeyDown);
+    };
+  }, [isCodeModalOpen]);
 
   return (
     <DragDropProvider
@@ -684,8 +850,14 @@ export const Home: FC = () => {
             <>
               {selectedDesignToolId === "component" ? (
                 <Panel position="bottom-center">
-                  <Island width="100%" height={360}>
-                    <ToolBar items={toolBarItems} />
+                  <Island
+                    width="min(720px, calc(100vw - 32px))"
+                    height={360}
+                    style={{ overflow: "hidden", zIndex: 20 }}
+                  >
+                    <Styled.ComponentPickerSurface data-component-picker-surface>
+                      <ToolBar items={toolBarItems} />
+                    </Styled.ComponentPickerSurface>
                   </Island>
                 </Panel>
               ) : null}
@@ -709,6 +881,7 @@ export const Home: FC = () => {
                     <Section>
                       {activeTab === 0 ? (
                         <TreeView
+                          activeCatalogDropTargetId={activeTreeDropTargetId}
                           items={treeViewElementsItems}
                           value={selectedElementId}
                           onChange={handleTreeViewElementsChange}
@@ -749,14 +922,25 @@ export const Home: FC = () => {
                         />
                       ) : null}
                       {activeTab === 3 ? (
-                        <MonacoEditor
-                          language="json"
-                          options={{
-                            readOnly: isStreaming,
-                          }}
-                          value={JSON.stringify(currentVersion?.spec, null, 2)}
-                          onChange={handleMonacoEditorChange}
-                        />
+                        <Styled.CodePanel>
+                          <Styled.CodeExpandButton
+                            type="button"
+                            aria-label={t("Развернуть код")}
+                            title={t("Развернуть код")}
+                            onClick={() => setIsCodeModalOpen(true)}
+                          >
+                            ⤢
+                          </Styled.CodeExpandButton>
+                          <MonacoEditor
+                            language="json"
+                            options={{
+                              minimap: { enabled: false },
+                              readOnly: isStreaming,
+                            }}
+                            value={currentSpecCode}
+                            onChange={handleMonacoEditorChange}
+                          />
+                        </Styled.CodePanel>
                       ) : null}
                     </Section>
                   </Sections>
@@ -835,13 +1019,53 @@ export const Home: FC = () => {
               </Panel>
               <Panel position="bottom-center">
                 <Island>
-                  <ToolPicker
-                    tools={DESIGN_TOOLS}
-                    value={selectedDesignToolId}
-                    onSelect={setSelectedDesignToolId}
-                  />
+                  <div data-component-picker-trigger>
+                    <ToolPicker
+                      tools={DESIGN_TOOLS}
+                      value={selectedDesignToolId}
+                      onSelect={setSelectedDesignToolId}
+                    />
+                  </div>
                 </Island>
               </Panel>
+              {isCodeModalOpen ? (
+                <Styled.CodeModalBackdrop
+                  role="presentation"
+                  onMouseDown={(event) => {
+                    if (event.target === event.currentTarget) {
+                      setIsCodeModalOpen(false);
+                    }
+                  }}
+                >
+                  <Styled.CodeModal
+                    aria-label={t("Код спецификации")}
+                    role="dialog"
+                    aria-modal="true"
+                  >
+                    <Styled.CodeModalHeader>
+                      <Styled.CodeModalTitle>
+                        {t("Код спецификации")}
+                      </Styled.CodeModalTitle>
+                      <Button
+                        type="button"
+                        onClick={() => setIsCodeModalOpen(false)}
+                      >
+                        {t("Закрыть")}
+                      </Button>
+                    </Styled.CodeModalHeader>
+                    <Styled.CodeModalBody>
+                      <MonacoEditor
+                        language="json"
+                        options={{
+                          readOnly: isStreaming,
+                        }}
+                        value={currentSpecCode}
+                        onChange={handleMonacoEditorChange}
+                      />
+                    </Styled.CodeModalBody>
+                  </Styled.CodeModal>
+                </Styled.CodeModalBackdrop>
+              ) : null}
             </>
           )}
         </ReactFlow>

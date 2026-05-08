@@ -1,7 +1,9 @@
-import type { ReactNode } from "react";
+import type { HTMLAttributes, ReactNode } from "react";
 
-type Props = {
+type Props = HTMLAttributes<HTMLSpanElement> & {
   children?: ReactNode;
+  $color?: string;
+  $size?: string;
   color?:
     | "blue"
     | "cyan"
@@ -20,9 +22,21 @@ type Props = {
   [key: string]: unknown;
 };
 
-export function Tag({ children, color = "yellow", label, size = "m", ...props }: Props) {
+export function Tag({
+  children,
+  $color,
+  $size,
+  color,
+  label,
+  size,
+  ...props
+}: Props) {
   return (
-    <span {...props} data-color={color} data-size={size}>
+    <span
+      {...props}
+      data-color={color ?? $color ?? "yellow"}
+      data-size={size ?? $size ?? "m"}
+    >
       {children ?? label}
     </span>
   );

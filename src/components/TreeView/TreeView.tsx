@@ -4,6 +4,8 @@ import { useRef, useState } from "react";
 import { ReactComponent as AddIcon } from "$common/icons/add-icon.svg";
 import * as Styled from "./styled";
 
+export const TREE_ROOT_DROP_TARGET_ID = "__tree-root__";
+
 export type TreeItem = {
   children: TreeItem[];
   canDrop?: boolean;
@@ -16,6 +18,7 @@ export type TreeItem = {
 };
 
 export type TreeViewProps = {
+  activeCatalogDropTargetId?: string | null;
   items: TreeItem[];
   value?: string;
   onChange?: (id: string) => void;
@@ -32,6 +35,7 @@ const INDENT_PER_LEVEL = 16;
 const BASE_PADDING = 8;
 
 export const TreeView: FC<TreeViewProps> = ({
+  activeCatalogDropTargetId,
   items,
   value,
   onItemPositionChange,
@@ -241,6 +245,9 @@ export const TreeView: FC<TreeViewProps> = ({
     sourceItemRef.current = null;
   };
 
+  const isEmptyRootDropTarget =
+    items.length === 0 && activeCatalogDropTargetId === TREE_ROOT_DROP_TARGET_ID;
+
   const renderNode = (
     parent: TreeItem | null,
     item: TreeItem,
@@ -248,15 +255,22 @@ export const TreeView: FC<TreeViewProps> = ({
   ) => {
     const isCollapsed = collapsedIds.has(item.id);
     const isSelected = value === item.id;
+    const dragPlacement =
+      dragTarget?.itemId === item.id
+        ? dragTarget.placement
+        : activeCatalogDropTargetId === item.id
+          ? "inside"
+          : null;
 
     return (
       <Styled.Item key={item.id} $isSelected={isSelected}>
         <Styled.Content
           aria-expanded={!isCollapsed}
           aria-selected={isSelected}
-          $dragPlacement={
-            dragTarget?.itemId === item.id ? dragTarget.placement : null
-          }
+          data-tree-can-drop={item.canDrop ? "true" : "false"}
+          data-tree-element-id={item.id}
+          data-tree-parent-id={parent?.id}
+          $dragPlacement={dragPlacement}
           $isDetached={Boolean(item.detached)}
           $isSelected={isSelected}
           draggable={!item.isRoot}
@@ -317,7 +331,16 @@ export const TreeView: FC<TreeViewProps> = ({
   };
 
   return (
-    <Styled.Container $isRoot>
+    <Styled.Container
+      data-tree-root-drop-zone
+      $isCatalogDropTarget={isEmptyRootDropTarget}
+      $isRoot
+    >
+      {items.length === 0 ? (
+        <Styled.EmptyDropZone $isActive={isEmptyRootDropTarget}>
+          Перетащите компонент сюда
+        </Styled.EmptyDropZone>
+      ) : null}
       {items.map((item) => renderNode(null, item, 0))}
     </Styled.Container>
   );

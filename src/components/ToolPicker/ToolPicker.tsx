@@ -1,4 +1,4 @@
-import { useMemo, useState, type FC } from "react";
+import { type FC } from "react";
 import * as Styled from "./styled";
 
 export type ToolPickerItem = {
