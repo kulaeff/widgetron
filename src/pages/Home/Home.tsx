@@ -422,8 +422,6 @@ export const Home: FC = () => {
     (targetElementId: string, componentName: string) => {
       const component = components.find((c) => c.name === componentName);
 
-      console.log(targetElementId, componentName, components);
-
       if (!component) return;
 
       const nextVersionId = Date.now().toString();
@@ -446,20 +444,12 @@ export const Home: FC = () => {
     [components, selectedVersionId, versions]
   );
 
-  const resolveDropTargetFromNativeEvent = (event?: Event): string | null => {
-    if (!(event instanceof MouseEvent || event instanceof PointerEvent)) {
-      return null;
-    }
+  const resolveDropTargetFromOperation = (
+    target: DragMoveEvent["operation"]["target"] | DragEndEvent["operation"]["target"]
+  ): string | null => {
+    const targetId = target?.id;
 
-    const hoveredElement = document
-      .elementFromPoint(event.clientX, event.clientY)
-      ?.closest<HTMLElement>("[data-element-id]");
-
-    if (!hoveredElement) {
-      return null;
-    }
-
-    return hoveredElement.getAttribute("data-element-id");
+    return typeof targetId === "string" ? targetId : null;
   };
 
   const handleDragStart = useCallback((event: DragStartEvent) => {
@@ -482,24 +472,30 @@ export const Home: FC = () => {
       return;
     }
 
-    if (event.operation.target?.id !== "preview") {
+    const resolvedTargetId = resolveDropTargetFromOperation(event.operation.target);
+
+    if (!resolvedTargetId) {
       setActiveDropTargetId(null);
       return;
     }
 
-    setActiveDropTargetId(resolveDropTargetFromNativeEvent(event.nativeEvent) ?? "preview");
+    setActiveDropTargetId(resolvedTargetId);
   }, []);
 
   const handleDragEnd = useCallback(
     (event: DragEndEvent) => {
       const sourceData = event.operation.source?.data;
 
-      if (
-        sourceData?.kind === "catalog-component" &&
-        event.operation.target?.id === "preview"
-      ) {
-        const resolvedTargetId =
-          resolveDropTargetFromNativeEvent(event.nativeEvent) ?? "preview";
+      if (sourceData?.kind === "catalog-component") {
+        const resolvedTargetId = resolveDropTargetFromOperation(
+          event.operation.target
+        );
+
+        if (!resolvedTargetId) {
+          setDraggedCatalogComponentName(null);
+          setActiveDropTargetId(null);
+          return;
+        }
 
         handlePreviewDropComponent(
           resolvedTargetId,
@@ -515,7 +511,6 @@ export const Home: FC = () => {
 
   const handlePreviewStateChange = useCallback(
     (changes: Array<{ path: string; value: unknown }>) => {
-      console.log("SET STATE");
       setState((prev) => {
         const next = { ...prev };
 

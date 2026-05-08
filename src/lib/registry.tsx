@@ -26,6 +26,7 @@ import { Title } from "@pulse/ui/components/Title";
 import { Grid } from "../ui/Grid";
 import { Image } from "../ui/Image";
 import { Stack } from "../ui/Stack";
+import { DroppableMarker } from "../components/DroppableMarker/DroppableMarker";
 // import { Table } from "@/components/ui/table";
 import { Text } from "../ui/Text";
 // import { Link } from "@/components/ui/link";
@@ -85,18 +86,22 @@ export const { registry, handlers, executeAction } = defineRegistry(catalog, {
           {props.label}
         </Button>
       ),
-    Card: ({ props, children }) =>
-      withSpecMarker(
-        props,
-        <Card
-          $border={props.border}
-          $shadow={props.shadow}
-          $type={props.type}
-          $variant={props.variant}
-        >
-          {children}
-        </Card>
-      ),
+    Card: ({ props, children }) => {
+      const id = getSpecId(props);
+
+      return (
+        <DroppableMarker id={id}>
+          <Card
+            $border={props.border}
+            $shadow={props.shadow}
+            $type={props.type}
+            $variant={props.variant}
+          >
+            {children}
+          </Card>
+        </DroppableMarker>
+      );
+    },
     Chips: ({ props, emit }) =>
       withSpecMarker(
         props,
@@ -108,8 +113,15 @@ export const { registry, handlers, executeAction } = defineRegistry(catalog, {
           {props.label}
         </Chips>
       ),
-    Grid: ({ props, children }) =>
-      withSpecMarker(props, <Grid {...props}>{children}</Grid>),
+    Grid: ({ props, children }) => {
+      const id = getSpecId(props);
+
+      return (
+        <DroppableMarker id={id}>
+          <Grid {...props}>{children}</Grid>
+        </DroppableMarker>
+      );
+    },
     Radio: ({ props, bindings, emit }) => {
       const [boundValue, setBoundValue] = useBoundProp(
         props.value,
@@ -137,8 +149,15 @@ export const { registry, handlers, executeAction } = defineRegistry(catalog, {
         </Radio>
       );
     },
-    Stack: ({ props, children }) =>
-      withSpecMarker(props, <Stack {...props}>{children}</Stack>),
+    Stack: ({ props, children }) => {
+      const id = getSpecId(props);
+
+      return (
+        <DroppableMarker id={id}>
+          <Stack {...props}>{children}</Stack>
+        </DroppableMarker>
+      );
+    },
     Skeleton: ({ props, children }) =>
       withSpecMarker(props, <SkeletonRect {...props}>{children}</SkeletonRect>),
     Separator: ({ props }) => withSpecMarker(props, <Divider />),
@@ -325,8 +344,15 @@ export const { registry, handlers, executeAction } = defineRegistry(catalog, {
         />
       );
     },
-    Link: ({ props, children }) =>
-      withSpecMarker(props, <a href={props.to}>{children}</a>),
+    Link: ({ props, children }) => {
+      const id = getSpecId(props);
+
+      return (
+        <DroppableMarker id={id}>
+          <a href={props.to}>{children}</a>
+        </DroppableMarker>
+      );
+    },
     Pagination: ({ props, bindings, emit }) => {
       const [page, setPage] = useBoundProp(props.page, bindings?.page);
 

@@ -13,5 +13,5 @@ export const Stack = styled.div<
   gap: ${({ $gap }) => $gap * 4}px;
   height: 100%;
   justify-content: ${({ $justify }) => $justify};
-  min-height: 16px;
+  width: 100%;
 `;

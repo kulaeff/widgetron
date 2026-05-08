@@ -130,7 +130,7 @@ export const catalog = defineCatalog(schema, {
       props: z.object({
         align: z
           .enum(["start", "center", "end", "stretch"])
-          .default("start")
+          .default("stretch")
           .optional(),
         columns: z.string().optional().meta({
           description:
@@ -151,8 +151,8 @@ export const catalog = defineCatalog(schema, {
           .default(0)
           .optional(),
         justify: z
-          .enum(["start", "center", "end", "space-between", "space-around"])
-          .default("start")
+          .enum(["start", "center", "end", "stretch", "space-between", "space-around"])
+          .default("stretch")
           .optional(),
       }),
       slots: ["default"],

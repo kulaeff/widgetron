@@ -1,4 +1,5 @@
 import type { Spec } from "@json-render/core";
+import { CollisionPriority } from "@dnd-kit/abstract";
 import { useDroppable } from "@dnd-kit/react";
 import { useEffect, useMemo, type FC } from "react";
 import * as Styled from "./styled";
@@ -27,6 +28,7 @@ export const Preview: FC<PreviewProps> = ({
   viewportSize,
 }) => {
   const { ref: previewDropRef } = useDroppable({
+    collisionPriority: CollisionPriority.Low,
     id: "preview",
     data: {
       kind: "preview",
