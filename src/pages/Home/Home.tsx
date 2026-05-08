@@ -13,7 +13,7 @@ import { useTranslation } from "react-i18next";
 import { useTheme } from "styled-components";
 import * as Styled from "./styled";
 import { Island } from "../../components/Island";
-import { Preview } from "../../components/Preview";
+import { Preview, type PreviewProps } from "../../components/Preview";
 import { useUIStream } from "../../hooks/useUIStream";
 import { OmniBox } from "../../components/OmniBox";
 import { ToolBar } from "../../components/ToolBar";
@@ -36,6 +36,7 @@ import {
   type DragMoveEvent,
   type DragStartEvent,
 } from "@dnd-kit/react";
+import { Background, Node, NodeOrigin, NodeProps, Panel, ReactFlow, useReactFlow } from "@xyflow/react";
 import {
   addCatalogComponentToVersions,
   buildSpecTreeItems,
@@ -123,11 +124,10 @@ const VIEWPORT_OPTIONS: Array<
 ];
 
 const ZOOM_OPTIONS: ZoomOption[] = [
-  { id: "50", label: "50%", value: 0.5 },
-  { id: "75", label: "75%", value: 0.75 },
-  { id: "100", label: "100%", value: 1 },
-  { id: "125", label: "125%", value: 1.25 },
-  { id: "150", label: "150%", value: 1.5 },
+  { id: "in", label: "Zoom in" },
+  { id: "out", label: "Zoom out" },
+  { id: "100", label: "Zoom to 100%" },
+  { id: "fit", label: "Zoom to fit" },
 ];
 
 const DESIGN_TOOLS: ToolPickerItem[] = [
@@ -135,9 +135,20 @@ const DESIGN_TOOLS: ToolPickerItem[] = [
   { id: "component", title: "Component" },
 ];
 
+type PreviewNode = Node<PreviewProps, "renderer">;
+
+const RendererNode: FC<NodeProps<PreviewNode>> = ({ data, selected }) => {
+  return <Preview {...data} selected={selected} />;
+};
+
+const nodeTypes = {
+  renderer: RendererNode,
+};
+
 export const Home: FC = () => {
   const { t } = useTranslation();
   const { tokens, typography } = useTheme();
+  const { fitView, zoomIn, zoomOut, zoomTo } = useReactFlow();
 
   const [activeTab, setActiveTab] = useState(0);
   const [activeRightTab, setActiveRightTab] = useState(0);
@@ -154,8 +165,7 @@ export const Home: FC = () => {
   const [isDesignMode, setIsDesignMode] = useState(false);
   const [isCodeModalOpen, setIsCodeModalOpen] = useState(false);
   const [selectedDesignToolId, setSelectedDesignToolId] = useState("select");
-  const [viewportId, setViewportId] = useState(VIEWPORT_OPTIONS[1]!.id);
-  const [zoom, setZoom] = useState(1);
+  const [viewportId, setViewportId] = useState(VIEWPORT_OPTIONS[0].id);
 
   const generatingVersionIdRef = useRef<string>();
 
@@ -180,7 +190,7 @@ export const Home: FC = () => {
   const selectedViewport = useMemo(
     () =>
       VIEWPORT_OPTIONS.find((option) => option.id === viewportId) ??
-      VIEWPORT_OPTIONS[1]!,
+      VIEWPORT_OPTIONS[0],
     [viewportId]
   );
 
@@ -190,6 +200,27 @@ export const Home: FC = () => {
     ...(currentVersion?.spec?.state ?? spec?.state),
     ...state,
   };
+
+  const currentNodes = [
+    {
+      id: 'n1',
+      position: { x: 0, y: 0 },
+      data: {
+        activeDropTargetId: draggedCatalogComponentName ? activeDropTargetId : null,
+        emptyLabel: isDesignMode ? null : undefined,
+        loading: isStreaming,
+        viewportSize: selectedViewport,
+        selectedElementId,
+        spec: currentSpec,
+        state: currentState,
+        setState,
+      },
+      draggable: false,
+      origin: [0.5, 0.5] as NodeOrigin,
+      selectable: false,
+      type: "renderer",
+    },
+  ];
 
   console.log("CURRENT VERSION", currentVersion);
   console.log("CURRENT SPEC", currentSpec);
@@ -405,8 +436,6 @@ export const Home: FC = () => {
     ) => {
       const component = components.find((c) => c.name === componentName);
 
-      console.log(targetElementId, componentName, components);
-
       if (!component) return;
 
       const nextVersionId = Date.now().toString();
@@ -431,6 +460,14 @@ export const Home: FC = () => {
     [components, selectedVersionId, versions]
   );
 
+  const resolveDropTargetFromOperation = (
+    target: DragMoveEvent["operation"]["target"] | DragEndEvent["operation"]["target"]
+  ): string | null => {
+    const targetId = target?.id;
+
+    return typeof targetId === "string" ? targetId : null;
+  };
+
   const resolveDropTargetFromNativeEvent = (event?: Event): string | null => {
     if (!(event instanceof MouseEvent || event instanceof PointerEvent)) {
       return null;
@@ -440,11 +477,7 @@ export const Home: FC = () => {
       .elementFromPoint(event.clientX, event.clientY)
       ?.closest<HTMLElement>("[data-element-id]");
 
-    if (!hoveredElement) {
-      return null;
-    }
-
-    return hoveredElement.getAttribute("data-element-id");
+    return hoveredElement?.getAttribute("data-element-id") ?? null;
   };
 
   const resolveTreeDropTargetFromNativeEvent = (
@@ -530,14 +563,18 @@ export const Home: FC = () => {
       return;
     }
 
-    if (event.operation.target?.id !== "preview") {
+    const resolvedTargetId =
+      resolveDropTargetFromOperation(event.operation.target) ??
+      resolveDropTargetFromNativeEvent(event.nativeEvent);
+
+    if (!resolvedTargetId) {
       setActiveDropTargetId(null);
       setActiveTreeDropTargetId(null);
       return;
     }
 
     setActiveTreeDropTargetId(null);
-    setActiveDropTargetId(resolveDropTargetFromNativeEvent(event.nativeEvent) ?? "preview");
+    setActiveDropTargetId(resolvedTargetId);
   }, []);
 
   const handleDragEnd = useCallback(
@@ -556,9 +593,17 @@ export const Home: FC = () => {
               targetParentId: treeDropTarget.targetParentId,
             }
           );
-        } else if (event.operation.target?.id === "preview") {
+        } else {
           const resolvedTargetId =
-            resolveDropTargetFromNativeEvent(event.nativeEvent) ?? "preview";
+            resolveDropTargetFromOperation(event.operation.target) ??
+            resolveDropTargetFromNativeEvent(event.nativeEvent);
+
+          if (!resolvedTargetId) {
+            setDraggedCatalogComponentName(null);
+            setActiveDropTargetId(null);
+            setActiveTreeDropTargetId(null);
+            return;
+          }
 
           handlePreviewDropComponent(
             resolvedTargetId,
@@ -576,7 +621,6 @@ export const Home: FC = () => {
 
   const handlePreviewStateChange = useCallback(
     (changes: Array<{ path: string; value: unknown }>) => {
-      console.log("SET STATE");
       setState((prev) => {
         const next = { ...prev };
 
@@ -724,255 +768,266 @@ export const Home: FC = () => {
         ) : null}
       </DragOverlay>
       <Styled.Container>
-        <Styled.Workspace>
-          <Styled.Preview>
-            <Preview
-              loading={isStreaming}
-              spec={currentSpec}
-              state={currentState}
-              viewportSize={{
-                width: selectedViewport.width,
-                height: selectedViewport.height,
-              }}
-              zoom={zoom}
-              activeDropTargetId={draggedCatalogComponentName ? activeDropTargetId : null}
-              emptyLabel={isDesignMode ? null : undefined}
-              setState={setState}
-              selectedElementId={selectedElementId}
-              // onStateChange={handlePreviewStateChange}
-            />
-          </Styled.Preview>
-          <Island position={["left", "top"]}>
-            <SizeSelector
-              options={VIEWPORT_OPTIONS}
-              value={viewportId}
-              onChange={(value) => setViewportId(value)}
-            />
-          </Island>
-          <Island position={["right", "top"]}>
-            <Styled.ModeSwitch>
-              <Styled.ModeLabel $active={!isDesignMode}>AI mode</Styled.ModeLabel>
-              <Switch
-                checked={isDesignMode}
-                onChange={(event) => setIsDesignMode(event.target.checked)}
+        <ReactFlow
+          fitView
+          fitViewOptions={{
+            maxZoom: 1,
+          }}
+          nodes={currentNodes}
+          nodeTypes={nodeTypes}
+          panOnDrag={false}
+          panOnScroll
+          proOptions={{ hideAttribution: true }}
+          zoomActivationKeyCode={["Control", "Meta", "z"]}
+        >
+          <Background />
+          <Panel position="top-center">
+            <Island>
+              <SizeSelector
+                options={VIEWPORT_OPTIONS}
+                value={viewportId}
+                onChange={(value) => setViewportId(value)}
               />
-              <Styled.ModeLabel $active={isDesignMode}>Design mode</Styled.ModeLabel>
-            </Styled.ModeSwitch>
-          </Island>
-          <Island position={["right", "bottom"]}>
-            <ZoomControl
-              value={zoom}
-              options={ZOOM_OPTIONS}
-              onChange={(value) => setZoom(value)}
-            />
-          </Island>
-
+            </Island>
+          </Panel>
+          <Panel position="top-right">
+            <Island>
+              <Styled.ModeSwitch>
+                <Styled.ModeLabel $active={!isDesignMode}>AI mode</Styled.ModeLabel>
+                <Switch
+                  checked={isDesignMode}
+                  onChange={(event) => setIsDesignMode(event.target.checked)}
+                />
+                <Styled.ModeLabel $active={isDesignMode}>Design mode</Styled.ModeLabel>
+              </Styled.ModeSwitch>
+            </Island>
+          </Panel>
+          <Panel position="bottom-right">
+            <Island>
+              <ZoomControl
+                options={ZOOM_OPTIONS}
+                onChange={(id) => {
+                  if (id === "in") {
+                    zoomIn({ duration: 120, interpolate: "smooth" });
+                  } else if (id === "out") {
+                    zoomOut({ duration: 120, interpolate: "smooth" });
+                  } else if (id === "100") {
+                    zoomTo(1, { duration: 120, interpolate: "smooth" });
+                  } else if (id === "fit") {
+                    fitView({ duration: 120, interpolate: "smooth" });
+                  }
+                }}
+              />
+            </Island>
+          </Panel>
           {!isDesignMode && (
             <>
-              <Island
-                title={t("версии")}
-                position="left"
-                width={360}
-                height={420}
-              >
-                <Versions
-                  disabled={isStreaming}
-                  items={versions}
-                  value={selectedVersionId}
-                  onChange={(id) => {
-                    setSelectedVersionId(id);
-                    setSelectedElementId(undefined);
-                  }}
-                />
-              </Island>
-
-              <Island position="bottom" offset={24} width="min(620px, calc(100vw - 32px))">
-                <OmniBox
-                  loading={isStreaming}
-                  onSubmit={handleOmniBoxSubmit}
-                  onReset={clear}
-                />
-              </Island>
+              <Panel position="center-left">
+                <Island title={t("версии")} width={360} height="75vh">
+                  <Versions
+                    disabled={isStreaming}
+                    items={versions}
+                    value={selectedVersionId}
+                    onChange={(id) => {
+                      setSelectedVersionId(id);
+                      setSelectedElementId(undefined);
+                    }}
+                  />
+                </Island>
+              </Panel>
+              <Panel position="bottom-center">
+                <Island width={620}>
+                  <OmniBox
+                    loading={isStreaming}
+                    onSubmit={handleOmniBoxSubmit}
+                    onReset={clear}
+                  />
+                </Island>
+              </Panel>
             </>
           )}
-
           {isDesignMode && (
             <>
               {selectedDesignToolId === "component" ? (
-                <Island
-                  position="bottom"
-                  offset={[16, 88]}
-                  style={{ overflow: "hidden", zIndex: 20 }}
-                  width="min(360px, calc(100vw - 32px))"
-                  height="50%"
-                >
-                  <Styled.ComponentPickerSurface data-component-picker-surface>
-                    <ToolBar items={toolBarItems} />
-                  </Styled.ComponentPickerSurface>
-                </Island>
+                <Panel position="bottom-center">
+                  <Island
+                    width="min(720px, calc(100vw - 32px))"
+                    height={360}
+                    style={{ overflow: "hidden", zIndex: 20 }}
+                  >
+                    <Styled.ComponentPickerSurface data-component-picker-surface>
+                      <ToolBar items={toolBarItems} />
+                    </Styled.ComponentPickerSurface>
+                  </Island>
+                </Panel>
               ) : null}
-
-              <Island
-                position="left"
-                width="min(360px, calc((100vw - 56px) / 2))"
-                height="75%"
-              >
-                <Sections vertical>
-                  <Section size="auto">
-                    <Styled.Tabs>
-                      <Tabs
-                        $type="tertiary"
-                        selectedIndex={activeTab}
-                        onTabChange={(_, id) => setActiveTab(id)}
-                      >
-                        <Tab>{t("элементы")}</Tab>
-                        <Tab>{t("стейт")}</Tab>
-                        <Tab>{t("поток")}</Tab>
-                        <Tab>{t("код")}</Tab>
-                      </Tabs>
-                    </Styled.Tabs>
-                  </Section>
-                  <Section>
-                    {activeTab === 0 ? (
-                      <TreeView
-                        activeCatalogDropTargetId={activeTreeDropTargetId}
-                        items={treeViewElementsItems}
-                        value={selectedElementId}
-                        onChange={handleTreeViewElementsChange}
-                        onItemPositionChange={handleTreeViewMove}
-                      />
-                    ) : null}
-                    {activeTab === 1 ? (
-                      <JsonEditor
-                        height="100%"
-                        readOnly={isStreaming}
-                        sidebarOpen={false}
-                        style={
-                          {
-                            "--vj-bg": "transparent",
-                            "--vj-bg-panel": tokens.current.core.background.default,
-                            "--vj-bg-hover": tokens.current.interactive.hover.tertiary,
-                            "--vj-bg-selected": tokens.current.system["30"],
-                            "--vj-bg-selected-muted": tokens.current.system["20"],
-                            "--vj-border": tokens.current.core.border.strong,
-                            "--vj-input-font-size": typography.body1Regular.fontSize,
-                            "--vj-text": tokens.current.core.text.primary,
-                            "--vj-text-muted": tokens.current.core.text.secondary,
-                            "--vj-text-selected": tokens.current.core.text.onColor,
-                            "--vj-boolean": tokens.current.colors.green.solid["60"],
-                            "--vj-number": tokens.current.colors.blue.solid["60"],
-                            "--vj-string": tokens.current.colors.orange.solid["60"],
-                          } as CSSProperties
-                        }
-                        value={currentState as JsonValue}
-                        onChange={handleJsonEditorChange}
-                      />
-                    ) : null}
-                    {activeTab === 2 ? (
-                      <CodeBlock
-                        code={currentVersion?.raw.join("\n") ?? ""}
-                        fillHeight
-                        lang="json"
-                      />
-                    ) : null}
-                    {activeTab === 3 ? (
-                      <Styled.CodePanel>
-                        <Styled.CodeExpandButton
-                          type="button"
-                          aria-label={t("Развернуть код")}
-                          title={t("Развернуть код")}
-                          onClick={() => setIsCodeModalOpen(true)}
+              <Panel position="center-left">
+                <Island width={300} height="calc(100vh - 30px)">
+                  <Sections vertical>
+                    <Section size="auto">
+                      <Styled.Tabs>
+                        <Tabs
+                          $type="tertiary"
+                          selectedIndex={activeTab}
+                          onTabChange={(_, id) => setActiveTab(id)}
                         >
-                          ⤢
-                        </Styled.CodeExpandButton>
-                        <MonacoEditor
-                          language="json"
-                          options={{
-                            minimap: { enabled: false },
-                            readOnly: isStreaming,
-                          }}
-                          value={currentSpecCode}
-                          onChange={handleMonacoEditorChange}
+                          <Tab>{t("элементы")}</Tab>
+                          <Tab>{t("стейт")}</Tab>
+                          <Tab>{t("поток")}</Tab>
+                          <Tab>{t("код")}</Tab>
+                        </Tabs>
+                      </Styled.Tabs>
+                    </Section>
+                    <Section>
+                      {activeTab === 0 ? (
+                        <TreeView
+                          activeCatalogDropTargetId={activeTreeDropTargetId}
+                          items={treeViewElementsItems}
+                          value={selectedElementId}
+                          onChange={handleTreeViewElementsChange}
+                          onItemPositionChange={handleTreeViewMove}
                         />
-                      </Styled.CodePanel>
-                    ) : null}
-                  </Section>
-                </Sections>
-              </Island>
-
-              <Island
-                position="right"
-                width="min(320px, calc((100vw - 56px) / 2))"
-                height="calc(100% - 144px)"
-              >
-                <Sections vertical>
-                  <Section size="auto">
-                    <Styled.Tabs>
-                      <Tabs
-                        $type="tertiary"
-                        selectedIndex={activeRightTab}
-                        onTabChange={(_, id) => setActiveRightTab(id)}
-                      >
-                        <Tab>{t("свойства")}</Tab>
-                        <Tab>{t("api")}</Tab>
-                      </Tabs>
-                    </Styled.Tabs>
-                  </Section>
-                  <Section>
-                    {/* eslint-disable-next-line no-nested-ternary */}
-                    {activeRightTab === 0 ? (
-                      selectedElement ? (
-                        <LevaPanel
-                          name={selectedElement.id}
-                          type={selectedElement.type}
-                          controls={selectedElement.controls}
-                          onControlChange={handleLevaControlChange}
+                      ) : null}
+                      {activeTab === 1 ? (
+                        <JsonEditor
+                          height="100%"
+                          readOnly={isStreaming}
+                          sidebarOpen={false}
+                          style={
+                            {
+                              "--vj-bg": "transparent",
+                              "--vj-bg-panel": tokens.current.core.background.default,
+                              "--vj-bg-hover": tokens.current.interactive.hover.tertiary,
+                              "--vj-bg-selected": tokens.current.system["30"],
+                              "--vj-bg-selected-muted": tokens.current.system["20"],
+                              "--vj-border": tokens.current.core.border.strong,
+                              "--vj-input-font-size": typography.body1Regular.fontSize,
+                              "--vj-text": tokens.current.core.text.primary,
+                              "--vj-text-muted": tokens.current.core.text.secondary,
+                              "--vj-text-selected": tokens.current.core.text.onColor,
+                              "--vj-boolean": tokens.current.colors.green.solid["60"],
+                              "--vj-number": tokens.current.colors.blue.solid["60"],
+                              "--vj-string": tokens.current.colors.orange.solid["60"],
+                            } as CSSProperties
+                          }
+                          value={currentState as JsonValue}
+                          onChange={handleJsonEditorChange}
                         />
-                      ) : (
-                        <Styled.Placeholder>
-                          {t("Выберите узел дерева для редактирования его свойств")}
-                        </Styled.Placeholder>
-                      )
-                    ) : null}
-                    {activeRightTab === 1 && (
-                      <>
-                        <FormField>
-                          <Label>
-                            <label htmlFor="url">url</label>
-                          </Label>
-                          <Control>
-                            <Input id="url" value={url} onChange={(e) => setUrl(e.target.value)} />
-                          </Control>
-                        </FormField>
-                        <FormField>
-                          <Label>
-                            <label htmlFor="method">method</label>
-                          </Label>
-                          <Control>
-                            <Select
-                              id="method"
-                              value={method}
-                              onChange={(value) => setMethod(value)}
-                            >
-                              <Option value="GET">GET</Option>
-                              <Option value="POST">POST</Option>
-                            </Select>
-                          </Control>
-                        </FormField>
-                        <FormField>
-                          <Label>
-                            <label htmlFor="type">type</label>
-                          </Label>
-                          <Control>
-                            <TextArea id="type" rows={5} value={type} onChange={(e) => setType(e.target.value)} />
-                          </Control>
-                        </FormField>
-                        <Button onClick={handleButtonFetchDataSourceClick}>{t("получить")}</Button>
-                      </>
-                    )}
-                  </Section>
-                </Sections>
-              </Island>
+                      ) : null}
+                      {activeTab === 2 ? (
+                        <CodeBlock
+                          code={currentVersion?.raw.join("\n") ?? ""}
+                          fillHeight
+                          lang="json"
+                        />
+                      ) : null}
+                      {activeTab === 3 ? (
+                        <Styled.CodePanel>
+                          <Styled.CodeExpandButton
+                            type="button"
+                            aria-label={t("Развернуть код")}
+                            title={t("Развернуть код")}
+                            onClick={() => setIsCodeModalOpen(true)}
+                          >
+                            ⤢
+                          </Styled.CodeExpandButton>
+                          <MonacoEditor
+                            language="json"
+                            options={{
+                              minimap: { enabled: false },
+                              readOnly: isStreaming,
+                            }}
+                            value={currentSpecCode}
+                            onChange={handleMonacoEditorChange}
+                          />
+                        </Styled.CodePanel>
+                      ) : null}
+                    </Section>
+                  </Sections>
+                </Island>
+              </Panel>
+              <Panel position="center-right">
+                <Island width={300} height="calc(100vh - 136px)">
+                  <Sections vertical>
+                    <Section size="auto">
+                      <Styled.Tabs>
+                        <Tabs
+                          $type="tertiary"
+                          selectedIndex={activeRightTab}
+                          onTabChange={(_, id) => setActiveRightTab(id)}
+                        >
+                          <Tab>{t("свойства")}</Tab>
+                          <Tab>{t("api")}</Tab>
+                        </Tabs>
+                      </Styled.Tabs>
+                    </Section>
+                    <Section>
+                      {/* eslint-disable-next-line no-nested-ternary */}
+                      {activeRightTab === 0 ? (
+                        selectedElement ? (
+                          <LevaPanel
+                            name={selectedElement.id}
+                            type={selectedElement.type}
+                            controls={selectedElement.controls}
+                            onControlChange={handleLevaControlChange}
+                          />
+                        ) : (
+                          <Styled.Placeholder>
+                            {t("Выберите узел дерева для редактирования его свойств")}
+                          </Styled.Placeholder>
+                        )
+                      ) : null}
+                      {activeRightTab === 1 && (
+                        <>
+                          <FormField>
+                            <Label>
+                              <label htmlFor="url">url</label>
+                            </Label>
+                            <Control>
+                              <Input id="url" value={url} onChange={(e) => setUrl(e.target.value)} />
+                            </Control>
+                          </FormField>
+                          <FormField>
+                            <Label>
+                              <label htmlFor="method">method</label>
+                            </Label>
+                            <Control>
+                              <Select
+                                id="method"
+                                value={method}
+                                onChange={(value) => setMethod(value)}
+                              >
+                                <Option value="GET">GET</Option>
+                                <Option value="POST">POST</Option>
+                              </Select>
+                            </Control>
+                          </FormField>
+                          <FormField>
+                            <Label>
+                              <label htmlFor="type">type</label>
+                            </Label>
+                            <Control>
+                              <TextArea id="type" rows={5} value={type} onChange={(e) => setType(e.target.value)} />
+                            </Control>
+                          </FormField>
+                          <Button onClick={handleButtonFetchDataSourceClick}>{t("получить")}</Button>
+                        </>
+                      )}
+                    </Section>
+                  </Sections>
+                </Island>
+              </Panel>
+              <Panel position="bottom-center">
+                <Island>
+                  <div data-component-picker-trigger>
+                    <ToolPicker
+                      tools={DESIGN_TOOLS}
+                      value={selectedDesignToolId}
+                      onSelect={setSelectedDesignToolId}
+                    />
+                  </div>
+                </Island>
+              </Panel>
               {isCodeModalOpen ? (
                 <Styled.CodeModalBackdrop
                   role="presentation"
@@ -1011,18 +1066,9 @@ export const Home: FC = () => {
                   </Styled.CodeModal>
                 </Styled.CodeModalBackdrop>
               ) : null}
-              <Island position="bottom">
-                <div data-component-picker-trigger>
-                  <ToolPicker
-                    tools={DESIGN_TOOLS}
-                    defaultSelectedId={selectedDesignToolId}
-                    onSelect={setSelectedDesignToolId}
-                  />
-                </div>
-              </Island>
             </>
           )}
-        </Styled.Workspace>
+        </ReactFlow>
       </Styled.Container>
     </DragDropProvider>
   );

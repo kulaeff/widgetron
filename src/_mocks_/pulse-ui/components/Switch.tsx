@@ -1,10 +1,11 @@
 import type { InputHTMLAttributes } from "react";
 
 type Props = Omit<InputHTMLAttributes<HTMLInputElement>, "type"> & {
+  label?: string;
   [key: string]: unknown;
 };
 
-export function Switch({ disabled, checked, ...props }: Props) {
+export function Switch({ disabled, checked, label, ...props }: Props) {
   return (
     <label
       style={{
@@ -51,6 +52,7 @@ export function Switch({ disabled, checked, ...props }: Props) {
           }}
         />
       </span>
+      {label ? <span style={{ marginLeft: 8 }}>{label}</span> : null}
     </label>
   );
 }

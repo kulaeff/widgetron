@@ -1,25 +1,24 @@
 import { useEffect, useRef, useState, type FC } from "react";
 import * as Styled from "./styled";
+import { useViewport } from "@xyflow/react";
 
 export type ZoomOption = {
   id: string;
   label: string;
-  value: number;
 };
 
 type ZoomControlProps = {
-  value: number;
   options: ZoomOption[];
-  onChange: (next: number) => void;
+  onChange: (id: ZoomOption["id"]) => void;
 };
 
 export const ZoomControl: FC<ZoomControlProps> = ({
-  value,
   options,
   onChange,
 }) => {
   const [open, setOpen] = useState(false);
   const rootRef = useRef<HTMLDivElement>(null);
+  const { zoom } = useViewport();
 
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
@@ -43,9 +42,8 @@ export const ZoomControl: FC<ZoomControlProps> = ({
             <Styled.OptionButton
               key={option.id}
               type="button"
-              $active={option.value === value}
               onClick={() => {
-                onChange(option.value);
+                onChange(option.id);
                 setOpen(false);
               }}
             >
@@ -56,7 +54,7 @@ export const ZoomControl: FC<ZoomControlProps> = ({
       ) : null}
 
       <Styled.Trigger type="button" onClick={() => setOpen((prev) => !prev)}>
-        {Math.round(value * 100)}%
+        {Math.round(zoom * 100)}%
       </Styled.Trigger>
     </Styled.Root>
   );

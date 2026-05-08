@@ -1,12 +1,14 @@
 import type { Spec } from "@json-render/core";
+import { CollisionPriority } from "@dnd-kit/abstract";
 import { useDroppable } from "@dnd-kit/react";
 import { useEffect, useMemo, type FC } from "react";
 import * as Styled from "./styled";
 import { Renderer, type RendererProps } from "../../components/Renderer";
 
-interface PreviewProps extends Omit<RendererProps, "spec"> {
+export interface PreviewProps extends Omit<RendererProps, "spec">, Record<string, unknown> {
   spec: Spec | null;
   activeDropTargetId?: string | null;
+  selected?: boolean;
   selectedElementId?: string;
   viewportSize?: {
     width: number;
@@ -22,6 +24,7 @@ export const Preview: FC<PreviewProps> = ({
   loading = false,
   setState,
   activeDropTargetId,
+  selected = false,
   selectedElementId,
   onStateChange,
   viewportSize,
@@ -29,6 +32,7 @@ export const Preview: FC<PreviewProps> = ({
   emptyLabel = "Сгенерируйте интерфейс в AI mode или перетащите компонент в Design mode",
 }) => {
   const { ref: previewDropRef } = useDroppable({
+    collisionPriority: CollisionPriority.Low,
     id: "preview",
     data: {
       kind: "preview",
@@ -105,6 +109,7 @@ export const Preview: FC<PreviewProps> = ({
 
   return (
     <Styled.Container
+      $selected={selected}
       data-element-id="preview"
       ref={previewDropRef}
       style={{

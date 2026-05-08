@@ -3,21 +3,47 @@ import type { ButtonHTMLAttributes, CSSProperties, ReactNode } from "react";
 type Props = ButtonHTMLAttributes<HTMLButtonElement> & {
   children?: ReactNode;
   $type?: string;
+  fullWidth?: boolean;
+  isLoading?: boolean;
+  label?: string;
   size?: string;
   [key: string]: unknown;
 };
 
-export function Button({ children, ...props }: Props) {
+export function Button({
+  children,
+  $type,
+  fullWidth = false,
+  isLoading = false,
+  label,
+  size = "m",
+  style,
+  ...props
+}: Props) {
   return (
-    <button {...props} style={{ ...buttonStyle(props.disabled), ...props.style }}>
-      {children}
+    <button
+      {...props}
+      data-size={size}
+      data-ui-type={$type}
+      style={{
+        ...buttonStyle(props.disabled),
+        ...style,
+        width: fullWidth ? "100%" : style?.width,
+      }}
+    >
+      {isLoading ? "Loading..." : children ?? label}
     </button>
   );
 }
 
-export function IconButton({ children, ...props }: Props) {
+export function IconButton({ children, $type, size, style, ...props }: Props) {
   return (
-    <button {...props} style={{ ...iconButtonStyle(props.disabled), ...props.style }}>
+    <button
+      {...props}
+      data-size={size}
+      data-ui-type={$type}
+      style={{ ...iconButtonStyle(props.disabled), ...style }}
+    >
       {children}
     </button>
   );

@@ -6,7 +6,6 @@ export const Container = styled("div")({
   height: "100%",
   width: "100%",
   overflow: "hidden",
-  fontFamily: '"SB Sans Text", Helvetica, Arial, sans-serif',
 });
 
 export const Workspace = styled("div")`
@@ -48,19 +47,11 @@ export const Placeholder = styled.div(
 
 export const Preview = styled("div")`
   align-items: center;
-  background-color: ${({ theme }) => theme.tokens.current.core.layer["01"]};
-  background-image: radial-gradient(
-    ${({ theme }) => theme.tokens.current.core.border.strong} 1px,
-    transparent 1px
-  );
-  background-position: 0 0;
-  background-size: 16px 16px;
   box-sizing: border-box;
   display: flex;
   height: 100%;
   justify-content: center;
   overflow: auto;
-  padding: 80px 24px 120px;
 `;
 
 export const Tabs = styled("div")`

@@ -1,1 +1,1 @@
-export { Preview } from "./Preview";
+export { Preview, type PreviewProps } from "./Preview";
