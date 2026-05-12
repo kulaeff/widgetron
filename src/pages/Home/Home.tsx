@@ -1,17 +1,15 @@
+import * as Styled from "./styled";
 import { validateSpec } from "@json-render/core";
 import type { Spec } from "@json-render/react";
 import { Editor as MonacoEditor } from "@monaco-editor/react";
 import { JsonEditor, JsonValue } from "@visual-json/react";
 import { Control, FormField, Label } from "@pulse/ui/components/FormField";
 import { Input } from "@pulse/ui/components/Input";
-import { Tab, Tabs } from "@pulse/ui/components/Tabs";
+import { Tabs } from "../../components/Tabs";
 import { TextArea } from "@pulse/ui/components/Input/TextArea";
-import { SizeSelector, type SizeSelectorOption } from "@pulse/ui/components/SizeSelector";
-import { Switch } from "@pulse/ui/components/Switch";
 import { CSSProperties, type FC, useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { useTheme } from "styled-components";
-import * as Styled from "./styled";
 import { Island } from "../../components/Island";
 import { Preview, type PreviewProps } from "../../components/Preview";
 import { useUIStream } from "../../hooks/useUIStream";
@@ -42,6 +40,7 @@ import {
   buildSpecTreeItems,
   moveElementInSpec,
 } from "./spec-utils";
+import { Toggle } from "../../components/Toggle";
 
 const EDITOR_RULES = [
   "Никогда не используй Card как root.",
@@ -115,12 +114,10 @@ const DEFAULT_SPEC = {
   },
 };
 
-const VIEWPORT_OPTIONS: Array<
-  SizeSelectorOption & { width: number; height: number }
-> = [
-  { id: "sm", label: "SM", width: 290, height: 290 },
-  { id: "md", label: "MD", width: 512, height: 512 },
-  { id: "lg", label: "LG", width: 800, height: 800 },
+const VIEWPORT_OPTIONS = [
+  { id: "sm", label: "SM", width: 294, height: 280 },
+  { id: "md", label: "MD", width: 612, height: 280 },
+  { id: "lg", label: "LG", width: 612, height: 612 },
 ];
 
 const ZOOM_OPTIONS: ZoomOption[] = [
@@ -134,6 +131,11 @@ const DESIGN_TOOLS: ToolPickerItem[] = [
   { id: "select", title: "Select" },
   { id: "component", title: "Component" },
 ];
+
+const Mode = {
+  AI: "ai",
+  DESIGN: "design",
+} as const;
 
 type PreviewNode = Node<PreviewProps, "renderer">;
 
@@ -150,8 +152,9 @@ export const Home: FC = () => {
   const { tokens, typography } = useTheme();
   const { fitView, zoomIn, zoomOut, zoomTo } = useReactFlow();
 
-  const [activeTab, setActiveTab] = useState(0);
-  const [activeRightTab, setActiveRightTab] = useState(0);
+  const [activeTab, setActiveTab] = useState("elements");
+  const [activeRightTab, setActiveRightTab] = useState("properties");
+  const [mode, setMode] = useState<string>(Mode.AI);
   const [selectedElementId, setSelectedElementId] = useState<string>();
   const [selectedVersionId, setSelectedVersionId] = useState<string>();
   const [state, setState] = useState<Record<string, unknown>>({});
@@ -162,7 +165,6 @@ export const Home: FC = () => {
   const [activeDropTargetId, setActiveDropTargetId] = useState<string | null>(null);
   const [activeTreeDropTargetId, setActiveTreeDropTargetId] = useState<string | null>(null);
   const [draggedCatalogComponentName, setDraggedCatalogComponentName] = useState<string | null>(null);
-  const [isDesignMode, setIsDesignMode] = useState(false);
   const [isCodeModalOpen, setIsCodeModalOpen] = useState(false);
   const [selectedDesignToolId, setSelectedDesignToolId] = useState("select");
   const [viewportId, setViewportId] = useState(VIEWPORT_OPTIONS[0].id);
@@ -207,7 +209,7 @@ export const Home: FC = () => {
       position: { x: 0, y: 0 },
       data: {
         activeDropTargetId: draggedCatalogComponentName ? activeDropTargetId : null,
-        emptyLabel: isDesignMode ? null : undefined,
+        emptyLabel: mode === Mode.AI ? "Ожидание генерации интерфейса..." : "Перетащите сюда компонент из палитры",
         loading: isStreaming,
         viewportSize: selectedViewport,
         selectedElementId,
@@ -701,7 +703,7 @@ export const Home: FC = () => {
   }, [isStreaming, raw, spec, state, usage]);
 
   useEffect(() => {
-    if (!isDesignMode || selectedDesignToolId !== "component") {
+    if (mode !== Mode.DESIGN || selectedDesignToolId !== "component") {
       return undefined;
     }
 
@@ -736,7 +738,7 @@ export const Home: FC = () => {
       document.removeEventListener("pointerdown", handlePointerDown, true);
       document.removeEventListener("keydown", handleKeyDown);
     };
-  }, [isDesignMode, selectedDesignToolId]);
+  }, [mode, selectedDesignToolId]);
 
   useEffect(() => {
     if (!isCodeModalOpen) {
@@ -782,8 +784,8 @@ export const Home: FC = () => {
         >
           <Background />
           <Panel position="top-center">
-            <Island>
-              <SizeSelector
+            <Island unstyled>
+              <Toggle
                 options={VIEWPORT_OPTIONS}
                 value={viewportId}
                 onChange={(value) => setViewportId(value)}
@@ -791,15 +793,15 @@ export const Home: FC = () => {
             </Island>
           </Panel>
           <Panel position="top-right">
-            <Island>
-              <Styled.ModeSwitch>
-                <Styled.ModeLabel $active={!isDesignMode}>AI mode</Styled.ModeLabel>
-                <Switch
-                  checked={isDesignMode}
-                  onChange={(event) => setIsDesignMode(event.target.checked)}
-                />
-                <Styled.ModeLabel $active={isDesignMode}>Design mode</Styled.ModeLabel>
-              </Styled.ModeSwitch>
+            <Island unstyled>
+              <Toggle
+                options={[
+                  { id: Mode.AI, isAccent: true, label: "AI mode" },
+                  { id: Mode.DESIGN, label: "Design mode" }
+                ]}
+                value={mode}
+                onChange={(value) => setMode(value)}
+              />
             </Island>
           </Panel>
           <Panel position="bottom-right">
@@ -820,10 +822,10 @@ export const Home: FC = () => {
               />
             </Island>
           </Panel>
-          {!isDesignMode && (
+          {mode === Mode.AI && (
             <>
-              <Panel position="center-left">
-                <Island title={t("версии")} width={360} height="75vh">
+              <Panel position="top-left">
+                <Island title={t("версии")} width={320}>
                   <Versions
                     disabled={isStreaming}
                     items={versions}
@@ -846,7 +848,7 @@ export const Home: FC = () => {
               </Panel>
             </>
           )}
-          {isDesignMode && (
+          {mode === Mode.DESIGN && (
             <>
               {selectedDesignToolId === "component" ? (
                 <Panel position="bottom-center">
@@ -865,21 +867,19 @@ export const Home: FC = () => {
                 <Island width={300} height="calc(100vh - 30px)">
                   <Sections vertical>
                     <Section size="auto">
-                      <Styled.Tabs>
-                        <Tabs
-                          $type="tertiary"
-                          selectedIndex={activeTab}
-                          onTabChange={(_, id) => setActiveTab(id)}
-                        >
-                          <Tab>{t("элементы")}</Tab>
-                          <Tab>{t("стейт")}</Tab>
-                          <Tab>{t("поток")}</Tab>
-                          <Tab>{t("код")}</Tab>
-                        </Tabs>
-                      </Styled.Tabs>
+                      <Tabs
+                        items={[
+                          { id: "elements", label: t("элементы") },
+                          { id: "state", label: t("стейт") },
+                          { id: "stream", label: t("поток") },
+                          { id: "code", label: t("код") },
+                        ]}
+                        value={activeTab}
+                        onChange={(id) => setActiveTab(id)}
+                      />
                     </Section>
                     <Section>
-                      {activeTab === 0 ? (
+                      {activeTab === "elements" ? (
                         <TreeView
                           activeCatalogDropTargetId={activeTreeDropTargetId}
                           items={treeViewElementsItems}
@@ -888,7 +888,7 @@ export const Home: FC = () => {
                           onItemPositionChange={handleTreeViewMove}
                         />
                       ) : null}
-                      {activeTab === 1 ? (
+                      {activeTab === "state" ? (
                         <JsonEditor
                           height="100%"
                           readOnly={isStreaming}
@@ -914,14 +914,14 @@ export const Home: FC = () => {
                           onChange={handleJsonEditorChange}
                         />
                       ) : null}
-                      {activeTab === 2 ? (
+                      {activeTab === "stream" ? (
                         <CodeBlock
                           code={currentVersion?.raw.join("\n") ?? ""}
                           fillHeight
                           lang="json"
                         />
                       ) : null}
-                      {activeTab === 3 ? (
+                      {activeTab === "code" ? (
                         <Styled.CodePanel>
                           <Styled.CodeExpandButton
                             type="button"
@@ -952,18 +952,18 @@ export const Home: FC = () => {
                     <Section size="auto">
                       <Styled.Tabs>
                         <Tabs
-                          $type="tertiary"
-                          selectedIndex={activeRightTab}
-                          onTabChange={(_, id) => setActiveRightTab(id)}
-                        >
-                          <Tab>{t("свойства")}</Tab>
-                          <Tab>{t("api")}</Tab>
-                        </Tabs>
+                          items={[
+                            { id: "properties", label: t("свойства") },
+                            { id: "api", label: t("api") },
+                          ]}
+                          value={activeRightTab}
+                          onChange={(id) => setActiveRightTab(id)}
+                        />
                       </Styled.Tabs>
                     </Section>
                     <Section>
                       {/* eslint-disable-next-line no-nested-ternary */}
-                      {activeRightTab === 0 ? (
+                      {activeRightTab === "properties" ? (
                         selectedElement ? (
                           <LevaPanel
                             name={selectedElement.id}
@@ -977,7 +977,7 @@ export const Home: FC = () => {
                           </Styled.Placeholder>
                         )
                       ) : null}
-                      {activeRightTab === 1 && (
+                      {activeRightTab === "api" && (
                         <>
                           <FormField>
                             <Label>

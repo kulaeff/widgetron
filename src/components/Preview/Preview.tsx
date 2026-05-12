@@ -4,6 +4,7 @@ import { useDroppable } from "@dnd-kit/react";
 import { useEffect, useMemo, type FC } from "react";
 import * as Styled from "./styled";
 import { Renderer, type RendererProps } from "../../components/Renderer";
+import { useTheme } from "styled-components";
 
 export interface PreviewProps extends Omit<RendererProps, "spec">, Record<string, unknown> {
   spec: Spec | null;
@@ -14,7 +15,6 @@ export interface PreviewProps extends Omit<RendererProps, "spec">, Record<string
     width: number;
     height: number;
   };
-  zoom?: number;
   emptyLabel?: string | null;
 }
 
@@ -28,9 +28,9 @@ export const Preview: FC<PreviewProps> = ({
   selectedElementId,
   onStateChange,
   viewportSize,
-  zoom = 1,
   emptyLabel = "Сгенерируйте интерфейс в AI mode или перетащите компонент в Design mode",
 }) => {
+  const { tokens } = useTheme();
   const { ref: previewDropRef } = useDroppable({
     collisionPriority: CollisionPriority.Low,
     id: "preview",
@@ -98,7 +98,7 @@ export const Preview: FC<PreviewProps> = ({
 
     if (targetElement instanceof HTMLElement) {
       if (activeDropTargetId) {
-        targetElement.style.outline = "1px dashed red";
+        targetElement.style.outline = `1px dashed ${tokens.current.colors.blue.solid[60]}`;
         targetElement.setAttribute("data-preview-highlight", "drop");
       } else {
         targetElement.style.outline = "2px solid rgba(35, 111, 255, 0.9)";
@@ -114,8 +114,6 @@ export const Preview: FC<PreviewProps> = ({
       ref={previewDropRef}
       style={{
         ...viewportSize,
-        transform: `scale(${zoom})`,
-        transformOrigin: "center center",
       }}
     >
       {/* eslint-disable-next-line no-nested-ternary */}

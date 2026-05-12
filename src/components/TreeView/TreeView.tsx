@@ -314,7 +314,7 @@ export const TreeView: FC<TreeViewProps> = ({
           )}
           <Styled.Label>
             <Styled.Text>{item.label}</Styled.Text>
-            <Tag $color="grey" $size="s">
+            <Tag $color="yellow" $size="s">
               {depth === 0 ? "root | " : ""}
               {item.type}
               {item.detached ? " | detached" : ""}
@@ -322,16 +322,16 @@ export const TreeView: FC<TreeViewProps> = ({
           </Styled.Label>
         </Styled.Content>
         {item.children.length > 0 && !isCollapsed ? (
-          <Styled.Container>
+          <Styled.TreeView>
             {item.children.map((child) => renderNode(item, child, depth + 1))}
-          </Styled.Container>
+          </Styled.TreeView>
         ) : null}
       </Styled.Item>
     );
   };
 
   return (
-    <Styled.Container
+    <Styled.TreeView
       data-tree-root-drop-zone
       $isCatalogDropTarget={isEmptyRootDropTarget}
       $isRoot
@@ -342,6 +342,6 @@ export const TreeView: FC<TreeViewProps> = ({
         </Styled.EmptyDropZone>
       ) : null}
       {items.map((item) => renderNode(null, item, 0))}
-    </Styled.Container>
+    </Styled.TreeView>
   );
 };

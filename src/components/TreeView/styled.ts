@@ -1,4 +1,4 @@
-import styled from "styled-components";
+import styled, { css } from "styled-components";
 
 export const Arrow = styled.button<{
   $isCollapsed: boolean;
@@ -18,7 +18,7 @@ export const Arrow = styled.button<{
   }
 `;
 
-export const Container = styled.ul<{
+export const TreeView = styled.ul<{
   $isCatalogDropTarget?: boolean;
   $isRoot?: boolean;
 }>`
@@ -34,7 +34,7 @@ export const Container = styled.ul<{
   margin: 0;
   min-height: ${({ $isRoot }) => ($isRoot ? "100%" : "0")};
   overflow: ${({ $isRoot }) => ($isRoot ? "auto" : "visible")};
-  padding: ${({ $isRoot }) => ($isRoot ? "8px" : 0)};
+  padding: 0;
   transition: background-color 120ms ease, border-color 120ms ease;
 `;
 
@@ -84,7 +84,7 @@ export const Content = styled.div<{
   position: relative;
   outline: ${({ $dragPlacement }) =>
     $dragPlacement === "inside" ? "1px solid rgba(0, 0, 0, 0.5)" : "none"};
-  padding: 8px;
+  padding: 6px 8px;
   color: ${({ $isDetached }) => ($isDetached ? "rgba(180, 48, 48, 0.9)" : "inherit")};
   transition: background-color 40ms, color 40ms;
   user-select: none;
@@ -132,9 +132,10 @@ export const Spacer = styled.span`
   width: 16px;
 `;
 
-export const Text = styled.span`
+export const Text = styled.span(({ theme }) => css`
+  ${theme.typography.body2Regular};
   display: block;
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
-`;
+`);

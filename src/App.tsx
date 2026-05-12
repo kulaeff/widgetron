@@ -9,10 +9,10 @@ const Root = styled.div`
 
 export function App() {
   return (
-    <Root>
-      <ReactFlowProvider>
+    <ReactFlowProvider>
+      <Root>
         <Outlet />
-      </ReactFlowProvider>
-    </Root>
+      </Root>
+    </ReactFlowProvider>
   );
 }

@@ -1,4 +1,4 @@
-import styled from "styled-components";
+import styled, { css } from "styled-components";
 
 export const Container = styled.ul`
   height: 100%;
@@ -6,30 +6,18 @@ export const Container = styled.ul`
   padding: 8px;
 `;
 
-export const EmptyState = styled.li`
+export const Empty = styled.span(({ theme }) => css`
+  ${theme.typography.body2Regular};
   align-items: center;
-  color: ${({ theme }) => theme.tokens.current.core.text.secondary};
+  color: ${theme.tokens.current.core.text.secondary};
   display: flex;
   flex-direction: column;
   height: 100%;
   justify-content: center;
   list-style: none;
-  padding: 32px;
+  padding: 8px;
   text-align: center;
-`;
-
-export const EmptyTitle = styled.span`
-  ${({ theme }) => theme.typography.body1Semibold};
-  color: ${({ theme }) => theme.tokens.current.core.text.primary};
-  display: block;
-  margin-bottom: 6px;
-`;
-
-export const EmptyText = styled.span`
-  ${({ theme }) => theme.typography.body2Regular};
-  display: block;
-  max-width: 240px;
-`;
+`);
 
 export const Id = styled.span`
   color: ${({ theme }) => theme.tokens.current.core.text.secondary};

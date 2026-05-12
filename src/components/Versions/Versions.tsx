@@ -23,12 +23,9 @@ export const Versions: FC<VersionsProps> = ({
   return (
     <Styled.Container>
       {items.length === 0 ? (
-        <Styled.EmptyState>
-          <Styled.EmptyTitle>Пока нет версий</Styled.EmptyTitle>
-          <Styled.EmptyText>
-            Опишите задачу ниже, и здесь появится история сгенерированных вариантов.
-          </Styled.EmptyText>
-        </Styled.EmptyState>
+        <Styled.Empty>
+          Нет версий
+        </Styled.Empty>
       ) : (
         items.map((item, i) => (
           <Styled.Item

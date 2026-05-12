@@ -12,6 +12,9 @@ const buildGridTemplateConfig = (config: Size[]) =>
 
 export const Section = styled.div<Wrap<SectionsProps>>`
   overflow: hidden;
+  & + & {
+    padding-top: 8px;
+  }
 `;
 
 export const Sections = styled.div<Wrap<SectionsProps> & { $config: Size[] }>`
@@ -22,14 +25,8 @@ export const Sections = styled.div<Wrap<SectionsProps> & { $config: Size[] }>`
     $vertical
       ? css`
           grid-template-rows: ${buildGridTemplateConfig($config)};
-          & > ${Section}:not(:first-child) {
-            border-top: 1px solid ${theme.tokens.current.core.border.strong};
-          }
         `
       : css`
           grid-template-columns: ${buildGridTemplateConfig($config)};
-          & > ${Section}:not(:first-child) {
-            border-left: 1px solid ${theme.tokens.current.core.border.strong};
-          }
         `}
 `;

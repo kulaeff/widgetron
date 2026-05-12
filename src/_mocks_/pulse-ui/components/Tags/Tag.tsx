@@ -26,7 +26,6 @@ export function Tag({
   children,
   $color,
   $size,
-  color,
   label,
   size,
   ...props
@@ -34,8 +33,12 @@ export function Tag({
   return (
     <span
       {...props}
-      data-color={color ?? $color ?? "yellow"}
-      data-size={size ?? $size ?? "m"}
+      style={{
+        backgroundColor: $color,
+        borderRadius: "4px",
+        fontSize: "12px",
+        padding: "2px 4px",
+      }}
     >
       {children ?? label}
     </span>
