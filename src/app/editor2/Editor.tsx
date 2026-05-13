@@ -5,25 +5,25 @@ import { Editor as MonacoEditor } from "@monaco-editor/react";
 import { JsonEditor, JsonValue } from "@visual-json/react";
 import { Control, FormField, Label } from "@pulse/ui/components/FormField";
 import { Input } from "@pulse/ui/components/Input";
-import { Tabs } from "../../components/Tabs";
+import { Tabs } from "./components/Tabs";
 import { TextArea } from "@pulse/ui/components/Input/TextArea";
 import { CSSProperties, type FC, useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { useTheme } from "styled-components";
-import { Island } from "../../components/Island";
-import { Preview, type PreviewProps } from "../../components/Preview";
-import { useUIStream } from "../../hooks/useUIStream";
-import { OmniBox } from "../../components/OmniBox";
-import { ToolBar } from "../../components/ToolBar";
-import { ToolPicker, type ToolPickerItem } from "../../components/ToolPicker";
-import { ZoomControl, type ZoomOption } from "../../components/ZoomControl";
-import { TREE_ROOT_DROP_TARGET_ID, TreeView } from "../../components/TreeView";
-import { catalog } from "../../lib/catalog";
-import { buildCatalogData, type CatalogComponentInfo } from "../../utils/catalog-data";
-import { type LevaControl, LevaPanel } from "../../components/LevaPanel";
-import { Section, Sections } from "../../components/Sections";
-import { Versions } from "../../components/Versions";
-import { CodeBlock } from "../../components/CodeBlock";
+import { Island } from "./components/Island";
+import { Preview, type PreviewProps } from "./components/Preview";
+import { useUIStream } from "./hooks/useUIStream";
+import { OmniBox } from "./components/OmniBox";
+import { ToolBar } from "./components/ToolBar";
+import { ToolPicker, type ToolPickerItem } from "./components/ToolPicker";
+import { ZoomControl, type ZoomOption } from "./components/ZoomControl";
+import { TREE_ROOT_DROP_TARGET_ID, TreeView } from "./components/TreeView";
+import { catalog } from "./lib/catalog";
+import { buildCatalogData, type CatalogComponentInfo } from "./utils/catalog-data";
+import { type LevaControl, LevaPanel } from "./components/LevaPanel";
+import { Section, Sections } from "./components/Sections";
+import { Versions } from "./components/Versions";
+import { CodeBlock } from "./components/CodeBlock";
 import { Version } from "./types";
 import { Button } from "@pulse/ui/components/Button";
 import { Option, Select } from "@pulse/ui/components/Select";
@@ -49,7 +49,7 @@ import {
   buildSpecTreeItems,
   moveElementInSpec,
 } from "./spec-utils";
-import { Toggle } from "../../components/Toggle";
+import { Toggle } from "./components/Toggle";
 
 const EDITOR_RULES = [
   "Никогда не используй Card как root.",
@@ -156,9 +156,9 @@ const nodeTypes = {
   renderer: RendererNode,
 };
 
-interface HomeProps extends Pick<WidgetCreatorProps, "onSave"> {}
+export interface EditorProps extends Pick<WidgetCreatorProps, "onSave"> {}
 
-export const Home: FC<HomeProps> = ({ onSave }) => {
+export const Editor: FC<EditorProps> = ({ onSave }) => {
   const { t } = useTranslation();
   const { tokens, typography } = useTheme();
   const { fitView, zoomIn, zoomOut, zoomTo } = useReactFlow();

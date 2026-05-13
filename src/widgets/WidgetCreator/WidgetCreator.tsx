@@ -1,5 +1,5 @@
 import { ReactFlowProvider } from "@xyflow/react";
-import { Home } from "../../pages/Home/Home";
+import { Editor } from "../../app/editor2";
 import type { WidgetCreatorProps } from "./types";
 import { Wrapper } from "./styled";
 
@@ -7,7 +7,7 @@ export function WidgetCreator({ onSave }: WidgetCreatorProps) {
   return (
     <ReactFlowProvider>
       <Wrapper>
-        <Home onSave={onSave} />
+        <Editor onSave={onSave} />
       </Wrapper>
     </ReactFlowProvider>
   );

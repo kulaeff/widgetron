@@ -4,7 +4,7 @@ import { useCallback, useEffect, useMemo, useState } from "react";
 import {
   Renderer,
   type RendererProps,
-} from "../../components/Renderer";
+} from "../../app/editor2/components/Renderer";
 
 export interface WidgetRendererProps {
   loading?: boolean;
