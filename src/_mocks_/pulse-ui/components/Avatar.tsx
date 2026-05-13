@@ -18,8 +18,12 @@ export function Avatar({
   url,
   ...props
 }: Props) {
+  const domProps = Object.fromEntries(
+    Object.entries(props).filter(([key]) => !key.startsWith("$"))
+  );
+
   return (
-    <div {...props} data-has-badge={hasBadge} data-size={size}>
+    <div {...domProps} data-has-badge={hasBadge} data-size={size}>
       {url ? <img src={url} alt={label ?? text} /> : text}
       {label ? <small>{label}</small> : null}
     </div>

@@ -61,8 +61,6 @@ export const EmptyDropZone = styled.li<{ $isActive?: boolean }>`
 `;
 
 export const Item = styled.li<{ $isSelected?: boolean }>`
-  background-color: ${({ $isSelected, theme }) =>
-    $isSelected ? theme.tokens.current.colors.blue.solid[10] : "transparent"};
   border-radius: 4px;
   list-style: none;
   margin: 4px 0 0 0;
@@ -81,6 +79,7 @@ export const Content = styled.div<{
   display: grid;
   gap: 4px;
   grid-template-columns: auto 1fr;
+  min-width: 0;
   position: relative;
   outline: ${({ $dragPlacement }) =>
     $dragPlacement === "inside" ? "1px solid rgba(0, 0, 0, 0.5)" : "none"};
@@ -121,6 +120,7 @@ export const Label = styled.div`
   gap: 4px;
   grid-template-columns: 1fr auto;
   justify-content: space-between;
+  min-width: 0;
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
@@ -135,7 +135,26 @@ export const Spacer = styled.span`
 export const Text = styled.span(({ theme }) => css`
   ${theme.typography.body2Regular};
   display: block;
+  min-width: 0;
   overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+`);
+
+export const TypeBadge = styled.span(({ theme }) => css`
+  ${theme.typography.smallTextSemibold};
+  align-items: center;
+  background: ${theme.tokens.current.core.layer["01"]};
+  border: 1px solid ${theme.tokens.current.core.border.strong};
+  border-radius: 4px;
+  color: ${theme.tokens.current.core.text.secondary};
+  display: inline-flex;
+  justify-content: center;
+  line-height: 14px;
+  max-width: 112px;
+  min-width: 0;
+  overflow: hidden;
+  padding: 1px 5px;
   text-overflow: ellipsis;
   white-space: nowrap;
 `);
