@@ -1,6 +1,6 @@
 import type { Spec } from "@json-render/react";
 import { describe, expect, it } from "vitest";
-import type { CatalogComponentInfo } from "../../utils/catalog-data";
+import type { CatalogComponentInfo } from "./utils/catalog-data";
 import type { Version } from "./types";
 import {
   addCatalogComponentToVersions,
@@ -38,7 +38,7 @@ const components: CatalogComponentInfo[] = [
   },
 ];
 
-describe("Home spec utils", () => {
+describe("Editor spec utils", () => {
   it("builds a tree from root elements and appends detached nodes", () => {
     const spec: Spec = {
       root: "root",

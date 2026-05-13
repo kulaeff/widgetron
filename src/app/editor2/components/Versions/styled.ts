@@ -1,8 +1,10 @@
 import styled, { css } from "styled-components";
 
 export const Container = styled.ul`
-  height: 100%;
+  height: auto;
   margin: 0;
+  max-height: 100%;
+  overflow: auto;
   padding: 8px;
 `;
 

@@ -7,7 +7,7 @@ export const Toggle: FC<ToggleProps> = ({ options, value, onChange }) => {
     <Styled.Toggle>
       {options.map((option) => (
         <Styled.Option
-          $isAccent={option.isAccent}
+          $isAccent={option.isAccent ?? false}
           $isActive={option.id === value}
           key={option.id}
           type="button"

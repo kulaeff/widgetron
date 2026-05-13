@@ -5,28 +5,29 @@ import { Editor as MonacoEditor } from "@monaco-editor/react";
 import { JsonEditor, JsonValue } from "@visual-json/react";
 import { Control, FormField, Label } from "@pulse/ui/components/FormField";
 import { Input } from "@pulse/ui/components/Input";
-import { Tabs } from "../../components/Tabs";
+import { Tabs } from "./components/Tabs";
 import { TextArea } from "@pulse/ui/components/Input/TextArea";
 import { CSSProperties, type FC, useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { useTheme } from "styled-components";
-import { Island } from "../../components/Island";
-import { Preview, type PreviewProps } from "../../components/Preview";
-import { useUIStream } from "../../hooks/useUIStream";
-import { OmniBox } from "../../components/OmniBox";
-import { ToolBar } from "../../components/ToolBar";
-import { ToolPicker, type ToolPickerItem } from "../../components/ToolPicker";
-import { ZoomControl, type ZoomOption } from "../../components/ZoomControl";
-import { TREE_ROOT_DROP_TARGET_ID, TreeView } from "../../components/TreeView";
-import { catalog } from "../../lib/catalog";
-import { buildCatalogData, type CatalogComponentInfo } from "../../utils/catalog-data";
-import { type LevaControl, LevaPanel } from "../../components/LevaPanel";
-import { Section, Sections } from "../../components/Sections";
-import { Versions } from "../../components/Versions";
-import { CodeBlock } from "../../components/CodeBlock";
+import { Island } from "./components/Island";
+import { Preview, type PreviewProps } from "./components/Preview";
+import { useUIStream } from "./hooks/useUIStream";
+import { OmniBox } from "./components/OmniBox";
+import { ToolBar } from "./components/ToolBar";
+import { ToolPicker, type ToolPickerItem } from "./components/ToolPicker";
+import { ZoomControl, type ZoomOption } from "./components/ZoomControl";
+import { TREE_ROOT_DROP_TARGET_ID, TreeView } from "./components/TreeView";
+import { catalog } from "./lib/catalog";
+import { buildCatalogData, type CatalogComponentInfo } from "./utils/catalog-data";
+import { type LevaControl, LevaPanel } from "./components/LevaPanel";
+import { Section, Sections } from "./components/Sections";
+import { Versions } from "./components/Versions";
+import { CodeBlock } from "./components/CodeBlock";
 import { Version } from "./types";
 import { Button } from "@pulse/ui/components/Button";
 import { Option, Select } from "@pulse/ui/components/Select";
+import type { WidgetCreatorProps, WidgetCreatorSavePayload } from "../../widgets/WidgetCreator/types";
 import {
   DragDropProvider,
   DragOverlay,
@@ -34,13 +35,21 @@ import {
   type DragMoveEvent,
   type DragStartEvent,
 } from "@dnd-kit/react";
-import { Background, Node, NodeOrigin, NodeProps, Panel, ReactFlow, useReactFlow } from "@xyflow/react";
+import {
+  Background,
+  type Node,
+  type NodeOrigin,
+  type NodeProps,
+  Panel,
+  ReactFlow,
+  useReactFlow,
+} from "@xyflow/react";
 import {
   addCatalogComponentToVersions,
   buildSpecTreeItems,
   moveElementInSpec,
 } from "./spec-utils";
-import { Toggle } from "../../components/Toggle";
+import { Toggle } from "./components/Toggle";
 
 const EDITOR_RULES = [
   "Никогда не используй Card как root.",
@@ -147,7 +156,9 @@ const nodeTypes = {
   renderer: RendererNode,
 };
 
-export const Home: FC = () => {
+export interface EditorProps extends Pick<WidgetCreatorProps, "onSave"> {}
+
+export const Editor: FC<EditorProps> = ({ onSave }) => {
   const { t } = useTranslation();
   const { tokens, typography } = useTheme();
   const { fitView, zoomIn, zoomOut, zoomTo } = useReactFlow();
@@ -165,6 +176,7 @@ export const Home: FC = () => {
   const [activeDropTargetId, setActiveDropTargetId] = useState<string | null>(null);
   const [activeTreeDropTargetId, setActiveTreeDropTargetId] = useState<string | null>(null);
   const [draggedCatalogComponentName, setDraggedCatalogComponentName] = useState<string | null>(null);
+  const [isHistoryOpen, setIsHistoryOpen] = useState(false);
   const [isCodeModalOpen, setIsCodeModalOpen] = useState(false);
   const [selectedDesignToolId, setSelectedDesignToolId] = useState("select");
   const [viewportId, setViewportId] = useState(VIEWPORT_OPTIONS[0].id);
@@ -202,6 +214,24 @@ export const Home: FC = () => {
     ...(currentVersion?.spec?.state ?? spec?.state),
     ...state,
   };
+  const currentSnapshotData = currentState.data ?? null;
+  const currentVersionNumber = currentVersion
+    ? versions.findIndex((version) => version.id === currentVersion.id) + 1
+    : null;
+  const currentVersionLabel = currentVersionNumber ? `v${currentVersionNumber}` : "без версии";
+  const currentPromptLabel = currentVersion?.prompt?.trim() ?? "";
+  const hasCurrentPrompt = currentPromptLabel.length > 0;
+  const currentStatusLabel = isStreaming || currentVersion?.status === "pending"
+    ? "генерация"
+    : currentVersion
+      ? "готово"
+      : "черновик";
+  const hasApiData = currentSnapshotData !== null;
+  const historyPreviewLabel = hasCurrentPrompt
+    ? currentPromptLabel
+    : versions.length > 0
+      ? "Выбрать версию"
+      : "История пуста";
 
   const currentNodes = [
     {
@@ -310,6 +340,32 @@ export const Home: FC = () => {
       data,
     }));
   };
+
+  const handleSave = useCallback(async () => {
+    const scheme = currentVersion?.spec ?? spec ?? null;
+
+    if (!scheme || !onSave) {
+      return;
+    }
+
+    const payload: WidgetCreatorSavePayload = {
+      data: currentSnapshotData,
+      dataSource: {
+        method,
+        type,
+        url,
+      },
+      scheme,
+    };
+
+    await onSave(payload);
+  }, [currentSnapshotData, currentVersion?.spec, method, onSave, spec, type, url]);
+
+  const handleVersionSelect = useCallback((id: string) => {
+    setSelectedVersionId(id);
+    setSelectedElementId(undefined);
+    setIsHistoryOpen(false);
+  }, []);
 
   const handleJsonEditorChange = useCallback(
     (value: JsonValue) => {
@@ -758,6 +814,12 @@ export const Home: FC = () => {
     };
   }, [isCodeModalOpen]);
 
+  useEffect(() => {
+    if (mode !== Mode.AI) {
+      setIsHistoryOpen(false);
+    }
+  }, [mode]);
+
   return (
     <DragDropProvider
       onDragStart={handleDragStart}
@@ -783,26 +845,41 @@ export const Home: FC = () => {
           zoomActivationKeyCode={["Control", "Meta", "z"]}
         >
           <Background />
-          <Panel position="top-center">
-            <Island unstyled>
+          <Panel position="top-left">
+            <Styled.ViewportDock>
               <Toggle
                 options={VIEWPORT_OPTIONS}
                 value={viewportId}
                 onChange={(value) => setViewportId(value)}
               />
-            </Island>
+            </Styled.ViewportDock>
           </Panel>
           <Panel position="top-right">
-            <Island unstyled>
-              <Toggle
-                options={[
-                  { id: Mode.AI, isAccent: true, label: "AI mode" },
-                  { id: Mode.DESIGN, label: "Design mode" }
-                ]}
-                value={mode}
-                onChange={(value) => setMode(value)}
-              />
-            </Island>
+            <div>
+              <Styled.SaveDock>
+                <Styled.SaveButton
+                  type="button"
+                  disabled={!currentSpec}
+                  onClick={() => void handleSave()}
+                >
+                  {t("сохранить")}
+                </Styled.SaveButton>
+              </Styled.SaveDock>
+            </div>
+          </Panel>
+          <Panel position="top-right">
+            <div>
+              <Styled.ModeDock>
+                <Toggle
+                  options={[
+                    { id: Mode.AI, isAccent: true, label: "AI mode" },
+                    { id: Mode.DESIGN, label: "Design mode" }
+                  ]}
+                  value={mode}
+                  onChange={(value) => setMode(value)}
+                />
+              </Styled.ModeDock>
+            </div>
           </Panel>
           <Panel position="bottom-right">
             <Island>
@@ -824,27 +901,100 @@ export const Home: FC = () => {
           </Panel>
           {mode === Mode.AI && (
             <>
-              <Panel position="top-left">
-                <Island title={t("версии")} width={320}>
-                  <Versions
-                    disabled={isStreaming}
-                    items={versions}
-                    value={selectedVersionId}
-                    onChange={(id) => {
-                      setSelectedVersionId(id);
-                      setSelectedElementId(undefined);
-                    }}
-                  />
-                </Island>
+              <Panel
+                position="top-left"
+                style={{ height: "calc(100% - 108px)", marginTop: 76 }}
+              >
+                <Styled.AIRail>
+                  {hasCurrentPrompt ? (
+                    <Styled.RailCard>
+                      <Styled.RailCardBody>
+                        <Styled.RailHeader>
+                          <Styled.RailTitle>{t("текущий запрос")}</Styled.RailTitle>
+                          <Styled.RailTag $tone="accent">
+                            {currentVersionLabel}
+                          </Styled.RailTag>
+                        </Styled.RailHeader>
+                        <Styled.RailMeta>
+                          <Styled.RailTag
+                            $tone={isStreaming || currentVersion?.status === "pending" ? "accent" : "default"}
+                          >
+                            {currentStatusLabel}
+                          </Styled.RailTag>
+                          {hasApiData ? (
+                            <Styled.RailTag $tone="success">
+                              API data
+                            </Styled.RailTag>
+                          ) : null}
+                        </Styled.RailMeta>
+                        <Styled.PromptPreview>
+                          {currentPromptLabel}
+                        </Styled.PromptPreview>
+                      </Styled.RailCardBody>
+                    </Styled.RailCard>
+                  ) : null}
+                  <Styled.HistoryDock>
+                    <Styled.HistoryCard $withAccent={false}>
+                      <Styled.HistoryCardBody>
+                        <Styled.HistoryTrigger
+                          type="button"
+                          disabled={versions.length === 0}
+                          onClick={() => setIsHistoryOpen((value) => !value)}
+                        >
+                          <Styled.HistoryTriggerMain>
+                            <Styled.HistoryHeading>{t("История")}</Styled.HistoryHeading>
+                            <Styled.HistoryTriggerValue>
+                              {historyPreviewLabel}
+                            </Styled.HistoryTriggerValue>
+                          </Styled.HistoryTriggerMain>
+                          <Styled.HistoryArrow $open={isHistoryOpen} aria-hidden="true">
+                            <svg
+                              width="16"
+                              height="16"
+                              viewBox="0 0 16 16"
+                              fill="none"
+                            >
+                              <path
+                                d="M4 6l4 4 4-4"
+                                stroke="currentColor"
+                                strokeWidth="1.6"
+                                strokeLinecap="round"
+                                strokeLinejoin="round"
+                              />
+                            </svg>
+                          </Styled.HistoryArrow>
+                        </Styled.HistoryTrigger>
+                        {isHistoryOpen ? (
+                          <Styled.HistoryList>
+                            <Versions
+                              disabled={isStreaming}
+                              items={versions}
+                              value={selectedVersionId}
+                              onChange={handleVersionSelect}
+                            />
+                          </Styled.HistoryList>
+                        ) : null}
+                      </Styled.HistoryCardBody>
+                    </Styled.HistoryCard>
+                  </Styled.HistoryDock>
+                </Styled.AIRail>
               </Panel>
-              <Panel position="bottom-center">
-                <Island width={620}>
-                  <OmniBox
-                    loading={isStreaming}
-                    onSubmit={handleOmniBoxSubmit}
-                    onReset={clear}
-                  />
-                </Island>
+              <Panel
+                position="bottom-center"
+                style={{ width: "min(760px, calc(100% - 440px))" }}
+              >
+                <Styled.BottomComposer>
+                  <Island width="100%">
+                    <Styled.ComposerShell>
+                      <OmniBox
+                        loading={isStreaming}
+                        placeholder="Что вы хотите изменить или создать?"
+                        onSubmit={handleOmniBoxSubmit}
+                        onReset={clear}
+                      />
+                    </Styled.ComposerShell>
+                  </Island>
+                </Styled.BottomComposer>
               </Panel>
             </>
           )}
@@ -853,7 +1003,7 @@ export const Home: FC = () => {
               {selectedDesignToolId === "component" ? (
                 <Panel position="bottom-center">
                   <Island
-                    width="min(720px, calc(100vw - 32px))"
+                    width="min(720px, calc(100% - 32px))"
                     height={360}
                     style={{ overflow: "hidden", zIndex: 20 }}
                   >
@@ -864,7 +1014,7 @@ export const Home: FC = () => {
                 </Panel>
               ) : null}
               <Panel position="center-left">
-                <Island width={300} height="calc(100vh - 30px)">
+                <Island width={300} height="calc(100% - 30px)">
                   <Sections vertical>
                     <Section size="auto">
                       <Tabs
@@ -947,7 +1097,7 @@ export const Home: FC = () => {
                 </Island>
               </Panel>
               <Panel position="center-right">
-                <Island width={300} height="calc(100vh - 136px)">
+                <Island width={300} height="calc(100% - 136px)">
                   <Sections vertical>
                     <Section size="auto">
                       <Styled.Tabs>
