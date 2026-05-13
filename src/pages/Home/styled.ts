@@ -118,10 +118,9 @@ export const SaveButton = styled("button")(
 export const AIRail = styled("div")`
   display: flex;
   flex-direction: column;
-  gap: 14px;
-  height: calc(100vh - 132px);
-  margin-top: 76px;
-  width: min(360px, calc(100vw - 32px));
+  gap: 18px;
+  height: 100%;
+  width: min(360px, calc(100% - 32px));
 `;
 
 export const RailCard = styled("section")<{ $withAccent?: boolean }>(
@@ -252,6 +251,8 @@ export const HistoryCard = styled(RailCard)`
 
 export const HistoryCardBody = styled(RailCardBody)`
   height: 100%;
+  gap: 10px;
+  padding: 14px 16px;
 `;
 
 export const HistoryList = styled("div")`
@@ -276,6 +277,12 @@ export const HistoryTrigger = styled("button")(
   `
 );
 
+export const HistoryHeading = styled("div")`
+  ${({ theme }) => theme.typography.body1Semibold};
+  color: ${({ theme }) => theme.tokens.current.core.text.secondary};
+  white-space: nowrap;
+`;
+
 export const HistoryTriggerMain = styled("div")`
   display: flex;
   flex-direction: column;
@@ -284,10 +291,20 @@ export const HistoryTriggerMain = styled("div")`
 `;
 
 export const HistoryTriggerValue = styled("div")`
-  ${({ theme }) => theme.typography.body1Regular};
+  ${({ theme }) => theme.typography.body2Regular};
+  color: ${({ theme }) => theme.tokens.current.core.text.primary};
   overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
+  display: -webkit-box;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 2;
+  line-height: 1.35;
+  white-space: normal;
+`;
+
+export const BottomComposer = styled("div")`
+  min-width: 420px;
+  width: 100%;
+  max-width: 760px;
 `;
 
 export const HistoryArrow = styled("span")<{ $open: boolean }>`
@@ -354,11 +371,11 @@ export const CodeModal = styled("div")`
   box-shadow: 0 24px 64px rgba(15, 23, 42, 0.24);
   display: grid;
   grid-template-rows: auto 1fr;
-  height: min(760px, calc(100vh - 48px));
+  height: min(760px, calc(100% - 48px));
   max-width: 1120px;
   min-height: 0;
   overflow: hidden;
-  width: min(1120px, calc(100vw - 48px));
+  width: min(1120px, calc(100% - 48px));
 `;
 
 export const CodeModalHeader = styled("div")`

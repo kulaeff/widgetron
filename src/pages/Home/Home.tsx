@@ -231,7 +231,7 @@ export const Home: FC<HomeProps> = ({ onSave }) => {
     ? currentPromptLabel
     : versions.length > 0
       ? "Выбрать версию"
-      : "Нет версий";
+      : "История пуста";
 
   const currentNodes = [
     {
@@ -901,7 +901,10 @@ export const Home: FC<HomeProps> = ({ onSave }) => {
           </Panel>
           {mode === Mode.AI && (
             <>
-              <Panel position="top-left">
+              <Panel
+                position="top-left"
+                style={{ height: "calc(100% - 108px)", marginTop: 76 }}
+              >
                 <Styled.AIRail>
                   {hasCurrentPrompt ? (
                     <Styled.RailCard>
@@ -939,7 +942,7 @@ export const Home: FC<HomeProps> = ({ onSave }) => {
                           onClick={() => setIsHistoryOpen((value) => !value)}
                         >
                           <Styled.HistoryTriggerMain>
-                            <Styled.RailTitle>{t("журнал агента")}</Styled.RailTitle>
+                            <Styled.HistoryHeading>{t("История")}</Styled.HistoryHeading>
                             <Styled.HistoryTriggerValue>
                               {historyPreviewLabel}
                             </Styled.HistoryTriggerValue>
@@ -976,17 +979,22 @@ export const Home: FC<HomeProps> = ({ onSave }) => {
                   </Styled.HistoryDock>
                 </Styled.AIRail>
               </Panel>
-              <Panel position="bottom-center">
-                <Island width={620}>
-                  <Styled.ComposerShell>
-                    <OmniBox
-                      loading={isStreaming}
-                      placeholder="Что вы хотите изменить или создать?"
-                      onSubmit={handleOmniBoxSubmit}
-                      onReset={clear}
-                    />
-                  </Styled.ComposerShell>
-                </Island>
+              <Panel
+                position="bottom-center"
+                style={{ width: "min(760px, calc(100% - 440px))" }}
+              >
+                <Styled.BottomComposer>
+                  <Island width="100%">
+                    <Styled.ComposerShell>
+                      <OmniBox
+                        loading={isStreaming}
+                        placeholder="Что вы хотите изменить или создать?"
+                        onSubmit={handleOmniBoxSubmit}
+                        onReset={clear}
+                      />
+                    </Styled.ComposerShell>
+                  </Island>
+                </Styled.BottomComposer>
               </Panel>
             </>
           )}
@@ -995,7 +1003,7 @@ export const Home: FC<HomeProps> = ({ onSave }) => {
               {selectedDesignToolId === "component" ? (
                 <Panel position="bottom-center">
                   <Island
-                    width="min(720px, calc(100vw - 32px))"
+                    width="min(720px, calc(100% - 32px))"
                     height={360}
                     style={{ overflow: "hidden", zIndex: 20 }}
                   >
@@ -1006,7 +1014,7 @@ export const Home: FC<HomeProps> = ({ onSave }) => {
                 </Panel>
               ) : null}
               <Panel position="center-left">
-                <Island width={300} height="calc(100vh - 30px)">
+                <Island width={300} height="calc(100% - 30px)">
                   <Sections vertical>
                     <Section size="auto">
                       <Tabs
@@ -1089,7 +1097,7 @@ export const Home: FC<HomeProps> = ({ onSave }) => {
                 </Island>
               </Panel>
               <Panel position="center-right">
-                <Island width={300} height="calc(100vh - 136px)">
+                <Island width={300} height="calc(100% - 136px)">
                   <Sections vertical>
                     <Section size="auto">
                       <Styled.Tabs>
