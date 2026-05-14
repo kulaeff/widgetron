@@ -262,6 +262,7 @@ export const Editor: FC<EditorProps> = ({ onSave }) => {
     : versions.length > 0
     ? "Выбрать версию"
     : "История пуста";
+  const isSaveDisabled = isStreaming || !currentSpec;
 
   const currentNodes = [
     {
@@ -288,10 +289,6 @@ export const Editor: FC<EditorProps> = ({ onSave }) => {
       type: "renderer",
     },
   ];
-
-  console.log("CURRENT VERSION", currentVersion);
-  console.log("CURRENT SPEC", currentSpec);
-  console.log("CURRENT STATE", currentSpec?.state, state);
 
   const toolBarItems = useMemo(
     () =>
@@ -956,7 +953,7 @@ export const Editor: FC<EditorProps> = ({ onSave }) => {
                 <Styled.SaveDock>
                   <Styled.SaveButton
                     type="button"
-                    disabled={!currentSpec}
+                    disabled={isSaveDisabled}
                     onClick={handleSave}
                   >
                     {t("сохранить")}
@@ -1084,7 +1081,11 @@ export const Editor: FC<EditorProps> = ({ onSave }) => {
               </Panel>
               <Panel
                 position="bottom-center"
-                style={{ width: "min(760px, calc(100% - 440px))" }}
+                style={{
+                  marginLeft: "clamp(0px, 10vw, 120px)",
+                  maxWidth: "calc(100% - 160px)",
+                  width: "min(720px, calc(100% - 360px))",
+                }}
               >
                 <Styled.BottomComposer>
                   {isToolDataVisible ? (

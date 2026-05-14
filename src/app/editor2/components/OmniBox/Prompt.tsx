@@ -14,8 +14,20 @@ export const Prompt: FC<PromptProps> = ({ value, ...rest }) => {
 
     if (!ref) return;
 
+    const maxHeight = Number.parseFloat(getComputedStyle(ref).maxHeight);
+
     ref.style.height = "0px";
-    ref.style.height = `${ref.scrollHeight}px`;
+
+    const nextHeight =
+      Number.isFinite(maxHeight) && maxHeight > 0
+        ? Math.min(ref.scrollHeight, maxHeight)
+        : ref.scrollHeight;
+
+    ref.style.height = `${nextHeight}px`;
+    ref.style.overflowY =
+      Number.isFinite(maxHeight) && ref.scrollHeight > maxHeight
+        ? "auto"
+        : "hidden";
   };
 
   useEffect(() => {
