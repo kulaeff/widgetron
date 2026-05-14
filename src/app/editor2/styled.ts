@@ -3,7 +3,7 @@ import styled, { css } from "styled-components";
 export const Container = styled("div")({
   display: "flex",
   flexDirection: "column",
-  height: "100%",
+  height: "100vh",
   width: "100%",
   overflow: "hidden",
 });
@@ -269,7 +269,7 @@ export const BottomComposer = styled("div")`
   max-width: 100%;
 `;
 
-export const HistoryArrow = styled("span")<{ $open: boolean }>`
+export const HistoryArrow = styled("span") <{ $open: boolean }>`
   align-items: center;
   color: ${({ theme }) => theme.tokens.current.core.text.secondary};
   display: inline-flex;
