@@ -10,6 +10,7 @@ export interface WidgetCreatorSavePayload {
   data: unknown | null;
   dataSource: WidgetCreatorDataSource;
   scheme: Spec;
+  availableSizes: string[];
 }
 
 export interface WidgetCreatorProps {

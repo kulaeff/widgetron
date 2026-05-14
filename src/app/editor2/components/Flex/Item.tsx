@@ -5,4 +5,4 @@ import type { ItemProps } from "./types";
 export const Item: FC<PropsWithChildren<ItemProps>> = ({
   children,
   grow,
-}) => <Styled.Item>{children}</Styled.Item>;
+}) => <Styled.Item $grow={grow}>{children}</Styled.Item>;
