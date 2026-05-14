@@ -1,25 +1,27 @@
 import styled, { css } from "styled-components";
 
-export const Container = styled.ul`
-  height: auto;
+export const Versions = styled.ul`
+  box-sizing: border-box;
+  height: 100%;
   margin: 0;
-  max-height: 100%;
   overflow: auto;
-  padding: 8px;
+  padding: 0;
 `;
 
-export const Empty = styled.span(({ theme }) => css`
-  ${theme.typography.body2Regular};
-  align-items: center;
-  color: ${theme.tokens.current.core.text.secondary};
-  display: flex;
-  flex-direction: column;
-  height: 100%;
-  justify-content: center;
-  list-style: none;
-  padding: 8px;
-  text-align: center;
-`);
+export const Empty = styled.span((
+  { theme }) => css`
+    ${theme.typography.body2Regular};
+    align-items: center;
+    color: ${theme.tokens.current.core.text.secondary};
+    display: flex;
+    flex-direction: column;
+    height: 100%;
+    justify-content: center;
+    list-style: none;
+    padding: 8px;
+    text-align: center;
+  `
+);
 
 export const Id = styled.span`
   color: ${({ theme }) => theme.tokens.current.core.text.secondary};

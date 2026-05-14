@@ -21,7 +21,7 @@ export const Versions: FC<VersionsProps> = ({
   };
 
   return (
-    <Styled.Container>
+    <Styled.Versions>
       {items.length === 0 ? (
         <Styled.Empty>
           Нет версий
@@ -49,6 +49,6 @@ export const Versions: FC<VersionsProps> = ({
           </Styled.Item>
         ))
       )}
-    </Styled.Container>
+    </Styled.Versions>
   );
 };

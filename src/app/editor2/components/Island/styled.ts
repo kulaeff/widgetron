@@ -1,16 +1,24 @@
 import styled from "styled-components";
 
 type IslandStyleProps = {
-  $width?: string | number;
   $height?: string | number;
+  $minHeight?: string | number;
+  $maxHeight?: string | number;
+  $minWidth?: string | number;
+  $maxWidth?: string | number;
+  $width?: string | number;
   $unstyled: boolean;
 };
 
 export const Island = styled("div")<IslandStyleProps>(
   ({
     theme,
-    $width,
     $height,
+    $minHeight,
+    $maxHeight,
+    $minWidth,
+    $maxWidth,
+    $width,
     $unstyled,
   }) => ({
     backgroundColor: theme.tokens.current.core.background.default,
@@ -23,6 +31,10 @@ export const Island = styled("div")<IslandStyleProps>(
     padding: $unstyled ? 0 : "16px",
     ...(typeof $width !== "undefined" ? { width: $width } : {}),
     ...(typeof $height !== "undefined" ? { height: $height } : {}),
+    ...(typeof $minHeight !== "undefined" ? { minHeight: $minHeight } : {}),
+    ...(typeof $maxHeight !== "undefined" ? { maxHeight: $maxHeight } : {}),
+    ...(typeof $minWidth !== "undefined" ? { minWidth: $minWidth } : {}),
+    ...(typeof $maxWidth !== "undefined" ? { maxWidth: $maxWidth } : {}),
   })
 );
 

@@ -1,6 +1,6 @@
+import { useViewport } from "@xyflow/react";
 import { useEffect, useRef, useState, type FC } from "react";
 import * as Styled from "./styled";
-import { useViewport } from "@xyflow/react";
 
 export type ZoomOption = {
   id: string;
@@ -17,8 +17,10 @@ export const ZoomControl: FC<ZoomControlProps> = ({
   onChange,
 }) => {
   const [open, setOpen] = useState(false);
-  const rootRef = useRef<HTMLDivElement>(null);
+
   const { zoom } = useViewport();
+
+  const rootRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {

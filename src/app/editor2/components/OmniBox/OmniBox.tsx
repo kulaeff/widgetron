@@ -1,5 +1,4 @@
-import { IconButton } from "@pulse/ui/components/Button";
-import { Line } from "@pulse/ui/components/Input/TextArea/Line";
+import { Button, IconButton } from "@pulse/ui/components/Button";
 import {
   MouseEventHandler,
   useState,
@@ -7,34 +6,41 @@ import {
   type FC,
   type KeyboardEventHandler,
 } from "react";
+import { useTranslation } from "react-i18next";
 import * as Styled from "./styled";
+import { Prompt } from "./Prompt";
 
-export type Prompt = {
+export type OmniBoxProps = {
   disabled?: boolean;
   loading?: boolean;
   placeholder?: string;
   onSubmit: (value: string) => void;
   onReset?: () => void;
+  onToolRequest?: (tool: string) => void;
 };
 
-export const OmniBox: FC<Prompt> = ({
+export const OmniBox: FC<OmniBoxProps> = ({
   disabled = false,
   loading = false,
   placeholder = "Опишите, что вы хотите получить...",
   onSubmit,
   onReset,
+  onToolRequest,
 }) => {
+  const { t } = useTranslation();
+
   const [localValue, setLocalValue] = useState("");
 
-  const handleTextAreaChange: ChangeEventHandler<HTMLTextAreaElement> = (e) => {
+  const handlePromptChange: ChangeEventHandler<HTMLTextAreaElement> = (e) => {
     setLocalValue(e.target.value);
   };
 
   const handleButtonClick: MouseEventHandler<HTMLButtonElement> = () => {
     if (loading) {
       onReset?.();
-    } else if (localValue.trim().length > 0) {
+    } else {
       onSubmit(localValue);
+
       setLocalValue("");
     }
   };
@@ -43,10 +49,11 @@ export const OmniBox: FC<Prompt> = ({
     if (e.key === "Enter" && !e.shiftKey) {
       e.preventDefault();
 
-      if (disabled || loading) return;
+      if (loading) return;
 
-      if (localValue.trim().length > 0) {
+      if (localValue.length > 0) {
         onSubmit(localValue);
+
         setLocalValue("");
       }
     }
@@ -54,23 +61,33 @@ export const OmniBox: FC<Prompt> = ({
 
   return (
     <Styled.OmniBox>
-      <Line
-        disabled={disabled || loading}
+      <Prompt
+        disabled={loading}
         placeholder={placeholder}
         value={localValue}
-        onChange={handleTextAreaChange}
+        onChange={handlePromptChange}
         onKeyDown={handleKeyDown}
       />
       <Styled.Buttons>
-        <div />
+        <div style={{ alignItems: "center", display: "flex", gap: 8 }}>
+          <IconButton size="s" $type="secondary">
+            +
+          </IconButton>
+          <Button
+            $size="s"
+            $type="secondary"
+            onClick={() => onToolRequest?.("data")}
+          >
+            {t("данные")}
+          </Button>
+        </div>
         <IconButton
           aria-label={loading ? "Stop" : "Send"}
-          disabled={
-            disabled || (loading ? !onReset : localValue.trim().length === 0)
-          }
-          size="m-alt"
+          disabled={loading ? !onReset : localValue.length === 0}
+          size="s"
           type="button"
           onClick={handleButtonClick}
+          style={{ justifySelf: "end" }}
         >
           {loading ? (
             /* stop */

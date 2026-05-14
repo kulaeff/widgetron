@@ -1,5 +1,5 @@
-import * as Styled from "./styled";
 import type { FC } from "react";
+import * as Styled from "./styled";
 import type { ToggleProps } from "./types";
 
 export const Toggle: FC<ToggleProps> = ({ options, value, onChange }) => {

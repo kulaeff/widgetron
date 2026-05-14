@@ -8,6 +8,7 @@ import { Avatar } from "@pulse/ui/components/Avatar";
 import { Badge } from "@pulse/ui/components/Grade/Badge";
 import { Button } from "@pulse/ui/components/Button";
 import { Card } from "@pulse/ui/components/Card";
+import { Carousel } from "@pulse/ui/components/Carousel";
 import { Chips } from "@pulse/ui/components/Tags/Chips";
 import { Checkbox } from "@pulse/ui/components/Checkbox";
 import { Divider } from "@pulse/ui/components/Divider";
@@ -31,6 +32,7 @@ import { DroppableMarker } from "../components/DroppableMarker/DroppableMarker";
 import { Text } from "../ui/Text";
 // import { Link } from "@/components/ui/link";
 import { catalog } from "./catalog";
+import { Slider } from "../ui/Slider";
 
 const getSpecId = <T extends Record<string, unknown>>(
   props: T
@@ -102,6 +104,17 @@ export const { registry, handlers, executeAction } = defineRegistry(catalog, {
         </DroppableMarker>
       );
     },
+    Slider: ({ props, children }) => {
+      const id = getSpecId(props);
+
+      return (
+        <DroppableMarker id={id}>
+          <Slider $autoplay={props.autoPlay} $loop={props.loop}>
+            {children}
+          </Slider>
+        </DroppableMarker>
+      );
+    },
     Chips: ({ props, emit }) =>
       withSpecMarker(
         props,
@@ -160,7 +173,7 @@ export const { registry, handlers, executeAction } = defineRegistry(catalog, {
     },
     Skeleton: ({ props, children }) =>
       withSpecMarker(props, <SkeletonRect {...props}>{children}</SkeletonRect>),
-    Separator: ({ props }) => withSpecMarker(props, <Divider />),
+    Divider: ({ props }) => withSpecMarker(props, <Divider />),
     // Table: ({ props }) => withSpecMarker(props, <Table {...props} />),
     Tag: ({ props }) =>
       withSpecMarker(
@@ -211,7 +224,7 @@ export const { registry, handlers, executeAction } = defineRegistry(catalog, {
           </tbody>
         </table>
       ),
-    Spinner: ({ props }) => withSpecMarker(props, <Loader />),
+    Loader: ({ props }) => withSpecMarker(props, <Loader />),
     BarGraph: ({ props }) =>
       withSpecMarker(
         props,

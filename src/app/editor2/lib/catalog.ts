@@ -68,6 +68,22 @@ export const catalog = defineCatalog(schema, {
       }),
       slots: ["default"],
     },
+    Slider: {
+      description: "Слайдер",
+      example: { autoplay: true },
+      group: "controls",
+      props: z.object({
+        autoPlay: z.number().default(0).optional().meta({
+          description: "Количество миллисекунд в режиме авто-проигрывания",
+        }),
+        loop: z
+          .boolean()
+          .default(false)
+          .optional()
+          .meta({ description: "Включает режим зацикливания слайдов" }),
+      }),
+      slots: ["default"],
+    },
     Chips: {
       description:
         "Компактный элемент, отображающий aтрибут, статус или действие.",
@@ -151,7 +167,14 @@ export const catalog = defineCatalog(schema, {
           .default(0)
           .optional(),
         justify: z
-          .enum(["start", "center", "end", "stretch", "space-between", "space-around"])
+          .enum([
+            "start",
+            "center",
+            "end",
+            "stretch",
+            "space-between",
+            "space-around",
+          ])
           .default("stretch")
           .optional(),
       }),
@@ -170,7 +193,7 @@ export const catalog = defineCatalog(schema, {
     },
     Tag: {
       description:
-        "Компактный элемент для вывода тегов, ключевых слов и так далее.",
+        "Компактный элемент с цветным фоном для вывода тегов, ключевых слов и так далее.",
       example: { label: "active", color: "green" },
       group: "content",
       props: z.object({
@@ -195,7 +218,7 @@ export const catalog = defineCatalog(schema, {
         size: z.enum(["s", "m"]).default("m").optional(),
       }),
     },
-    Separator: {
+    Divider: {
       description: "Визуальный разделитель",
       group: "layout",
       props: z.object({
@@ -263,78 +286,48 @@ export const catalog = defineCatalog(schema, {
       description: "Изображение",
     },
     Progress: {
+      description: "Шкала прогресса (от 0 до 100)",
+      example: { value: 65, label: "Загрузка" },
       group: "content",
       props: z.object({
         value: z.number().optional(),
-        // .default(0)
         label: z.string().optional(),
       }),
-      description: "Progress bar (value 0-100)",
-      example: { value: 65, label: "Upload progress" },
     },
-
     Skeleton: {
+      description: "Отображает заглушку контента пока данные грузятся",
       group: "content",
       props: z.object({
         width: z.union([z.string(), z.number()]).optional(),
         height: z.union([z.string(), z.number()]).optional(),
       }),
-      description: "Отображает заглушку контента пока данные грузятся",
     },
-
-    Spinner: {
+    Loader: {
       group: "content",
       props: z.object({
-        size: z.enum(["sm", "md", "lg"]).optional(),
-        // .default("md")
+        size: z.enum(["sm", "md", "lg"]).default("md").optional(),
       }),
-      description: "Loading spinner indicator",
+      description: "Анимированный индикатор загрузки (спиннер)",
     },
-
     Rating: {
+      description: "Набор из 5 звёздочек для оценки.",
+      example: { rate: 4 },
       group: "content",
       props: z.object({
-        value: z.number().optional(),
+        rate: z.number().optional(),
       }),
-      description: "Star rating display",
+      events: ["change"],
     },
-
-    BarGraph: {
-      group: "content",
-      props: z.object({
-        title: z.string().optional(),
-        data: z.array(
-          z.object({
-            label: z.string(),
-            value: z.number(),
-          })
-        ),
-      }),
-      description: "Vertical bar chart",
-    },
-
-    LineGraph: {
-      group: "content",
-      props: z.object({
-        title: z.string().optional(),
-        data: z.array(
-          z.object({
-            label: z.string(),
-            value: z.number(),
-          })
-        ),
-      }),
-      description: "Line chart with points",
-    },
-
     Input: {
       group: "controls",
       props: z.object({
         id: z.string().optional(),
         label: z.string().optional(),
         name: z.string().optional(),
-        type: z.enum(["text", "email", "password", "number"]).optional(),
-        // .default("text")
+        type: z
+          .enum(["text", "email", "password", "number"])
+          .default("text")
+          .optional(),
         placeholder: z.string().optional(),
         value: z.string().optional(),
         checks: z
@@ -348,8 +341,7 @@ export const catalog = defineCatalog(schema, {
           .optional(),
       }),
       events: ["change", "focus", "blur"],
-      description:
-        "Text input field. Use { $bindState } on value for two-way binding. Use checks for validation (e.g. required, email, minLength).",
+      description: "Поле ввода.",
       example: {
         label: "Email",
         name: "email",
@@ -357,7 +349,6 @@ export const catalog = defineCatalog(schema, {
         placeholder: "you@example.com",
       },
     },
-
     TextArea: {
       group: "controls",
       props: z.object({
@@ -377,10 +368,8 @@ export const catalog = defineCatalog(schema, {
           )
           .optional(),
       }),
-      description:
-        "Multi-line text input. Use { $bindState } on value for two-way binding. Use checks for validation (e.g. required, minLength).",
+      description: "Текстовое поле ввода.",
     },
-
     Select: {
       group: "controls",
       props: z.object({
@@ -402,9 +391,8 @@ export const catalog = defineCatalog(schema, {
       }),
       events: ["change"],
       description:
-        "Dropdown select input. Use { $bindState } on value for two-way binding. Use checks for validation (e.g. required).",
+        "Выпадающий список. Use { $bindState } on value for two-way binding. Use checks for validation (e.g. required).",
     },
-
     Checkbox: {
       group: "controls",
       props: z.object({
@@ -414,10 +402,8 @@ export const catalog = defineCatalog(schema, {
         checked: z.boolean().optional(),
       }),
       events: ["change"],
-      description:
-        "Checkbox input. Use { $bindState } on checked for two-way binding.",
+      description: "Чекбокс.",
     },
-
     Switch: {
       group: "controls",
       props: z.object({
@@ -428,19 +414,17 @@ export const catalog = defineCatalog(schema, {
       }),
       events: ["change"],
       description:
-        "Toggle switch. Use { $bindState } on checked for two-way binding.",
+        "Свитч (переключатель). Используй { $bindState } в свойстве checked для двусторонней привязки данных.",
     },
-
     Link: {
       group: "controls",
       props: z.object({
         to: z.string(),
       }),
-      description: "Link",
+      description: "Ссылка.",
       example: { to: "/about" },
       slots: ["default"],
     },
-
     Pagination: {
       group: "controls",
       props: z.object({
@@ -449,7 +433,7 @@ export const catalog = defineCatalog(schema, {
       }),
       events: ["change"],
       description:
-        "Page navigation. Use { $bindState } on page for current page number.",
+        "Набор кнопок для переключения между страницами. Используй { $bindState } в свойстве page для установки текущей выбранной страницы.",
     },
   },
 
@@ -485,7 +469,6 @@ export const catalog = defineCatalog(schema, {
       }),
     },
   },
-
   functions: {
     formatCurrency: {
       params: z.object({

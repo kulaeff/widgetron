@@ -1,13 +1,38 @@
 import * as Styled from "./styled";
+import {
+  DragDropProvider,
+  DragOverlay,
+  type DragEndEvent,
+  type DragMoveEvent,
+  type DragStartEvent,
+} from "@dnd-kit/react";
 import { validateSpec } from "@json-render/core";
 import type { Spec } from "@json-render/react";
 import { Editor as MonacoEditor } from "@monaco-editor/react";
 import { JsonEditor, JsonValue } from "@visual-json/react";
 import { Control, FormField, Label } from "@pulse/ui/components/FormField";
 import { Input } from "@pulse/ui/components/Input";
-import { Tabs } from "./components/Tabs";
-import { TextArea } from "@pulse/ui/components/Input/TextArea";
-import { CSSProperties, type FC, useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { Button, IconButton } from "@pulse/ui/components/Button";
+import { Option, Select } from "@pulse/ui/components/Select";
+import type { RouteComponentProps } from "@reach/router";
+import {
+  Background,
+  Node,
+  NodeOrigin,
+  NodeProps,
+  Panel,
+  ReactFlow,
+  useReactFlow,
+} from "@xyflow/react";
+import {
+  CSSProperties,
+  type FC,
+  useCallback,
+  useEffect,
+  useMemo,
+  useRef,
+  useState,
+} from "react";
 import { useTranslation } from "react-i18next";
 import { useTheme } from "styled-components";
 import { Island } from "./components/Island";
@@ -19,37 +44,33 @@ import { ToolPicker, type ToolPickerItem } from "./components/ToolPicker";
 import { ZoomControl, type ZoomOption } from "./components/ZoomControl";
 import { TREE_ROOT_DROP_TARGET_ID, TreeView } from "./components/TreeView";
 import { catalog } from "./lib/catalog";
-import { buildCatalogData, type CatalogComponentInfo } from "./utils/catalog-data";
+import {
+  buildCatalogData,
+  type CatalogComponentInfo,
+} from "./utils/catalog-data";
 import { type LevaControl, LevaPanel } from "./components/LevaPanel";
-import { Section, Sections } from "./components/Sections";
+import { Tabs } from "./components/Tabs";
+import { Item, Flex } from "./components/Flex";
 import { Versions } from "./components/Versions";
 import { CodeBlock } from "./components/CodeBlock";
 import { Version } from "./types";
-import { Button } from "@pulse/ui/components/Button";
-import { Option, Select } from "@pulse/ui/components/Select";
-import type { WidgetCreatorProps, WidgetCreatorSavePayload } from "../../widgets/WidgetCreator/types";
-import {
-  DragDropProvider,
-  DragOverlay,
-  type DragEndEvent,
-  type DragMoveEvent,
-  type DragStartEvent,
-} from "@dnd-kit/react";
-import {
-  Background,
-  type Node,
-  type NodeOrigin,
-  type NodeProps,
-  Panel,
-  ReactFlow,
-  useReactFlow,
-} from "@xyflow/react";
+import type {
+  WidgetCreatorProps,
+  WidgetCreatorSavePayload,
+} from "../../widgets/WidgetCreator/types";
 import {
   addCatalogComponentToVersions,
   buildSpecTreeItems,
   moveElementInSpec,
 } from "./spec-utils";
 import { Toggle } from "./components/Toggle";
+import { ListView } from "./components/ListView";
+
+interface Api {
+  id: string;
+  method: string;
+  url: string;
+}
 
 const EDITOR_RULES = [
   "Никогда не используй Card как root.",
@@ -164,18 +185,24 @@ export const Editor: FC<EditorProps> = ({ onSave }) => {
   const { fitView, zoomIn, zoomOut, zoomTo } = useReactFlow();
 
   const [activeTab, setActiveTab] = useState("elements");
+  const [activeTabData, setActiveTabData] = useState("api");
   const [activeRightTab, setActiveRightTab] = useState("properties");
-  const [mode, setMode] = useState<string>(Mode.AI);
+  const [apis, setApis] = useState<Api[]>([]);
+  const [isToolDataVisible, setIsToolDataVisible] = useState(false);
   const [selectedElementId, setSelectedElementId] = useState<string>();
   const [selectedVersionId, setSelectedVersionId] = useState<string>();
   const [state, setState] = useState<Record<string, unknown>>({});
   const [type, setType] = useState("");
-  const [url, setUrl] = useState("");
-  const [method, setMethod] = useState("GET");
+  const [mode, setMode] = useState<string>(Mode.AI);
   const [versions, setVersions] = useState<Version[]>([]);
-  const [activeDropTargetId, setActiveDropTargetId] = useState<string | null>(null);
-  const [activeTreeDropTargetId, setActiveTreeDropTargetId] = useState<string | null>(null);
-  const [draggedCatalogComponentName, setDraggedCatalogComponentName] = useState<string | null>(null);
+  const [activeDropTargetId, setActiveDropTargetId] = useState<string | null>(
+    null
+  );
+  const [activeTreeDropTargetId, setActiveTreeDropTargetId] = useState<
+    string | null
+  >(null);
+  const [draggedCatalogComponentName, setDraggedCatalogComponentName] =
+    useState<string | null>(null);
   const [isHistoryOpen, setIsHistoryOpen] = useState(false);
   const [isCodeModalOpen, setIsCodeModalOpen] = useState(false);
   const [selectedDesignToolId, setSelectedDesignToolId] = useState("select");
@@ -218,28 +245,36 @@ export const Editor: FC<EditorProps> = ({ onSave }) => {
   const currentVersionNumber = currentVersion
     ? versions.findIndex((version) => version.id === currentVersion.id) + 1
     : null;
-  const currentVersionLabel = currentVersionNumber ? `v${currentVersionNumber}` : "без версии";
+  const currentVersionLabel = currentVersionNumber
+    ? `v${currentVersionNumber}`
+    : "без версии";
   const currentPromptLabel = currentVersion?.prompt?.trim() ?? "";
   const hasCurrentPrompt = currentPromptLabel.length > 0;
-  const currentStatusLabel = isStreaming || currentVersion?.status === "pending"
-    ? "генерация"
-    : currentVersion
+  const currentStatusLabel =
+    isStreaming || currentVersion?.status === "pending"
+      ? "генерация"
+      : currentVersion
       ? "готово"
       : "черновик";
   const hasApiData = currentSnapshotData !== null;
   const historyPreviewLabel = hasCurrentPrompt
     ? currentPromptLabel
     : versions.length > 0
-      ? "Выбрать версию"
-      : "История пуста";
+    ? "Выбрать версию"
+    : "История пуста";
 
   const currentNodes = [
     {
-      id: 'n1',
+      id: "n1",
       position: { x: 0, y: 0 },
       data: {
-        activeDropTargetId: draggedCatalogComponentName ? activeDropTargetId : null,
-        emptyLabel: mode === Mode.AI ? "Ожидание генерации интерфейса..." : "Перетащите сюда компонент из палитры",
+        activeDropTargetId: draggedCatalogComponentName
+          ? activeDropTargetId
+          : null,
+        emptyLabel:
+          mode === Mode.AI
+            ? "Ожидание генерации интерфейса..."
+            : "Перетащите сюда компонент из палитры",
         loading: isStreaming,
         viewportSize: selectedViewport,
         selectedElementId,
@@ -276,44 +311,44 @@ export const Editor: FC<EditorProps> = ({ onSave }) => {
     const component = components.find((c) => c.name === element.type);
     const controls = component
       ? component.props.map<LevaControl>((prop) => {
-        const id = prop.name.replace("?", "");
-        const value = element.props?.[prop.name] ?? prop.default;
+          const id = prop.name.replace("?", "");
+          const value = element.props?.[prop.name] ?? prop.default;
 
-        switch (prop.type) {
-          case "boolean":
-            return {
-              id,
-              label: id,
-              type: "boolean",
-              value: typeof value === "boolean" ? value : false,
-            };
-          case "number":
-            return {
-              id,
-              label: id,
-              type: "number",
-              value: typeof value === "number" ? value : 0,
-            };
-          case "string":
-            return {
-              id,
-              label: id,
-              type: "string",
-              value: typeof value === "string" ? value : "",
-            };
-          default: {
-            const options = prop.type.split("|").map((item) => item.trim());
+          switch (prop.type) {
+            case "boolean":
+              return {
+                id,
+                label: id,
+                type: "boolean",
+                value: typeof value === "boolean" ? value : false,
+              };
+            case "number":
+              return {
+                id,
+                label: id,
+                type: "number",
+                value: typeof value === "number" ? value : 0,
+              };
+            case "string":
+              return {
+                id,
+                label: id,
+                type: "string",
+                value: typeof value === "string" ? value : "",
+              };
+            default: {
+              const options = prop.type.split("|").map((item) => item.trim());
 
-            return {
-              id,
-              label: id,
-              options,
-              type: "select",
-              value: typeof value === "string" ? value : "",
-            };
+              return {
+                id,
+                label: id,
+                options,
+                type: "select",
+                value: typeof value === "string" ? value : "",
+              };
+            }
           }
-        }
-      })
+        })
       : [];
 
     return {
@@ -328,19 +363,6 @@ export const Editor: FC<EditorProps> = ({ onSave }) => {
     [components, currentSpec]
   );
 
-  const handleButtonFetchDataSourceClick = async () => {
-    const response = await fetch(url, {
-      method,
-    });
-
-    const data = await response.json();
-
-    setState((p) => ({
-      ...p,
-      data,
-    }));
-  };
-
   const handleSave = useCallback(async () => {
     const scheme = currentVersion?.spec ?? spec ?? null;
 
@@ -351,15 +373,14 @@ export const Editor: FC<EditorProps> = ({ onSave }) => {
     const payload: WidgetCreatorSavePayload = {
       data: currentSnapshotData,
       dataSource: {
-        method,
-        type,
-        url,
+        method: apis[0]?.method ?? "GET",
+        url: apis[0]?.url ?? "",
       },
       scheme,
     };
 
     await onSave(payload);
-  }, [currentSnapshotData, currentVersion?.spec, method, onSave, spec, type, url]);
+  }, [currentSnapshotData, currentVersion?.spec, onSave, spec]);
 
   const handleVersionSelect = useCallback((id: string) => {
     setSelectedVersionId(id);
@@ -443,6 +464,10 @@ export const Editor: FC<EditorProps> = ({ onSave }) => {
     }
   };
 
+  const handleOmniBoxToolRequest = useCallback(() => {
+    setIsToolDataVisible((p) => !p);
+  }, []);
+
   const handleOmniBoxSubmit = useCallback(
     async (value: string) => {
       const nextId = Date.now().toString();
@@ -465,22 +490,24 @@ export const Editor: FC<EditorProps> = ({ onSave }) => {
       setSelectedElementId(undefined);
       setSelectedVersionId(nextId);
 
-      let data: Record<string, unknown> | null = null;
+      let data: Array<Record<string, unknown>> | null = null;
 
-      if (url) {
-        const response = await fetch(url, {
-          method,
-        });
+      if (apis.length > 0) {
+        const promises = apis.map((api) =>
+          fetch(api.url, { method: api.method })
+        );
 
-        data = await response.json();
+        const responses = await Promise.all(promises);
+
+        data = await Promise.all(responses.map((r) => r.json()));
       }
 
       await send(value, {
-        data,
+        data: data && data.length > 1 ? data : data?.[0],
         previousSpec: currentVersion?.spec,
       });
     },
-    [currentVersion, send]
+    [apis, currentVersion, send]
   );
 
   const handlePreviewDropComponent = useCallback(
@@ -519,7 +546,9 @@ export const Editor: FC<EditorProps> = ({ onSave }) => {
   );
 
   const resolveDropTargetFromOperation = (
-    target: DragMoveEvent["operation"]["target"] | DragEndEvent["operation"]["target"]
+    target:
+      | DragMoveEvent["operation"]["target"]
+      | DragEndEvent["operation"]["target"]
   ): string | null => {
     const targetId = target?.id;
 
@@ -607,7 +636,9 @@ export const Editor: FC<EditorProps> = ({ onSave }) => {
       return;
     }
 
-    const treeDropTarget = resolveTreeDropTargetFromNativeEvent(event.nativeEvent);
+    const treeDropTarget = resolveTreeDropTargetFromNativeEvent(
+      event.nativeEvent
+    );
 
     if (treeDropTarget?.targetElementId === "preview") {
       setActiveDropTargetId(null);
@@ -640,7 +671,9 @@ export const Editor: FC<EditorProps> = ({ onSave }) => {
       const sourceData = event.operation.source?.data;
 
       if (sourceData?.kind === "catalog-component") {
-        const treeDropTarget = resolveTreeDropTargetFromNativeEvent(event.nativeEvent);
+        const treeDropTarget = resolveTreeDropTargetFromNativeEvent(
+          event.nativeEvent
+        );
 
         if (treeDropTarget) {
           handlePreviewDropComponent(
@@ -724,15 +757,15 @@ export const Editor: FC<EditorProps> = ({ onSave }) => {
         p.map((v) =>
           v.id === selectedVersionId
             ? {
-              ...v,
-              spec: moveElementInSpec(v.spec, {
-                sourceParentId,
-                sourceId,
-                targetParentId,
-                targetId,
-                placement,
-              }),
-            }
+                ...v,
+                spec: moveElementInSpec(v.spec, {
+                  sourceParentId,
+                  sourceId,
+                  targetParentId,
+                  targetId,
+                  placement,
+                }),
+              }
             : v
         )
       );
@@ -746,12 +779,12 @@ export const Editor: FC<EditorProps> = ({ onSave }) => {
         p.map((v) =>
           v.id === generatingVersionIdRef.current
             ? {
-              ...v,
-              raw,
-              spec: { ...spec, state: { ...spec?.state, ...state } },
-              status: "complete",
-              usage,
-            }
+                ...v,
+                raw,
+                spec: { ...spec, state: { ...spec?.state, ...state } },
+                status: "complete",
+                usage,
+              }
             : v
         )
       );
@@ -828,7 +861,9 @@ export const Editor: FC<EditorProps> = ({ onSave }) => {
     >
       <DragOverlay>
         {draggedCatalogComponentName ? (
-          <Styled.DragOverlayItem>{draggedCatalogComponentName}</Styled.DragOverlayItem>
+          <Styled.DragOverlayItem>
+            {draggedCatalogComponentName}
+          </Styled.DragOverlayItem>
         ) : null}
       </DragOverlay>
       <Styled.Container>
@@ -845,44 +880,44 @@ export const Editor: FC<EditorProps> = ({ onSave }) => {
           zoomActivationKeyCode={["Control", "Meta", "z"]}
         >
           <Background />
-          <Panel position="top-left">
-            <Styled.ViewportDock>
+          <Panel position="top-center">
+            <Island unstyled>
               <Toggle
                 options={VIEWPORT_OPTIONS}
                 value={viewportId}
                 onChange={(value) => setViewportId(value)}
               />
-            </Styled.ViewportDock>
+            </Island>
           </Panel>
           <Panel position="top-right">
-            <div>
-              <Styled.SaveDock>
-                <Styled.SaveButton
-                  type="button"
-                  disabled={!currentSpec}
-                  onClick={() => void handleSave()}
-                >
-                  {t("сохранить")}
-                </Styled.SaveButton>
-              </Styled.SaveDock>
-            </div>
+            <Flex>
+              <Item>
+                <Island unstyled>
+                  <Styled.SaveButton
+                    type="button"
+                    disabled={!currentSpec}
+                    onClick={handleSave}
+                  >
+                    {t("сохранить")}
+                  </Styled.SaveButton>
+                </Island>
+              </Item>
+              <Item>
+                <Island unstyled>
+                  <Toggle
+                    options={[
+                      { id: Mode.AI, isAccent: true, label: "AI mode" },
+                      { id: Mode.DESIGN, label: "Design mode" },
+                    ]}
+                    value={mode}
+                    onChange={(value) => setMode(value)}
+                  />
+                </Island>
+              </Item>
+            </Flex>
           </Panel>
-          <Panel position="top-right">
-            <div>
-              <Styled.ModeDock>
-                <Toggle
-                  options={[
-                    { id: Mode.AI, isAccent: true, label: "AI mode" },
-                    { id: Mode.DESIGN, label: "Design mode" }
-                  ]}
-                  value={mode}
-                  onChange={(value) => setMode(value)}
-                />
-              </Styled.ModeDock>
-            </div>
-          </Panel>
-          <Panel position="bottom-right">
-            <Island>
+          <Panel position="bottom-right" style={{ zIndex: 10 }}>
+            <Island unstyled>
               <ZoomControl
                 options={ZOOM_OPTIONS}
                 onChange={(id) => {
@@ -901,100 +936,112 @@ export const Editor: FC<EditorProps> = ({ onSave }) => {
           </Panel>
           {mode === Mode.AI && (
             <>
-              <Panel
-                position="top-left"
-                style={{ height: "calc(100% - 108px)", marginTop: 76 }}
-              >
-                <Styled.AIRail>
-                  {hasCurrentPrompt ? (
-                    <Styled.RailCard>
-                      <Styled.RailCardBody>
-                        <Styled.RailHeader>
-                          <Styled.RailTitle>{t("текущий запрос")}</Styled.RailTitle>
-                          <Styled.RailTag $tone="accent">
-                            {currentVersionLabel}
-                          </Styled.RailTag>
-                        </Styled.RailHeader>
-                        <Styled.RailMeta>
-                          <Styled.RailTag
-                            $tone={isStreaming || currentVersion?.status === "pending" ? "accent" : "default"}
-                          >
-                            {currentStatusLabel}
-                          </Styled.RailTag>
-                          {hasApiData ? (
-                            <Styled.RailTag $tone="success">
-                              API data
-                            </Styled.RailTag>
-                          ) : null}
-                        </Styled.RailMeta>
-                        <Styled.PromptPreview>
-                          {currentPromptLabel}
-                        </Styled.PromptPreview>
-                      </Styled.RailCardBody>
-                    </Styled.RailCard>
-                  ) : null}
-                  <Styled.HistoryDock>
-                    <Styled.HistoryCard $withAccent={false}>
-                      <Styled.HistoryCardBody>
-                        <Styled.HistoryTrigger
-                          type="button"
-                          disabled={versions.length === 0}
-                          onClick={() => setIsHistoryOpen((value) => !value)}
-                        >
-                          <Styled.HistoryTriggerMain>
-                            <Styled.HistoryHeading>{t("История")}</Styled.HistoryHeading>
-                            <Styled.HistoryTriggerValue>
-                              {historyPreviewLabel}
-                            </Styled.HistoryTriggerValue>
-                          </Styled.HistoryTriggerMain>
-                          <Styled.HistoryArrow $open={isHistoryOpen} aria-hidden="true">
-                            <svg
-                              width="16"
-                              height="16"
-                              viewBox="0 0 16 16"
-                              fill="none"
-                            >
-                              <path
-                                d="M4 6l4 4 4-4"
-                                stroke="currentColor"
-                                strokeWidth="1.6"
-                                strokeLinecap="round"
-                                strokeLinejoin="round"
-                              />
-                            </svg>
-                          </Styled.HistoryArrow>
-                        </Styled.HistoryTrigger>
-                        {isHistoryOpen ? (
-                          <Styled.HistoryList>
-                            <Versions
-                              disabled={isStreaming}
-                              items={versions}
-                              value={selectedVersionId}
-                              onChange={handleVersionSelect}
-                            />
-                          </Styled.HistoryList>
-                        ) : null}
-                      </Styled.HistoryCardBody>
-                    </Styled.HistoryCard>
-                  </Styled.HistoryDock>
-                </Styled.AIRail>
+              <Panel position="top-left">
+                <Island title={t("версии")} width={400} maxHeight="75vh">
+                  <Versions
+                    disabled={isStreaming}
+                    items={versions}
+                    value={selectedVersionId}
+                    onChange={(id) => {
+                      setSelectedVersionId(id);
+                      setSelectedElementId(undefined);
+                    }}
+                  />
+                </Island>
               </Panel>
-              <Panel
-                position="bottom-center"
-                style={{ width: "min(760px, calc(100% - 440px))" }}
-              >
-                <Styled.BottomComposer>
-                  <Island width="100%">
-                    <Styled.ComposerShell>
-                      <OmniBox
-                        loading={isStreaming}
-                        placeholder="Что вы хотите изменить или создать?"
-                        onSubmit={handleOmniBoxSubmit}
-                        onReset={clear}
-                      />
-                    </Styled.ComposerShell>
+              <Panel position="bottom-center">
+                {isToolDataVisible && (
+                  <Island>
+                    <Flex vertical>
+                      <Item>
+                        <Tabs
+                          items={[
+                            { id: "api", label: "апи" },
+                            { id: "structure", label: "структура" },
+                            { id: "data", label: "данные" },
+                          ]}
+                          value={activeTabData}
+                          onChange={(tab) => setActiveTabData(tab)}
+                        />
+                      </Item>
+                      <Item grow>
+                        {activeTabData === "api" && (
+                          <Flex vertical>
+                            {apis.map((api) => (
+                              <Item key={api.id}>
+                                <Flex>
+                                  <Item>
+                                    <Toggle
+                                      options={[
+                                        { id: "get", label: "GET" },
+                                        { id: "post", label: "POST" },
+                                      ]}
+                                      value={api.method}
+                                      onChange={(id) =>
+                                        setApis((p) =>
+                                          p.map((a) =>
+                                            a.id === api.id
+                                              ? { ...a, method: id }
+                                              : a
+                                          )
+                                        )
+                                      }
+                                    />
+                                  </Item>
+                                  <Item grow>
+                                    <Input
+                                      value={api.url}
+                                      onChange={(e) =>
+                                        setApis((p) =>
+                                          p.map((a) =>
+                                            a.id === api.id
+                                              ? { ...a, url: e.target.value }
+                                              : a
+                                          )
+                                        )
+                                      }
+                                    />
+                                  </Item>
+                                  <Item>
+                                    <IconButton size="m-alt" $type="tertiary">
+                                      x
+                                    </IconButton>
+                                  </Item>
+                                </Flex>
+                              </Item>
+                            ))}
+                            <Item>
+                              <IconButton
+                                size="s"
+                                $type="secondary"
+                                onClick={() =>
+                                  setApis((p) => [
+                                    ...p,
+                                    {
+                                      id: Date.now().toString(),
+                                      method: "get",
+                                      url: "",
+                                    },
+                                  ])
+                                }
+                              >
+                                +
+                              </IconButton>
+                            </Item>
+                          </Flex>
+                        )}
+                      </Item>
+                    </Flex>
                   </Island>
-                </Styled.BottomComposer>
+                )}
+                <Island width={600}>
+                  <OmniBox
+                    loading={isStreaming}
+                    onSubmit={handleOmniBoxSubmit}
+                    onReset={clear}
+                    onToolRequest={handleOmniBoxToolRequest}
+                  />
+                </Island>
               </Panel>
             </>
           )}
@@ -1007,19 +1054,18 @@ export const Editor: FC<EditorProps> = ({ onSave }) => {
                     height={360}
                     style={{ overflow: "hidden", zIndex: 20 }}
                   >
-                    <Styled.ComponentPickerSurface data-component-picker-surface>
+                    <Styled.ComponentPickerSurface
+                      data-component-picker-surface
+                    >
                       <ToolBar items={toolBarItems} />
                     </Styled.ComponentPickerSurface>
                   </Island>
                 </Panel>
               ) : null}
-              <Panel
-                position="center-left"
-                style={{ height: "calc(100% - 136px)" }}
-              >
-                <Island width={300} height="100%">
-                  <Sections vertical>
-                    <Section size="auto">
+              <Panel position="center-left">
+                <Island width={300} height="calc(100vh - 30px)">
+                  <Flex vertical>
+                    <Item>
                       <Tabs
                         items={[
                           { id: "elements", label: t("элементы") },
@@ -1030,8 +1076,8 @@ export const Editor: FC<EditorProps> = ({ onSave }) => {
                         value={activeTab}
                         onChange={(id) => setActiveTab(id)}
                       />
-                    </Section>
-                    <Section>
+                    </Item>
+                    <Item grow>
                       {activeTab === "elements" ? (
                         <TreeView
                           activeCatalogDropTargetId={activeTreeDropTargetId}
@@ -1049,18 +1095,27 @@ export const Editor: FC<EditorProps> = ({ onSave }) => {
                           style={
                             {
                               "--vj-bg": "transparent",
-                              "--vj-bg-panel": tokens.current.core.background.default,
-                              "--vj-bg-hover": tokens.current.interactive.hover.tertiary,
+                              "--vj-bg-panel":
+                                tokens.current.core.background.default,
+                              "--vj-bg-hover":
+                                tokens.current.interactive.hover.tertiary,
                               "--vj-bg-selected": tokens.current.system["30"],
-                              "--vj-bg-selected-muted": tokens.current.system["20"],
+                              "--vj-bg-selected-muted":
+                                tokens.current.system["20"],
                               "--vj-border": tokens.current.core.border.strong,
-                              "--vj-input-font-size": typography.body1Regular.fontSize,
+                              "--vj-input-font-size":
+                                typography.body1Regular.fontSize,
                               "--vj-text": tokens.current.core.text.primary,
-                              "--vj-text-muted": tokens.current.core.text.secondary,
-                              "--vj-text-selected": tokens.current.core.text.onColor,
-                              "--vj-boolean": tokens.current.colors.green.solid["60"],
-                              "--vj-number": tokens.current.colors.blue.solid["60"],
-                              "--vj-string": tokens.current.colors.orange.solid["60"],
+                              "--vj-text-muted":
+                                tokens.current.core.text.secondary,
+                              "--vj-text-selected":
+                                tokens.current.core.text.onColor,
+                              "--vj-boolean":
+                                tokens.current.colors.green.solid["60"],
+                              "--vj-number":
+                                tokens.current.colors.blue.solid["60"],
+                              "--vj-string":
+                                tokens.current.colors.orange.solid["60"],
                             } as CSSProperties
                           }
                           value={currentState as JsonValue}
@@ -1095,29 +1150,21 @@ export const Editor: FC<EditorProps> = ({ onSave }) => {
                           />
                         </Styled.CodePanel>
                       ) : null}
-                    </Section>
-                  </Sections>
+                    </Item>
+                  </Flex>
                 </Island>
               </Panel>
-              <Panel
-                position="center-right"
-                style={{ height: "calc(100% - 136px)" }}
-              >
-                <Island width={300} height="100%">
-                  <Sections vertical>
-                    <Section size="auto">
-                      <Styled.Tabs>
-                        <Tabs
-                          items={[
-                            { id: "properties", label: t("свойства") },
-                            { id: "api", label: t("api") },
-                          ]}
-                          value={activeRightTab}
-                          onChange={(id) => setActiveRightTab(id)}
-                        />
-                      </Styled.Tabs>
-                    </Section>
-                    <Section>
+              <Panel position="center-right">
+                <Island width={300} height="calc(100vh - 136px)">
+                  <Flex vertical>
+                    <Item>
+                      <Tabs
+                        items={[{ id: "properties", label: t("свойства") }]}
+                        value={activeRightTab}
+                        onChange={(id) => setActiveRightTab(id)}
+                      />
+                    </Item>
+                    <Item grow>
                       {/* eslint-disable-next-line no-nested-ternary */}
                       {activeRightTab === "properties" ? (
                         selectedElement ? (
@@ -1129,48 +1176,14 @@ export const Editor: FC<EditorProps> = ({ onSave }) => {
                           />
                         ) : (
                           <Styled.Placeholder>
-                            {t("Выберите узел дерева для редактирования его свойств")}
+                            {t(
+                              "Выберите узел дерева для редактирования его свойств"
+                            )}
                           </Styled.Placeholder>
                         )
                       ) : null}
-                      {activeRightTab === "api" && (
-                        <Styled.ApiForm>
-                          <FormField>
-                            <Label>
-                              <label htmlFor="url">url</label>
-                            </Label>
-                            <Control>
-                              <Input id="url" value={url} onChange={(e) => setUrl(e.target.value)} />
-                            </Control>
-                          </FormField>
-                          <FormField>
-                            <Label>
-                              <label htmlFor="method">method</label>
-                            </Label>
-                            <Control>
-                              <Select
-                                id="method"
-                                value={method}
-                                onChange={(value) => setMethod(value)}
-                              >
-                                <Option value="GET">GET</Option>
-                                <Option value="POST">POST</Option>
-                              </Select>
-                            </Control>
-                          </FormField>
-                          <FormField>
-                            <Label>
-                              <label htmlFor="type">type</label>
-                            </Label>
-                            <Control>
-                              <TextArea id="type" rows={5} value={type} onChange={(e) => setType(e.target.value)} />
-                            </Control>
-                          </FormField>
-                          <Button onClick={handleButtonFetchDataSourceClick}>{t("получить")}</Button>
-                        </Styled.ApiForm>
-                      )}
-                    </Section>
-                  </Sections>
+                    </Item>
+                  </Flex>
                 </Island>
               </Panel>
               <Panel position="bottom-center">

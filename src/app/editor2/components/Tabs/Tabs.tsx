@@ -1,5 +1,5 @@
-import * as Styled from "./styled";
 import type { FC } from "react";
+import * as Styled from "./styled";
 
 interface TabsItem extends Record<string, unknown> {
   id: string;

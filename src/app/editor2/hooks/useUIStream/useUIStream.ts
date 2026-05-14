@@ -133,7 +133,7 @@ export const useUIStream = ({
       try {
         const response = await fetch(url, {
           body: JSON.stringify({
-            model: "glm-5-turbo",
+            model: "glm-5.1",
             messages: [
               {
                 role: "system",

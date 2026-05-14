@@ -3,7 +3,6 @@ import * as Styled from "./styled";
 import type { DynamicString } from "@json-render/core";
 import { type FC, useMemo } from "react";
 import { Leva, useControls } from "leva";
-import type { Schema } from "leva/dist/declarations/src/types";
 import { useTheme } from "styled-components";
 
 type BaseControl = {
@@ -21,7 +20,7 @@ type NumberControl = BaseControl & {
 
 type TextControl = BaseControl & {
   type: "string";
-  value: Extract<DynamicString, string>;
+  value: DynamicString;
   placeholder?: string;
 };
 
@@ -41,12 +40,6 @@ type ColorControl = BaseControl & {
   value: string;
 };
 
-type LevaControlChangeHandler = (
-  value: unknown,
-  path: string,
-  context: { initial: boolean }
-) => void;
-
 export type LevaControl =
   | BooleanControl
   | ColorControl
@@ -56,7 +49,7 @@ export type LevaControl =
 
 const toStableOnChange = (
   onChange: (value: string | number | boolean) => void
-): LevaControlChangeHandler => {
+): (value: unknown, path: string, context: { initial: boolean }) => void => {
   return (value, _path, context) => {
     if (context.initial) {
       return;
@@ -85,13 +78,13 @@ export const LevaPanel: FC<LevaPanelProps> = ({
   console.log(controls);
 
   const schema = useMemo(() => {
-    return controls.reduce<Schema>((acc, control) => {
+    return controls.reduce<Record<string, any>>((acc, control) => {
       const { type: _type, ...schemaControl } = control;
 
       acc[control.id] = {
         ...schemaControl,
         onChange: toStableOnChange((value) =>
-          onControlChange(control.id, value)
+          onControlChange(control.id, value as number)
         ),
       };
       return acc;

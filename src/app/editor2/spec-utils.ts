@@ -1,5 +1,5 @@
 import type { Spec } from "@json-render/react";
-import type { TreeItem } from "./components/TreeView/TreeView";
+import type { TreeItem } from "./components/TreeView";
 import { buildSafeDefaultProps } from "./utils/catalog-dnd";
 import type { CatalogComponentInfo } from "./utils/catalog-data";
 import type { Version } from "./types";
