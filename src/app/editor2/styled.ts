@@ -37,30 +37,24 @@ export const ComponentPickerSurface = styled("div")`
 
 export const SaveButton = styled("button")(
   ({ theme }) => css`
-    ${theme.typography.body1Semibold};
+    ${theme.typography.body1Regular};
     align-items: center;
     background: transparent;
-    border: none;
-    border-radius: 14px;
+    border: 1px solid ${theme.tokens.current.core.border.strong};
+    border-radius: 8px;
     color: ${theme.tokens.current.core.text.primary};
     cursor: pointer;
     display: inline-flex;
-    font: inherit;
-    min-height: 32px;
-    letter-spacing: 0;
-    padding: 0 18px;
+    padding: 9px 12px;
     transition:
       transform 0.15s ease,
       background-color 0.15s ease;
-
     &:hover:not(:disabled) {
       background-color: ${theme.tokens.current.core.layer["01"]};
       transform: translateY(-1px);
     }
-
     &:disabled {
       color: ${theme.tokens.current.core.text.secondary};
-      cursor: not-allowed;
       opacity: 0.8;
     }
   `
