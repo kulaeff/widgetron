@@ -1,4 +1,4 @@
-import { useRef, useEffect, type FC, type TextareaHTMLAttributes } from "react";
+import { useRef, useLayoutEffect, type FC, type TextareaHTMLAttributes } from "react";
 import * as Styled from "./styled";
 
 type PromptProps = Omit<
@@ -14,23 +14,22 @@ export const Prompt: FC<PromptProps> = ({ value, ...rest }) => {
 
     if (!ref) return;
 
-    const maxHeight = Number.parseFloat(getComputedStyle(ref).maxHeight);
+    const maxHeight = Number.parseFloat(window.getComputedStyle(ref).maxHeight);
 
     ref.style.height = "0px";
 
+    const contentHeight = ref.scrollHeight;
     const nextHeight =
       Number.isFinite(maxHeight) && maxHeight > 0
-        ? Math.min(ref.scrollHeight, maxHeight)
-        : ref.scrollHeight;
+        ? Math.min(contentHeight, maxHeight)
+        : contentHeight;
 
     ref.style.height = `${nextHeight}px`;
     ref.style.overflowY =
-      Number.isFinite(maxHeight) && ref.scrollHeight > maxHeight
-        ? "auto"
-        : "hidden";
+      Number.isFinite(maxHeight) && contentHeight > maxHeight ? "auto" : "hidden";
   };
 
-  useEffect(() => {
+  useLayoutEffect(() => {
     setHeight();
   }, [value]);
 
