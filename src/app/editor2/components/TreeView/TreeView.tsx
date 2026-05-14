@@ -1,5 +1,4 @@
-import { Tag } from "@pulse/ui/components/Tags/Tag";
-import type { CSSProperties, DragEvent, DragEventHandler, FC, ReactNode } from "react";
+import type { CSSProperties, DragEvent, DragEventHandler, FC, KeyboardEvent, MouseEvent, ReactNode } from "react";
 import { useRef, useState } from "react";
 import { ReactComponent as AddIcon } from "$common/icons/add-icon.svg";
 import * as Styled from "./styled";
@@ -100,6 +99,49 @@ export const TreeView: FC<TreeViewProps> = ({
 
   const handleClick = (item: TreeItem) => {
     onChange?.(item.id);
+  };
+
+  const handleKeyDown = (event: KeyboardEvent<HTMLDivElement>, item: TreeItem) => {
+    if (event.key === "Enter" || event.key === " ") {
+      event.preventDefault();
+      handleClick(item);
+      return;
+    }
+
+    if (item.children.length === 0) {
+      return;
+    }
+
+    if (event.key === "ArrowRight") {
+      event.preventDefault();
+      setCollapsedIds((prev) => {
+        if (!prev.has(item.id)) {
+          return prev;
+        }
+
+        const next = new Set(prev);
+        next.delete(item.id);
+        return next;
+      });
+    }
+
+    if (event.key === "ArrowLeft") {
+      event.preventDefault();
+      setCollapsedIds((prev) => {
+        if (prev.has(item.id)) {
+          return prev;
+        }
+
+        const next = new Set(prev);
+        next.add(item.id);
+        return next;
+      });
+    }
+  };
+
+  const handleArrowClick = (event: MouseEvent<HTMLButtonElement>, id: string) => {
+    event.stopPropagation();
+    toggleCollapsed(id);
   };
 
   const handleIconButtonAddClick = (item: TreeItem) => {
@@ -278,8 +320,10 @@ export const TreeView: FC<TreeViewProps> = ({
             "--drop-line-offset": `${dragTarget?.itemId === item.id ? dragTarget.lineOffset : 0}px`,
             paddingLeft: `${depth * INDENT_PER_LEVEL + BASE_PADDING}px`,
           } as CSSProperties}
+          role="treeitem"
           tabIndex={isSelected ? 0 : -1}
           onClick={() => handleClick(item)}
+          onKeyDown={(event) => handleKeyDown(event, item)}
           onDragStart={(e) => handleDragStart(e, parent, item)}
           onDragEnd={handleDragEnd}
           onDragEnter={(e) => handleDragEnter(e, parent, item, depth)}
@@ -292,7 +336,7 @@ export const TreeView: FC<TreeViewProps> = ({
               $isCollapsed={isCollapsed}
               aria-label={isCollapsed ? "Expand" : "Collapse"}
               type="button"
-              onClick={() => toggleCollapsed(item.id)}
+              onClick={(event) => handleArrowClick(event, item.id)}
             >
               <svg
                 aria-hidden="true"
@@ -314,15 +358,15 @@ export const TreeView: FC<TreeViewProps> = ({
           )}
           <Styled.Label>
             <Styled.Text>{item.label}</Styled.Text>
-            <Tag $color="yellow" $size="s">
+            <Styled.TypeBadge>
               {depth === 0 ? "root | " : ""}
               {item.type}
               {item.detached ? " | detached" : ""}
-            </Tag>
+            </Styled.TypeBadge>
           </Styled.Label>
         </Styled.Content>
         {item.children.length > 0 && !isCollapsed ? (
-          <Styled.TreeView>
+          <Styled.TreeView role="group">
             {item.children.map((child) => renderNode(item, child, depth + 1))}
           </Styled.TreeView>
         ) : null}
@@ -335,6 +379,7 @@ export const TreeView: FC<TreeViewProps> = ({
       data-tree-root-drop-zone
       $isCatalogDropTarget={isEmptyRootDropTarget}
       $isRoot
+      role="tree"
     >
       {items.length === 0 ? (
         <Styled.EmptyDropZone $isActive={isEmptyRootDropTarget}>

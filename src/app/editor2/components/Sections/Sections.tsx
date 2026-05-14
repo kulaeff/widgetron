@@ -1,24 +1,22 @@
-import { useCallback, useEffect, useState, type FC, type PropsWithChildren } from "react";
+import { Children, isValidElement, type FC, type PropsWithChildren } from "react";
 import * as Styled from "./styled";
-import type { SectionsProps, Size } from "./types";
+import type { SectionProps, SectionsProps, Size } from "./types";
 import { SectionsContext } from "./Context";
 
 export const Sections: FC<PropsWithChildren<SectionsProps>> = ({
   children,
   vertical = false,
 }) => {
-  const [sizes, setSizes] = useState([] as Size[]);
+  const sizes = Children.toArray(children).map((child): Size => {
+    if (!isValidElement<SectionProps>(child)) {
+      return "*";
+    }
 
-  const setSize = useCallback((size: Size) => {
-    setSizes((p) => [...p, size]);
-  }, []);
-
-  useEffect(() => () => {
-    setSizes([]);
-  }, []);
+    return child.props.size ?? "*";
+  });
 
   return (
-    <SectionsContext.Provider value={{ setSize }}>
+    <SectionsContext.Provider value={{ setSize: () => undefined }}>
       <Styled.Sections $config={sizes} $vertical={vertical}>
         {children}
       </Styled.Sections>

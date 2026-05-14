@@ -395,6 +395,61 @@ export const CodeModalBody = styled("div")`
   min-height: 0;
 `;
 
+export const ApiForm = styled("div")(
+  ({ theme }) => css`
+    ${theme.typography.body2Regular};
+    color: ${theme.tokens.current.core.text.primary};
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+    height: 100%;
+    overflow: auto;
+    padding: 8px 0;
+
+    label {
+      color: ${theme.tokens.current.core.text.secondary};
+      display: block;
+      margin-bottom: 4px;
+    }
+
+    input,
+    select,
+    textarea {
+      ${theme.typography.body2Regular};
+      background: ${theme.tokens.current.core.layer["01"]};
+      border: 1px solid transparent;
+      border-radius: 6px;
+      color: ${theme.tokens.current.core.text.primary};
+      display: block;
+      min-height: 32px;
+      outline: none;
+      padding: 6px 8px;
+      transition:
+        background-color 0.15s ease,
+        border-color 0.15s ease,
+        box-shadow 0.15s ease;
+      width: 100%;
+    }
+
+    textarea {
+      min-height: 112px;
+      resize: vertical;
+    }
+
+    input:focus,
+    select:focus,
+    textarea:focus {
+      background: ${theme.tokens.current.core.background.default};
+      border-color: ${theme.tokens.current.colors.blue.solid[60]};
+      box-shadow: 0 0 0 2px ${theme.tokens.current.colors.blue.solid[10]};
+    }
+
+    button {
+      align-self: flex-start;
+    }
+  `
+);
+
 export const DragOverlayItem = styled("div")(
   ({ theme }) => css`
     ${theme.typography.body2Regular}

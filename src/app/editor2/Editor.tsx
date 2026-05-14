@@ -1013,8 +1013,11 @@ export const Editor: FC<EditorProps> = ({ onSave }) => {
                   </Island>
                 </Panel>
               ) : null}
-              <Panel position="center-left">
-                <Island width={300} height="calc(100% - 30px)">
+              <Panel
+                position="center-left"
+                style={{ height: "calc(100% - 136px)" }}
+              >
+                <Island width={300} height="100%">
                   <Sections vertical>
                     <Section size="auto">
                       <Tabs
@@ -1096,8 +1099,11 @@ export const Editor: FC<EditorProps> = ({ onSave }) => {
                   </Sections>
                 </Island>
               </Panel>
-              <Panel position="center-right">
-                <Island width={300} height="calc(100% - 136px)">
+              <Panel
+                position="center-right"
+                style={{ height: "calc(100% - 136px)" }}
+              >
+                <Island width={300} height="100%">
                   <Sections vertical>
                     <Section size="auto">
                       <Styled.Tabs>
@@ -1128,7 +1134,7 @@ export const Editor: FC<EditorProps> = ({ onSave }) => {
                         )
                       ) : null}
                       {activeRightTab === "api" && (
-                        <>
+                        <Styled.ApiForm>
                           <FormField>
                             <Label>
                               <label htmlFor="url">url</label>
@@ -1161,7 +1167,7 @@ export const Editor: FC<EditorProps> = ({ onSave }) => {
                             </Control>
                           </FormField>
                           <Button onClick={handleButtonFetchDataSourceClick}>{t("получить")}</Button>
-                        </>
+                        </Styled.ApiForm>
                       )}
                     </Section>
                   </Sections>
