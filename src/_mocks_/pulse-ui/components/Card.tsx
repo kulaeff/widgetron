@@ -18,7 +18,7 @@ export function Card({
   ...props
 }: Props) {
   return (
-    <div {...props} data-border={border} data-shadow={shadow} data-type={type} data-variant={variant}>
+    <div {...props} data-border={border} data-shadow={shadow} data-type={type} data-variant={variant} style={{ height: "100%", width: "100%" }}>
       {children}
     </div>
   );

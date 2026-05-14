@@ -8,13 +8,15 @@ export const Slider = styled.div`
 `;
 
 export const Container = styled.div`
+  height: 100%;
   overflow: hidden;
 `;
 
 export const Track = styled.div`
   display: flex;
+  height: 100%;
   will-change: transform;
-  & > * {
+  & > * > * {
     flex: 0 0 100%;
   }
 `;

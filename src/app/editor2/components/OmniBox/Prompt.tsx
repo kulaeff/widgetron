@@ -15,7 +15,7 @@ export const Prompt: FC<PromptProps> = ({ value, ...rest }) => {
     if (!ref) return;
 
     ref.style.height = "0px";
-    ref.style.height = `${ref.scrollHeight}px`;
+    ref.style.height = `${Math.min(ref.scrollHeight, 160)}px`;
   };
 
   useEffect(() => {

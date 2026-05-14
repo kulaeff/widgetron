@@ -3,36 +3,44 @@ import {
   FC,
   PropsWithChildren,
   useEffect,
+  useRef,
   useState,
 } from "react";
 import * as Styled from "./styled";
 
 interface SliderProps {
-  /** Зарезервировано под автопрокрутку из спеки */
-  $autoplay?: boolean | number;
-  /** Зарезервировано под зацикливание из спеки */
-  $loop?: boolean | number;
+  autoplay?: boolean | number;
+  loop?: boolean | number;
 }
 
 export const Slider: FC<PropsWithChildren<SliderProps>> = ({
   children,
-  $autoplay: _autoPlay,
-  $loop: _loop,
+  autoplay,
+  loop,
 }) => {
   const slides = Children.toArray(children);
-  const slideCount = slides.length;
   const [activeIndex, setActiveIndex] = useState(0);
+  const [slideCount, setSlideCount] = useState(0);
+
+  const trackRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
-    if (activeIndex >= slideCount) {
+    if (trackRef.current) {
+      setSlideCount(trackRef.current.children.length);
+    }
+  }, []);
+
+  useEffect(() => {
+    if (activeIndex >= slideCount && loop) {
       setActiveIndex(Math.max(0, slideCount - 1));
     }
-  }, [activeIndex, slideCount]);
+  }, [activeIndex, slideCount, loop]);
 
   return (
     <Styled.Slider>
       <Styled.Container>
         <Styled.Track
+          ref={trackRef}
           style={{ transform: `translateX(-${activeIndex * 100}%)` }}
         >
           {slides}
@@ -40,7 +48,7 @@ export const Slider: FC<PropsWithChildren<SliderProps>> = ({
       </Styled.Container>
       {slideCount > 1 ? (
         <Styled.Dots as="nav" aria-label="Слайды">
-          {slides.map((_, index) => (
+          {Array.from({ length: slideCount }).map((_, index) => (
             <Styled.Dot
               key={index}
               type="button"

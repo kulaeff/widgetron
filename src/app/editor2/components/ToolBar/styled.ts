@@ -3,7 +3,6 @@ import styled, { css } from "styled-components";
 export const Container = styled.div`
   box-sizing: border-box;
   height: 100%;
-  padding: 10px;
   overflow: auto;
 `;
 
@@ -61,7 +60,6 @@ export const Tool = styled.li<{ $isDragging?: boolean }>(
     overflow: hidden;
     text-align: left;
     transition: background-color 40ms, color 40ms;
-    width: 154px;
     &:hover {
       background-color: ${theme.tokens.current.core.accent.secondary};
     }
@@ -69,8 +67,8 @@ export const Tool = styled.li<{ $isDragging?: boolean }>(
 );
 
 export const Tools = styled.ul`
-  display: flex;
-  flex-wrap: wrap;
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
   gap: 6px;
   list-style: none;
   margin: 0;
