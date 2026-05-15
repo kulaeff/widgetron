@@ -145,9 +145,9 @@ const DEFAULT_SPEC = {
 };
 
 const VIEWPORT_OPTIONS = [
-  { id: "sm", label: "SM", width: 294, height: 280 },
-  { id: "md", label: "MD", width: 612, height: 280 },
-  { id: "lg", label: "LG", width: 612, height: 612 },
+  { id: "minor", label: "SM", width: 294, height: 280 },
+  { id: "important", label: "MD", width: 612, height: 280 },
+  { id: "major", label: "LG", width: 612, height: 612 },
 ];
 
 const ZOOM_OPTIONS: ZoomOption[] = [
@@ -262,6 +262,7 @@ export const Editor: FC<EditorProps> = ({ onSave }) => {
     : versions.length > 0
     ? "Выбрать версию"
     : "История пуста";
+  const isSaveDisabled = isStreaming || !currentSpec;
 
   const currentNodes = [
     {
@@ -288,10 +289,6 @@ export const Editor: FC<EditorProps> = ({ onSave }) => {
       type: "renderer",
     },
   ];
-
-  console.log("CURRENT VERSION", currentVersion);
-  console.log("CURRENT SPEC", currentSpec);
-  console.log("CURRENT STATE", currentSpec?.state, state);
 
   const toolBarItems = useMemo(
     () =>
@@ -376,11 +373,12 @@ export const Editor: FC<EditorProps> = ({ onSave }) => {
         method: apis[0]?.method ?? "GET",
         url: apis[0]?.url ?? "",
       },
+      availableSizes: [viewportId],
       scheme,
     };
 
     await onSave(payload);
-  }, [currentSnapshotData, currentVersion?.spec, onSave, spec]);
+  }, [currentSnapshotData, currentVersion?.spec, onSave, spec, viewportId]);
 
   const handleVersionSelect = useCallback((id: string) => {
     setSelectedVersionId(id);
@@ -853,6 +851,68 @@ export const Editor: FC<EditorProps> = ({ onSave }) => {
     }
   }, [mode]);
 
+  const apiEditor = (
+    <Flex vertical>
+      {apis.map((api) => (
+        <Item key={api.id}>
+          <Flex>
+            <Item>
+              <Toggle
+                options={[
+                  { id: "get", label: "GET" },
+                  { id: "post", label: "POST" },
+                ]}
+                value={api.method}
+                onChange={(id) =>
+                  setApis((p) =>
+                    p.map((a) =>
+                      a.id === api.id ? { ...a, method: id } : a
+                    )
+                  )
+                }
+              />
+            </Item>
+            <Item grow>
+              <Input
+                value={api.url}
+                onChange={(e) =>
+                  setApis((p) =>
+                    p.map((a) =>
+                      a.id === api.id ? { ...a, url: e.target.value } : a
+                    )
+                  )
+                }
+              />
+            </Item>
+            <Item>
+              <IconButton size="m-alt" $type="tertiary">
+                x
+              </IconButton>
+            </Item>
+          </Flex>
+        </Item>
+      ))}
+      <Item>
+        <IconButton
+          size="s"
+          $type="secondary"
+          onClick={() =>
+            setApis((p) => [
+              ...p,
+              {
+                id: Date.now().toString(),
+                method: "get",
+                url: "",
+              },
+            ])
+          }
+        >
+          +
+        </IconButton>
+      </Item>
+    </Flex>
+  );
+
   return (
     <DragDropProvider
       onDragStart={handleDragStart}
@@ -880,41 +940,37 @@ export const Editor: FC<EditorProps> = ({ onSave }) => {
           zoomActivationKeyCode={["Control", "Meta", "z"]}
         >
           <Background />
-          <Panel position="top-center">
-            <Island unstyled>
-              <Toggle
-                options={VIEWPORT_OPTIONS}
-                value={viewportId}
-                onChange={(value) => setViewportId(value)}
-              />
-            </Island>
+          <Panel position="top-left">
+            <Toggle
+              options={VIEWPORT_OPTIONS}
+              value={viewportId}
+              onChange={(value) => setViewportId(value)}
+            />
           </Panel>
           <Panel position="top-right">
-            <Flex>
-              <Item>
-                <Island unstyled>
+            <Styled.TopControls>
+              <div>
+                <Styled.SaveDock>
                   <Styled.SaveButton
                     type="button"
-                    disabled={!currentSpec}
+                    disabled={isSaveDisabled}
                     onClick={handleSave}
                   >
                     {t("сохранить")}
                   </Styled.SaveButton>
-                </Island>
-              </Item>
-              <Item>
-                <Island unstyled>
-                  <Toggle
-                    options={[
-                      { id: Mode.AI, isAccent: true, label: "AI mode" },
-                      { id: Mode.DESIGN, label: "Design mode" },
-                    ]}
-                    value={mode}
-                    onChange={(value) => setMode(value)}
-                  />
-                </Island>
-              </Item>
-            </Flex>
+                </Styled.SaveDock>
+              </div>
+              <div>
+                <Toggle
+                  options={[
+                    { id: Mode.AI, isAccent: true, label: "AI mode" },
+                    { id: Mode.DESIGN, label: "Design mode" },
+                  ]}
+                  value={mode}
+                  onChange={(value) => setMode(value)}
+                />
+              </div>
+            </Styled.TopControls>
           </Panel>
           <Panel position="bottom-right" style={{ zIndex: 10 }}>
             <Island unstyled>
@@ -936,112 +992,135 @@ export const Editor: FC<EditorProps> = ({ onSave }) => {
           </Panel>
           {mode === Mode.AI && (
             <>
-              <Panel position="top-left">
-                <Island title={t("версии")} width={400} maxHeight="75vh">
-                  <Versions
-                    disabled={isStreaming}
-                    items={versions}
-                    value={selectedVersionId}
-                    onChange={(id) => {
-                      setSelectedVersionId(id);
-                      setSelectedElementId(undefined);
-                    }}
-                  />
-                </Island>
+              <Panel
+                position="top-left"
+                style={{ height: "calc(100% - 108px)", marginTop: 76 }}
+              >
+                <Styled.AIRail>
+                  {hasCurrentPrompt ? (
+                    <Styled.RailCard>
+                      <Styled.RailCardBody>
+                        <Styled.RailHeader>
+                          <Styled.RailTitle>{t("текущий запрос")}</Styled.RailTitle>
+                          <Styled.RailTag $tone="accent">
+                            {currentVersionLabel}
+                          </Styled.RailTag>
+                        </Styled.RailHeader>
+                        <Styled.RailMeta>
+                          <Styled.RailTag
+                            $tone={
+                              isStreaming || currentVersion?.status === "pending"
+                                ? "accent"
+                                : "default"
+                            }
+                          >
+                            {currentStatusLabel}
+                          </Styled.RailTag>
+                          {hasApiData ? (
+                            <Styled.RailTag $tone="success">
+                              API data
+                            </Styled.RailTag>
+                          ) : null}
+                        </Styled.RailMeta>
+                        <Styled.PromptPreview>
+                          {currentPromptLabel}
+                        </Styled.PromptPreview>
+                      </Styled.RailCardBody>
+                    </Styled.RailCard>
+                  ) : null}
+                  <Styled.HistoryDock>
+                    <Styled.HistoryCard $withAccent={false}>
+                      <Styled.HistoryCardBody>
+                        <Styled.HistoryTrigger
+                          type="button"
+                          disabled={versions.length === 0}
+                          onClick={() => setIsHistoryOpen((value) => !value)}
+                        >
+                          <Styled.HistoryTriggerMain>
+                            <Styled.HistoryHeading>
+                              {t("История")}
+                            </Styled.HistoryHeading>
+                            <Styled.HistoryTriggerValue>
+                              {historyPreviewLabel}
+                            </Styled.HistoryTriggerValue>
+                          </Styled.HistoryTriggerMain>
+                          <Styled.HistoryArrow
+                            $open={isHistoryOpen}
+                            aria-hidden="true"
+                          >
+                            <svg
+                              width="16"
+                              height="16"
+                              viewBox="0 0 16 16"
+                              fill="none"
+                            >
+                              <path
+                                d="M4 6l4 4 4-4"
+                                stroke="currentColor"
+                                strokeWidth="1.6"
+                                strokeLinecap="round"
+                                strokeLinejoin="round"
+                              />
+                            </svg>
+                          </Styled.HistoryArrow>
+                        </Styled.HistoryTrigger>
+                        {isHistoryOpen ? (
+                          <Styled.HistoryList>
+                            <Versions
+                              disabled={isStreaming}
+                              items={versions}
+                              value={selectedVersionId}
+                              onChange={handleVersionSelect}
+                            />
+                          </Styled.HistoryList>
+                        ) : null}
+                      </Styled.HistoryCardBody>
+                    </Styled.HistoryCard>
+                  </Styled.HistoryDock>
+                </Styled.AIRail>
               </Panel>
-              <Panel position="bottom-center">
-                {isToolDataVisible && (
-                  <Island>
-                    <Flex vertical>
-                      <Item>
-                        <Tabs
-                          items={[
-                            { id: "api", label: "апи" },
-                            { id: "structure", label: "структура" },
-                            { id: "data", label: "данные" },
-                          ]}
-                          value={activeTabData}
-                          onChange={(tab) => setActiveTabData(tab)}
-                        />
-                      </Item>
-                      <Item grow>
-                        {activeTabData === "api" && (
-                          <Flex vertical>
-                            {apis.map((api) => (
-                              <Item key={api.id}>
-                                <Flex>
-                                  <Item>
-                                    <Toggle
-                                      options={[
-                                        { id: "get", label: "GET" },
-                                        { id: "post", label: "POST" },
-                                      ]}
-                                      value={api.method}
-                                      onChange={(id) =>
-                                        setApis((p) =>
-                                          p.map((a) =>
-                                            a.id === api.id
-                                              ? { ...a, method: id }
-                                              : a
-                                          )
-                                        )
-                                      }
-                                    />
-                                  </Item>
-                                  <Item grow>
-                                    <Input
-                                      value={api.url}
-                                      onChange={(e) =>
-                                        setApis((p) =>
-                                          p.map((a) =>
-                                            a.id === api.id
-                                              ? { ...a, url: e.target.value }
-                                              : a
-                                          )
-                                        )
-                                      }
-                                    />
-                                  </Item>
-                                  <Item>
-                                    <IconButton size="m-alt" $type="tertiary">
-                                      x
-                                    </IconButton>
-                                  </Item>
-                                </Flex>
-                              </Item>
-                            ))}
-                            <Item>
-                              <IconButton
-                                size="s"
-                                $type="secondary"
-                                onClick={() =>
-                                  setApis((p) => [
-                                    ...p,
-                                    {
-                                      id: Date.now().toString(),
-                                      method: "get",
-                                      url: "",
-                                    },
-                                  ])
-                                }
-                              >
-                                +
-                              </IconButton>
-                            </Item>
-                          </Flex>
-                        )}
-                      </Item>
-                    </Flex>
+              <Panel
+                position="bottom-center"
+                style={{
+                  marginLeft: "clamp(0px, 10vw, 120px)",
+                  maxWidth: "calc(100% - 160px)",
+                  width: "min(720px, calc(100% - 360px))",
+                }}
+              >
+                <Styled.BottomComposer>
+                  {isToolDataVisible ? (
+                    <Island
+                      width="100%"
+                      style={{ marginBottom: 12, maxHeight: 320, overflow: "hidden" }}
+                    >
+                      <Flex vertical>
+                        <Item>
+                          <Tabs
+                            items={[
+                              { id: "api", label: "апи" },
+                              { id: "structure", label: "структура" },
+                              { id: "data", label: "данные" },
+                            ]}
+                            value={activeTabData}
+                            onChange={(tab) => setActiveTabData(tab)}
+                          />
+                        </Item>
+                        <Item grow>
+                          {activeTabData === "api" ? apiEditor : null}
+                        </Item>
+                      </Flex>
+                    </Island>
+                  ) : null}
+                  <Island width="100%">
+                    <OmniBox
+                      loading={isStreaming}
+                      placeholder="Что вы хотите изменить или создать?"
+                      onSubmit={handleOmniBoxSubmit}
+                      onReset={clear}
+                      onToolRequest={handleOmniBoxToolRequest}
+                    />
                   </Island>
-                )}
-                <Island width={600}>
-                  <OmniBox
-                    loading={isStreaming}
-                    onSubmit={handleOmniBoxSubmit}
-                    onReset={clear}
-                    onToolRequest={handleOmniBoxToolRequest}
-                  />
-                </Island>
+                </Styled.BottomComposer>
               </Panel>
             </>
           )}
@@ -1058,8 +1137,11 @@ export const Editor: FC<EditorProps> = ({ onSave }) => {
                   </Island>
                 </Panel>
               ) : null}
-              <Panel position="center-left">
-                <Island width={300} height="calc(100vh - 30px)">
+              <Panel
+                position="top-left"
+                style={{ height: "calc(100% - 212px)", marginTop: 76 }}
+              >
+                <Island width="min(300px, calc(50vw - 24px))" height="100%">
                   <Flex vertical>
                     <Item>
                       <Tabs
@@ -1154,11 +1236,16 @@ export const Editor: FC<EditorProps> = ({ onSave }) => {
                 <Island width={300} height="calc(100vh - 119px)">
                   <Flex vertical>
                     <Item>
-                      <Tabs
-                        items={[{ id: "properties", label: t("свойства") }]}
-                        value={activeRightTab}
-                        onChange={(id) => setActiveRightTab(id)}
-                      />
+                      <Styled.Tabs>
+                        <Tabs
+                          items={[
+                            { id: "properties", label: t("свойства") },
+                            { id: "api", label: t("api") },
+                          ]}
+                          value={activeRightTab}
+                          onChange={(id) => setActiveRightTab(id)}
+                        />
+                      </Styled.Tabs>
                     </Item>
                     <Item grow>
                       {/* eslint-disable-next-line no-nested-ternary */}
@@ -1178,6 +1265,7 @@ export const Editor: FC<EditorProps> = ({ onSave }) => {
                           </Styled.Placeholder>
                         )
                       ) : null}
+                      {activeRightTab === "api" ? apiEditor : null}
                     </Item>
                   </Flex>
                 </Island>

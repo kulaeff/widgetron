@@ -1,4 +1,4 @@
-import { useRef, useEffect, type FC, type TextareaHTMLAttributes } from "react";
+import { useRef, useLayoutEffect, type FC, type TextareaHTMLAttributes } from "react";
 import * as Styled from "./styled";
 
 type PromptProps = Omit<
@@ -14,11 +14,13 @@ export const Prompt: FC<PromptProps> = ({ value, ...rest }) => {
 
     if (!ref) return;
 
+    const maxHeight = Number.parseFloat(window.getComputedStyle(ref).maxHeight);
+
     ref.style.height = "0px";
     ref.style.height = `${Math.min(ref.scrollHeight, 160)}px`;
   };
 
-  useEffect(() => {
+  useLayoutEffect(() => {
     setHeight();
   }, [value]);
 
