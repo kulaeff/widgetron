@@ -65,6 +65,7 @@ import {
 } from "./spec-utils";
 import { Toggle } from "./components/Toggle";
 import { ListView } from "./components/ListView";
+import { Divider } from "@pulse/ui/components/Divider/Divider";
 
 interface Api {
   id: string;
@@ -194,7 +195,7 @@ export const Editor: FC<EditorProps> = ({ onSave }) => {
   const [state, setState] = useState<Record<string, unknown>>({});
   const [type, setType] = useState("");
   const [mode, setMode] = useState<string>(Mode.AI);
-  const [versions, setVersions] = useState<Version[]>([]);
+  const [versions, setVersions] = useState<Version[]>([{ id: "1", prompt: "test", spec: DEFAULT_SPEC, status: "pending" }, { id: "2", prompt: "test", spec: DEFAULT_SPEC, status: "pending" }, { id: "3", prompt: "test", spec: DEFAULT_SPEC, status: "pending" }, { id: "3", prompt: "test", spec: DEFAULT_SPEC, status: "pending" }]);
   const [activeDropTargetId, setActiveDropTargetId] = useState<string | null>(
     null
   );
@@ -940,7 +941,7 @@ export const Editor: FC<EditorProps> = ({ onSave }) => {
           zoomActivationKeyCode={["Control", "Meta", "z"]}
         >
           <Background />
-          <Panel position="top-left">
+          <Panel position="top-center">
             <Toggle
               options={VIEWPORT_OPTIONS}
               value={viewportId}
@@ -992,11 +993,8 @@ export const Editor: FC<EditorProps> = ({ onSave }) => {
           </Panel>
           {mode === Mode.AI && (
             <>
-              <Panel
-                position="top-left"
-                style={{ height: "calc(100% - 108px)", marginTop: 76 }}
-              >
-                <Styled.AIRail>
+              <Panel position="top-left">
+                <Island height="calc(100% - 108px)">
                   {hasCurrentPrompt ? (
                     <Styled.RailCard>
                       <Styled.RailCardBody>
@@ -1028,56 +1026,17 @@ export const Editor: FC<EditorProps> = ({ onSave }) => {
                       </Styled.RailCardBody>
                     </Styled.RailCard>
                   ) : null}
-                  <Styled.HistoryDock>
-                    <Styled.HistoryCard $withAccent={false}>
-                      <Styled.HistoryCardBody>
-                        <Styled.HistoryTrigger
-                          type="button"
-                          disabled={versions.length === 0}
-                          onClick={() => setIsHistoryOpen((value) => !value)}
-                        >
-                          <Styled.HistoryTriggerMain>
-                            <Styled.HistoryHeading>
-                              {t("История")}
-                            </Styled.HistoryHeading>
-                            <Styled.HistoryTriggerValue>
-                              {historyPreviewLabel}
-                            </Styled.HistoryTriggerValue>
-                          </Styled.HistoryTriggerMain>
-                          <Styled.HistoryArrow
-                            $open={isHistoryOpen}
-                            aria-hidden="true"
-                          >
-                            <svg
-                              width="16"
-                              height="16"
-                              viewBox="0 0 16 16"
-                              fill="none"
-                            >
-                              <path
-                                d="M4 6l4 4 4-4"
-                                stroke="currentColor"
-                                strokeWidth="1.6"
-                                strokeLinecap="round"
-                                strokeLinejoin="round"
-                              />
-                            </svg>
-                          </Styled.HistoryArrow>
-                        </Styled.HistoryTrigger>
-                        {isHistoryOpen ? (
-                          <Styled.HistoryList>
-                            <Versions
-                              disabled={isStreaming}
-                              items={versions}
-                              value={selectedVersionId}
-                              onChange={handleVersionSelect}
-                            />
-                          </Styled.HistoryList>
-                        ) : null}
-                      </Styled.HistoryCardBody>
-                    </Styled.HistoryCard>
-                  </Styled.HistoryDock>
-                </Styled.AIRail>
+                </Island>
+              </Panel>
+              <Panel position="bottom-left">
+                <Island maxHeight={297} width={300}>
+                  <Versions
+                    disabled={isStreaming}
+                    items={versions}
+                    value={selectedVersionId}
+                    onChange={handleVersionSelect}
+                  />
+                 </Island>
               </Panel>
               <Panel
                 position="bottom-center"

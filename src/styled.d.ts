@@ -50,7 +50,11 @@ declare module "styled-components" {
         };
         interactive: {
           hover: {
+            secondary: string;
             tertiary: string;
+          };
+          selected: {
+            layer: string;
           };
         };
         system: {

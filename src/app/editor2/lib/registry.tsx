@@ -11,7 +11,7 @@ import { Card } from "@pulse/ui/components/Card";
 import { Carousel } from "@pulse/ui/components/Carousel";
 import { Chips } from "@pulse/ui/components/Tags/Chips";
 import { Checkbox } from "@pulse/ui/components/Checkbox";
-import { Divider } from "@pulse/ui/components/Divider";
+import { Divider } from "@pulse/ui/components/Divider/Divider";
 import { Input } from "@pulse/ui/components/Input";
 import { Loader } from "@pulse/ui/components/Loader";
 // import { Pagination } from "@pulse/ui/components/Pagination";

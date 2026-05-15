@@ -42,20 +42,24 @@ export const theme: DefaultTheme = {
       },
       interactive: {
         hover: {
-          tertiary: "#f3f4f6"
-        }
+          secondary: "#e0e0e0",
+          tertiary: "#f2f2f2"
+        },
+        selected: {
+          layer: "#292929",
+        },
       },
       system: {
-        "20": "#e5e7eb",
-        "30": "#d1d5db"
+        "20": "#bfdbfe",
+        "30": "#bfdbfe"
       },
       colors: {
         blue: {
           solid: {
-            10: "#dbeafe",
-            20: "#bfdbfe",
-            30: "#93c5fd",
-            60: "#2563eb"
+            10: "#ebf3ff",
+            20: "#d6e7ff",
+            30: "#8ab9ff",
+            60: "#0066ff"
           }
         },
         green: {

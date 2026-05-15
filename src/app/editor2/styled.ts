@@ -84,15 +84,6 @@ export const SaveButton = styled("button")(
   `
 );
 
-export const AIRail = styled("div")`
-  display: flex;
-  flex-direction: column;
-  gap: 18px;
-  height: 100%;
-  min-height: 0;
-  width: min(360px, calc(100% - 32px));
-`;
-
 export const RailCard = styled("section")<{ $withAccent?: boolean }>(
   ({ $withAccent = true, theme }) => css`
     background:
@@ -127,7 +118,6 @@ export const RailCardBody = styled("div")`
   flex-direction: column;
   gap: 14px;
   min-height: 0;
-  padding: 18px;
 `;
 
 export const RailHeader = styled("div")`
@@ -200,22 +190,6 @@ export const PromptPreview = styled("div")`
   word-break: break-word;
 `;
 
-export const HistoryDock = styled("div")`
-  margin-top: auto;
-  min-height: 0;
-`;
-
-export const HistoryCard = styled(RailCard)`
-  display: flex;
-  flex-direction: column;
-`;
-
-export const HistoryCardBody = styled(RailCardBody)`
-  height: 100%;
-  gap: 10px;
-  padding: 14px 16px;
-`;
-
 export const HistoryList = styled("div")`
   flex: 1 1 auto;
   min-height: 0;
@@ -224,11 +198,11 @@ export const HistoryList = styled("div")`
 
 export const HistoryTrigger = styled("button")(
   ({ theme }) => css`
-    ${theme.typography.body2Regular};
+    ${theme.typography.body1Regular};
     align-items: center;
     background: transparent;
     border: none;
-    color: ${theme.tokens.current.core.text.primary};
+    color: ${theme.tokens.current.core.text.secondary};
     cursor: pointer;
     display: grid;
     gap: 12px;
@@ -239,28 +213,11 @@ export const HistoryTrigger = styled("button")(
   `
 );
 
-export const HistoryHeading = styled("div")`
-  ${({ theme }) => theme.typography.body1Semibold};
-  color: ${({ theme }) => theme.tokens.current.core.text.secondary};
-  white-space: nowrap;
-`;
-
 export const HistoryTriggerMain = styled("div")`
   display: flex;
   flex-direction: column;
   gap: 4px;
   min-width: 0;
-`;
-
-export const HistoryTriggerValue = styled("div")`
-  ${({ theme }) => theme.typography.body2Regular};
-  color: ${({ theme }) => theme.tokens.current.core.text.primary};
-  overflow: hidden;
-  display: -webkit-box;
-  -webkit-box-orient: vertical;
-  -webkit-line-clamp: 2;
-  line-height: 1.35;
-  white-space: normal;
 `;
 
 export const BottomComposer = styled("div")`
