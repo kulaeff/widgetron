@@ -1128,11 +1128,7 @@ export const Editor: FC<EditorProps> = ({ onSave }) => {
             <>
               {selectedDesignToolId === "component" ? (
                 <Panel position="bottom-center">
-                  <Island
-                    width="min(720px, calc(100% - 32px))"
-                    height={360}
-                    style={{ overflow: "hidden", zIndex: 20 }}
-                  >
+                  <Island height={360} width="40vw">
                     <Styled.ComponentPickerSurface
                       data-component-picker-surface
                     >
@@ -1236,11 +1232,8 @@ export const Editor: FC<EditorProps> = ({ onSave }) => {
                   </Flex>
                 </Island>
               </Panel>
-              <Panel
-                position="top-right"
-                style={{ height: "calc(100% - 212px)", marginTop: 76 }}
-              >
-                <Island width="min(300px, calc(50vw - 24px))" height="100%">
+              <Panel position="center-right">
+                <Island width={300} height="calc(100vh - 119px)">
                   <Flex vertical>
                     <Item>
                       <Styled.Tabs>

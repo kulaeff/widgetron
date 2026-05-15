@@ -1,35 +1,65 @@
-import { FC, PropsWithChildren, type ReactNode, useState } from "react";
+import {
+  Children,
+  FC,
+  PropsWithChildren,
+  useEffect,
+  useRef,
+  useState,
+} from "react";
 import * as Styled from "./styled";
 
 interface SliderProps {
-  slides: ReactNode[];
+  autoplay?: boolean | number;
+  loop?: boolean | number;
 }
 
-export const Slider: FC<PropsWithChildren<SliderProps>> = ({ children }) => {
+export const Slider: FC<PropsWithChildren<SliderProps>> = ({
+  children,
+  autoplay,
+  loop,
+}) => {
+  const slides = Children.toArray(children);
   const [activeIndex, setActiveIndex] = useState(0);
+  const [slideCount, setSlideCount] = useState(0);
+
+  const trackRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    if (trackRef.current) {
+      setSlideCount(trackRef.current.children.length);
+    }
+  }, []);
+
+  useEffect(() => {
+    if (activeIndex >= slideCount && loop) {
+      setActiveIndex(Math.max(0, slideCount - 1));
+    }
+  }, [activeIndex, slideCount, loop]);
 
   return (
-    <Styled.Container>
-      {/* Окно просмотра */}
+    <Styled.Slider>
       <Styled.Container>
         <Styled.Track
+          ref={trackRef}
           style={{ transform: `translateX(-${activeIndex * 100}%)` }}
         >
-          {children}
+          {slides}
         </Styled.Track>
       </Styled.Container>
-
-      {/* Точки управления */}
-      {/* <div className="slider-dots">
-        {slides.map((_, index) => (
-          <button
-            key={index}
-            className={`dot ${index === activeIndex ? 'active' : ''}`}
-            onClick={() => setActiveIndex(index)}
-            aria-label={`Go to slide ${index + 1}`}
-          />
-        ))}
-      </div> */}
-    </Styled.Container>
+      {slideCount > 1 ? (
+        <Styled.Dots as="nav" aria-label="Слайды">
+          {Array.from({ length: slideCount }).map((_, index) => (
+            <Styled.Dot
+              key={index}
+              type="button"
+              aria-label={`Слайд ${index + 1} из ${slideCount}`}
+              aria-current={index === activeIndex ? "true" : undefined}
+              $active={index === activeIndex}
+              onClick={() => setActiveIndex(index)}
+            />
+          ))}
+        </Styled.Dots>
+      ) : null}
+    </Styled.Slider>
   );
 };

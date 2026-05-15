@@ -109,7 +109,7 @@ export const { registry, handlers, executeAction } = defineRegistry(catalog, {
 
       return (
         <DroppableMarker id={id}>
-          <Slider $autoplay={props.autoPlay} $loop={props.loop}>
+          <Slider autoplay={props.autoPlay} loop={props.loop}>
             {children}
           </Slider>
         </DroppableMarker>
