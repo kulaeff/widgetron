@@ -193,9 +193,6 @@ export const Editor: FC<EditorProps> = ({ onSave }) => {
   const [type, setType] = useState("");
   const [mode, setMode] = useState<string>(Mode.AI);
   const [versions, setVersions] = useState<Version[]>([]);
-  const [activeDropTargetId, setActiveDropTargetId] = useState<string | null>(
-    null
-  );
   const [activeTreeDropTargetId, setActiveTreeDropTargetId] = useState<
     string | null
   >(null);
@@ -267,16 +264,12 @@ export const Editor: FC<EditorProps> = ({ onSave }) => {
       id: "n1",
       position: { x: 0, y: 0 },
       data: {
-        activeDropTargetId: draggedCatalogComponentName
-          ? activeDropTargetId
-          : null,
         emptyLabel:
           mode === Mode.AI
             ? "Ожидание генерации интерфейса..."
             : "Перетащите сюда компонент из палитры",
         loading: isStreaming,
         viewportSize: selectedViewport,
-        selectedElementId,
         spec: currentSpec,
         state: currentState,
         setState,
@@ -541,28 +534,6 @@ export const Editor: FC<EditorProps> = ({ onSave }) => {
     [components, selectedVersionId, versions]
   );
 
-  const resolveDropTargetFromOperation = (
-    target:
-      | DragMoveEvent["operation"]["target"]
-      | DragEndEvent["operation"]["target"]
-  ): string | null => {
-    const targetId = target?.id;
-
-    return typeof targetId === "string" ? targetId : null;
-  };
-
-  const resolveDropTargetFromNativeEvent = (event?: Event): string | null => {
-    if (!(event instanceof MouseEvent || event instanceof PointerEvent)) {
-      return null;
-    }
-
-    const hoveredElement = document
-      .elementFromPoint(event.clientX, event.clientY)
-      ?.closest<HTMLElement>("[data-element-id]");
-
-    return hoveredElement?.getAttribute("data-element-id") ?? null;
-  };
-
   const resolveTreeDropTargetFromNativeEvent = (
     event?: Event
   ): {
@@ -621,7 +592,6 @@ export const Editor: FC<EditorProps> = ({ onSave }) => {
       setDraggedCatalogComponentName(null);
     }
 
-    setActiveDropTargetId(null);
     setActiveTreeDropTargetId(null);
   }, []);
 
@@ -637,29 +607,16 @@ export const Editor: FC<EditorProps> = ({ onSave }) => {
     );
 
     if (treeDropTarget?.targetElementId === "preview") {
-      setActiveDropTargetId(null);
       setActiveTreeDropTargetId(TREE_ROOT_DROP_TARGET_ID);
       return;
     }
 
     if (treeDropTarget?.targetElementId) {
-      setActiveDropTargetId(null);
       setActiveTreeDropTargetId(treeDropTarget.targetElementId);
       return;
     }
 
-    const resolvedTargetId =
-      resolveDropTargetFromOperation(event.operation.target) ??
-      resolveDropTargetFromNativeEvent(event.nativeEvent);
-
-    if (!resolvedTargetId) {
-      setActiveDropTargetId(null);
-      setActiveTreeDropTargetId(null);
-      return;
-    }
-
     setActiveTreeDropTargetId(null);
-    setActiveDropTargetId(resolvedTargetId);
   }, []);
 
   const handleDragEnd = useCallback(
@@ -680,27 +637,10 @@ export const Editor: FC<EditorProps> = ({ onSave }) => {
               targetParentId: treeDropTarget.targetParentId,
             }
           );
-        } else {
-          const resolvedTargetId =
-            resolveDropTargetFromOperation(event.operation.target) ??
-            resolveDropTargetFromNativeEvent(event.nativeEvent);
-
-          if (!resolvedTargetId) {
-            setDraggedCatalogComponentName(null);
-            setActiveDropTargetId(null);
-            setActiveTreeDropTargetId(null);
-            return;
-          }
-
-          handlePreviewDropComponent(
-            resolvedTargetId,
-            sourceData.componentName as string
-          );
         }
       }
 
       setDraggedCatalogComponentName(null);
-      setActiveDropTargetId(null);
       setActiveTreeDropTargetId(null);
     },
     [handlePreviewDropComponent]

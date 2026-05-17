@@ -3,12 +3,11 @@ import {
   useBoundProp,
   useFieldValidation,
 } from "@json-render/react";
-import { type ReactNode, useState } from "react";
+import { useState } from "react";
 import { Avatar } from "@pulse/ui/components/Avatar";
 import { Badge } from "@pulse/ui/components/Grade/Badge";
 import { Button } from "@pulse/ui/components/Button";
 import { Card } from "@pulse/ui/components/Card";
-import { Carousel } from "@pulse/ui/components/Carousel";
 import { Chips } from "@pulse/ui/components/Tags/Chips";
 import { Checkbox } from "@pulse/ui/components/Checkbox";
 import { Divider } from "@pulse/ui/components/Divider";
@@ -27,114 +26,59 @@ import { Title } from "@pulse/ui/components/Title";
 import { Grid } from "../ui/Grid";
 import { Image } from "../ui/Image";
 import { Stack } from "../ui/Stack";
-import { DroppableMarker } from "../components/DroppableMarker/DroppableMarker";
 // import { Table } from "@/components/ui/table";
 import { Text } from "../ui/Text";
 // import { Link } from "@/components/ui/link";
 import { catalog } from "./catalog";
 import { Slider } from "../ui/Slider";
 
-const getSpecId = <T extends Record<string, unknown>>(
-  props: T
-): string | null => {
-  const fromProps = props?.["data-element-id"];
-
-  if (typeof fromProps === "string" && fromProps.length > 0) return fromProps;
-
-  return null;
-};
-
-const withSpecMarker = <T extends Record<string, unknown>>(
-  props: T,
-  node: ReactNode
-) => {
-  const id = getSpecId(props);
-
-  if (!id) return node;
-
-  return (
-    <div data-element-id={id} style={{ display: "contents" }}>
-      {node}
-    </div>
-  );
-};
-
 export const { registry, handlers, executeAction } = defineRegistry(catalog, {
   components: {
     Avatar: ({ props }) =>
-      withSpecMarker(
-        props,
-        <Avatar
-          $hasBadge={props.hasBadge}
-          $icon={props.url}
-          $label={props.label}
-          $size={props.size}
-          $text={props.text}
-        />
-      ),
+      <Avatar
+        $hasBadge={props.hasBadge}
+        $icon={props.url}
+        $label={props.label}
+        $size={props.size}
+        $text={props.text}
+      />,
     Badge: ({ props }) =>
-      withSpecMarker(props, <Badge $size={props.size} $style={props.style} />),
+      <Badge $size={props.size} $style={props.style} />,
     Button: ({ props, emit }) =>
-      withSpecMarker(
-        props,
-        <Button
-          $fullWidth={props.fullWidth}
-          $isLoading={props.isLoading}
-          $size={props.size}
-          $type={props.type}
-          disabled={props.disabled}
-          onClick={() => emit("press")}
-        >
-          {props.label}
-        </Button>
-      ),
-    Card: ({ props, children }) => {
-      const id = getSpecId(props);
-
-      return (
-        <DroppableMarker id={id}>
-          <Card
-            $border={props.border}
-            $shadow={props.shadow}
-            $type={props.type}
-            $variant={props.variant}
-          >
-            {children}
-          </Card>
-        </DroppableMarker>
-      );
-    },
-    Slider: ({ props, children }) => {
-      const id = getSpecId(props);
-
-      return (
-        <DroppableMarker id={id}>
-          <Slider autoplay={props.autoPlay} loop={props.loop}>
-            {children}
-          </Slider>
-        </DroppableMarker>
-      );
-    },
+      <Button
+        $fullWidth={props.fullWidth}
+        $isLoading={props.isLoading}
+        $size={props.size}
+        $type={props.type}
+        disabled={props.disabled}
+        onClick={() => emit("press")}
+      >
+        {props.label}
+      </Button>,
+    Card: ({ props, children }) => (
+      <Card
+        $border={props.border}
+        $shadow={props.shadow}
+        $type={props.type}
+        $variant={props.variant}
+      >
+        {children}
+      </Card>
+    ),
+    Slider: ({ props, children }) => (
+      <Slider autoplay={props.autoPlay} loop={props.loop}>
+        {children}
+      </Slider>
+    ),
     Chips: ({ props, emit }) =>
-      withSpecMarker(
-        props,
-        <Chips
-          $size={props.size}
-          $type={props.type}
-          onClick={() => emit("press")}
-        >
-          {props.label}
-        </Chips>
-      ),
-    Grid: ({ props, children }) => {
-      const id = getSpecId(props);
-
-      return (
-        <DroppableMarker id={id}>
-          <Grid {...props}>{children}</Grid>
-        </DroppableMarker>
-      );
-    },
+      <Chips
+        $size={props.size}
+        $type={props.type}
+        onClick={() => emit("press")}
+      >
+        {props.label}
+      </Chips>,
+    Grid: ({ props, children }) => <Grid {...props}>{children}</Grid>,
     Radio: ({ props, bindings, emit }) => {
       const [boundValue, setBoundValue] = useBoundProp(
         props.value,
@@ -146,8 +90,7 @@ export const { registry, handlers, executeAction } = defineRegistry(catalog, {
       const value = isBound ? boundValue ?? "" : localValue;
       const setValue = isBound ? setBoundValue : setLocalValue;
 
-      return withSpecMarker(
-        props,
+      return (
         <Radio
           {...props}
           checked={value === props.value}
@@ -162,94 +105,68 @@ export const { registry, handlers, executeAction } = defineRegistry(catalog, {
         </Radio>
       );
     },
-    Stack: ({ props, children }) => {
-      const id = getSpecId(props);
-
-      return (
-        <DroppableMarker id={id}>
-          <Stack {...props}>{children}</Stack>
-        </DroppableMarker>
-      );
-    },
+    Stack: ({ props, children }) => <Stack {...props}>{children}</Stack>,
     Skeleton: ({ props, children }) =>
-      withSpecMarker(props, <SkeletonRect {...props}>{children}</SkeletonRect>),
-    Divider: ({ props }) => withSpecMarker(props, <Divider />),
-    // Table: ({ props }) => withSpecMarker(props, <Table {...props} />),
+      <SkeletonRect {...props}>{children}</SkeletonRect>,
+    Divider: () => <Divider />,
+    // Table: ({ props }) => <Table {...props} />,
     Tag: ({ props }) =>
-      withSpecMarker(
-        props,
-        <Tag $color={props.color} $size={props.size}>
-          {props.label}
-        </Tag>
-      ),
-    Text: ({ props }) => withSpecMarker(props, <Text {...props} />),
+      <Tag $color={props.color} $size={props.size}>
+        {props.label}
+      </Tag>,
+    Text: ({ props }) => <Text {...props} />,
     Title: ({ props }) =>
-      withSpecMarker(
-        props,
-        <Title $size={props.size}>
-          {typeof props.text !== "string"
-            ? JSON.stringify(props.text)
-            : props.text}
-        </Title>
-      ),
-    Image: ({ props }) => withSpecMarker(props, <Image {...props} />),
+      <Title $size={props.size}>
+        {typeof props.text !== "string"
+          ? JSON.stringify(props.text)
+          : props.text}
+      </Title>,
+    Image: ({ props }) => <Image {...props} />,
     Progress: ({ props }) =>
-      withSpecMarker(
-        props,
-        <div>
-          {props.label ? <span>{String(props.label)}</span> : null}
-          <progress value={Number(props.value ?? 0)} max={100} />
-        </div>
-      ),
+      <div>
+        {props.label ? <span>{String(props.label)}</span> : null}
+        <progress value={Number(props.value ?? 0)} max={100} />
+      </div>,
     Table: ({ props }) =>
-      withSpecMarker(
-        props,
-        <table>
-          {props.caption ? <caption>{String(props.caption)}</caption> : null}
-          <thead>
-            <tr>
-              {(props.columns ?? []).map((column, index) => (
-                <th key={index}>{String(column)}</th>
+      <table>
+        {props.caption ? <caption>{String(props.caption)}</caption> : null}
+        <thead>
+          <tr>
+            {(props.columns ?? []).map((column, index) => (
+              <th key={index}>{String(column)}</th>
+            ))}
+          </tr>
+        </thead>
+        <tbody>
+          {(props.rows ?? []).map((row, rowIndex) => (
+            <tr key={rowIndex}>
+              {row.map((cell, cellIndex) => (
+                <td key={cellIndex}>{String(cell)}</td>
               ))}
             </tr>
-          </thead>
-          <tbody>
-            {(props.rows ?? []).map((row, rowIndex) => (
-              <tr key={rowIndex}>
-                {row.map((cell, cellIndex) => (
-                  <td key={cellIndex}>{String(cell)}</td>
-                ))}
-              </tr>
-            ))}
-          </tbody>
-        </table>
-      ),
-    Loader: ({ props }) => withSpecMarker(props, <Loader />),
+          ))}
+        </tbody>
+      </table>,
+    Loader: () => <Loader />,
     BarGraph: ({ props }) =>
-      withSpecMarker(
-        props,
-        <div>
-          {props.title ? <strong>{String(props.title)}</strong> : null}
-          {(props.data ?? []).map((item, index) => (
-            <div key={index}>
-              {String(item.label)}: {Number(item.value)}
-            </div>
-          ))}
-        </div>
-      ),
+      <div>
+        {props.title ? <strong>{String(props.title)}</strong> : null}
+        {(props.data ?? []).map((item, index) => (
+          <div key={index}>
+            {String(item.label)}: {Number(item.value)}
+          </div>
+        ))}
+      </div>,
     LineGraph: ({ props }) =>
-      withSpecMarker(
-        props,
-        <div>
-          {props.title ? <strong>{String(props.title)}</strong> : null}
-          {(props.data ?? []).map((item, index) => (
-            <div key={index}>
-              {String(item.label)}: {Number(item.value)}
-            </div>
-          ))}
-        </div>
-      ),
-    Rating: ({ props }) => withSpecMarker(props, <Rating {...props} />),
+      <div>
+        {props.title ? <strong>{String(props.title)}</strong> : null}
+        {(props.data ?? []).map((item, index) => (
+          <div key={index}>
+            {String(item.label)}: {Number(item.value)}
+          </div>
+        ))}
+      </div>,
+    Rating: ({ props }) => <Rating {...props} />,
     Input: ({ props, bindings, emit }) => {
       const [boundValue, setBoundValue] = useBoundProp(
         props.value,
@@ -266,8 +183,7 @@ export const { registry, handlers, executeAction } = defineRegistry(catalog, {
         hasValidation ? { checks: props.checks ?? [] } : undefined
       );
 
-      return withSpecMarker(
-        props,
+      return (
         <div>
           <label className="flex flex-col gap-1">
             {props.label}
@@ -290,8 +206,7 @@ export const { registry, handlers, executeAction } = defineRegistry(catalog, {
     TextArea: ({ bindings, props, emit }) => {
       const [value, setValue] = useBoundProp(props.value, bindings?.value);
 
-      return withSpecMarker(
-        props,
+      return (
         <TextArea
           {...props}
           value={value}
@@ -306,8 +221,7 @@ export const { registry, handlers, executeAction } = defineRegistry(catalog, {
     Select: ({ props, bindings, emit }) => {
       const [value, setValue] = useBoundProp(props.value, bindings?.value);
 
-      return withSpecMarker(
-        props,
+      return (
         <Select
           {...props}
           value={value}
@@ -325,8 +239,7 @@ export const { registry, handlers, executeAction } = defineRegistry(catalog, {
         bindings?.checked
       );
 
-      return withSpecMarker(
-        props,
+      return (
         <Checkbox
           {...props}
           checked={checked}
@@ -344,8 +257,7 @@ export const { registry, handlers, executeAction } = defineRegistry(catalog, {
         bindings?.checked
       );
 
-      return withSpecMarker(
-        props,
+      return (
         <Switch
           {...props}
           checked={checked}
@@ -357,20 +269,11 @@ export const { registry, handlers, executeAction } = defineRegistry(catalog, {
         />
       );
     },
-    Link: ({ props, children }) => {
-      const id = getSpecId(props);
-
-      return (
-        <DroppableMarker id={id}>
-          <a href={props.to}>{children}</a>
-        </DroppableMarker>
-      );
-    },
+    Link: ({ props, children }) => <a href={props.to}>{children}</a>,
     Pagination: ({ props, bindings, emit }) => {
       const [page, setPage] = useBoundProp(props.page, bindings?.page);
 
-      return withSpecMarker(
-        props,
+      return (
         <input
           max={props.totalPages}
           min={1}
