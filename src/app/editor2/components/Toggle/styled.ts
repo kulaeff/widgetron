@@ -1,30 +1,28 @@
 import styled, { css } from "styled-components";
 
-export const Toggle = styled("div")`
-  background: rgba(255, 255, 255, 0.96);
-  border: 1px solid #d1d5db;
-  border-radius: 18px;
-  box-shadow: 0 10px 24px rgba(15, 23, 42, 0.1);
+export const Toggle = styled.div(({ theme }) => css`
+  background: ${theme.tokens.current.core.background.default};
+  border: 1px solid ${theme.tokens.current.core.border.strong};
+  border-radius: 8px;
   display: inline-flex;
   gap: 6px;
-  padding: 5px;
-`;
+  padding: 3px;
+`);
 
-export const Option = styled("button")<{
+export const Option = styled.button<{
   $isAccent: boolean;
   $isActive: boolean;
 }>(
   ({ $isAccent, $isActive, theme }) => css`
-    ${theme.typography.body1Semibold};
+    ${theme.typography.body1Regular};
     appearance: none;
     border: none;
-    border-radius: 14px;
+    border-radius: 5px;
     color: ${$isActive
       ? theme.tokens.current.core.text.onColor
       : theme.tokens.current.core.text.primary};
     cursor: pointer;
-    min-height: 32px;
-    padding: 0 18px;
+    padding: 6px 12px;
     transition: background-color 100ms, color 100ms, transform 100ms;
     white-space: nowrap;
     ${$isActive

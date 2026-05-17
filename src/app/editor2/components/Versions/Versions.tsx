@@ -1,4 +1,4 @@
-import { Loader } from "@pulse/ui/components/Loader";
+import { Loader } from "@pulse/ui/components/Loader/Loader";
 import { useState, type FC } from "react";
 import { useTranslation } from "react-i18next";
 import type { Version } from "../../types";
@@ -28,31 +28,33 @@ export const Versions: FC<VersionsProps> = ({
 
   return (
     <Styled.Versions>
-      <Styled.List>
-        <Styled.Items>
-          {isOpen && items.map((item, i) => (
-            <Styled.Item
-              key={item.id}
-              $isDisabled={disabled}
-              $isSelected={value === item.id}
-              onClick={() => handleClick(item.id)}
-            >
-              <Styled.Content>
-                <Styled.Id>{`v${i + 1}`}</Styled.Id>
-                <Styled.Main>
-                  <Styled.Prompt>{item.prompt}</Styled.Prompt>
-                  <Styled.Tokens>
-                    {item.usage
-                      ? `${item.usage.prompt} промпт · ${item.usage.completion} ответ`
-                      : "—"}
-                  </Styled.Tokens>
-                </Styled.Main>
-                {item.status === "pending" ? <Loader /> : null}
-              </Styled.Content>
-            </Styled.Item>
-          ))}
-        </Styled.Items>
-      </Styled.List>
+      {isOpen ? (
+        <Styled.List>
+          <Styled.Items>
+            {items.map((item, i) => (
+              <Styled.Item
+                key={item.id}
+                $isDisabled={disabled}
+                $isSelected={value === item.id}
+                onClick={() => handleClick(item.id)}
+              >
+                <Styled.Content>
+                  <Styled.Id>{`v${i + 1}`}</Styled.Id>
+                  <Styled.Main>
+                    <Styled.Prompt>{item.prompt}</Styled.Prompt>
+                    <Styled.Tokens>
+                      {item.usage
+                        ? `${item.usage.prompt} промпт · ${item.usage.completion} ответ`
+                        : "—"}
+                    </Styled.Tokens>
+                  </Styled.Main>
+                  {item.status === "pending" ? <Loader /> : null}
+                </Styled.Content>
+              </Styled.Item>
+            ))}
+          </Styled.Items>
+        </Styled.List>
+      ) : null}
       {isOpen ? <Divider /> : null}
       <Styled.Button
         type="button"

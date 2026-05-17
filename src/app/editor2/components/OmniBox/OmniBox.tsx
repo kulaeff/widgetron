@@ -1,4 +1,4 @@
-import { Button, IconButton } from "@pulse/ui/components/Button";
+import { IconButton } from "@pulse/ui/components/Button";
 import {
   MouseEventHandler,
   useState,
@@ -7,11 +7,11 @@ import {
   type KeyboardEventHandler,
 } from "react";
 import { useTranslation } from "react-i18next";
+import { Button } from "../Button";
 import * as Styled from "./styled";
 import { Prompt } from "./Prompt";
 
 export type OmniBoxProps = {
-  disabled?: boolean;
   loading?: boolean;
   placeholder?: string;
   onSubmit: (value: string) => void;
@@ -20,7 +20,6 @@ export type OmniBoxProps = {
 };
 
 export const OmniBox: FC<OmniBoxProps> = ({
-  disabled = false,
   loading = false,
   placeholder = "Опишите, что вы хотите получить...",
   onSubmit,
@@ -74,12 +73,11 @@ export const OmniBox: FC<OmniBoxProps> = ({
             +
           </IconButton>
           <Button
-            $size="s"
-            $type="secondary"
+            label={t("данные")}
+            size="sm"
+            variant="secondary"
             onClick={() => onToolRequest?.("data")}
-          >
-            {t("данные")}
-          </Button>
+          />
         </div>
         <IconButton
           aria-label={loading ? "Stop" : "Send"}

@@ -45,6 +45,7 @@ declare module "styled-components" {
             "01": string;
           };
           accent: {
+            primary: string;
             secondary: string;
           };
         };

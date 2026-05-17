@@ -10,11 +10,8 @@ import { validateSpec } from "@json-render/core";
 import type { Spec } from "@json-render/react";
 import { Editor as MonacoEditor } from "@monaco-editor/react";
 import { JsonEditor, JsonValue } from "@visual-json/react";
-import { Control, FormField, Label } from "@pulse/ui/components/FormField";
 import { Input } from "@pulse/ui/components/Input";
-import { Button, IconButton } from "@pulse/ui/components/Button";
-import { Option, Select } from "@pulse/ui/components/Select";
-import type { RouteComponentProps } from "@reach/router";
+import { IconButton } from "@pulse/ui/components/Button";
 import {
   Background,
   Node,
@@ -35,6 +32,7 @@ import {
 } from "react";
 import { useTranslation } from "react-i18next";
 import { useTheme } from "styled-components";
+import { Button } from "./components/Button";
 import { Island } from "./components/Island";
 import { Preview, type PreviewProps } from "./components/Preview";
 import { useUIStream } from "./hooks/useUIStream";
@@ -64,8 +62,7 @@ import {
   moveElementInSpec,
 } from "./spec-utils";
 import { Toggle } from "./components/Toggle";
-import { ListView } from "./components/ListView";
-import { Divider } from "@pulse/ui/components/Divider/Divider";
+import { Loader } from "@pulse/ui/components/Loader";
 
 interface Api {
   id: string;
@@ -195,7 +192,7 @@ export const Editor: FC<EditorProps> = ({ onSave }) => {
   const [state, setState] = useState<Record<string, unknown>>({});
   const [type, setType] = useState("");
   const [mode, setMode] = useState<string>(Mode.AI);
-  const [versions, setVersions] = useState<Version[]>([{ id: "1", prompt: "test", spec: DEFAULT_SPEC, status: "pending" }, { id: "2", prompt: "test", spec: DEFAULT_SPEC, status: "pending" }, { id: "3", prompt: "test", spec: DEFAULT_SPEC, status: "pending" }, { id: "3", prompt: "test", spec: DEFAULT_SPEC, status: "pending" }]);
+  const [versions, setVersions] = useState<Version[]>([{ id: "1", prompt: "test", spec: DEFAULT_SPEC, status: "pending" }, { id: "2", prompt: "test", spec: DEFAULT_SPEC, status: "pending" }, { id: "3", prompt: "test", spec: DEFAULT_SPEC, status: "pending" }, { id: "4", prompt: "test", spec: DEFAULT_SPEC, status: "pending" }, { id: "5", prompt: "test", spec: DEFAULT_SPEC, status: "pending" }]);
   const [activeDropTargetId, setActiveDropTargetId] = useState<string | null>(
     null
   );
@@ -942,36 +939,39 @@ export const Editor: FC<EditorProps> = ({ onSave }) => {
         >
           <Background />
           <Panel position="top-center">
-            <Toggle
-              options={VIEWPORT_OPTIONS}
-              value={viewportId}
-              onChange={(value) => setViewportId(value)}
-            />
+            <Island unstyled>
+              <Toggle
+                options={VIEWPORT_OPTIONS}
+                value={viewportId}
+                onChange={(value) => setViewportId(value)}
+              />
+            </Island>
           </Panel>
           <Panel position="top-right">
-            <Styled.TopControls>
-              <div>
-                <Styled.SaveDock>
-                  <Styled.SaveButton
-                    type="button"
+            <Flex>
+              <Item>
+                <Island unstyled>
+                  <Button
+                    $type="primary"
                     disabled={isSaveDisabled}
+                    label={t("сохранить")}
                     onClick={handleSave}
-                  >
-                    {t("сохранить")}
-                  </Styled.SaveButton>
-                </Styled.SaveDock>
-              </div>
-              <div>
-                <Toggle
-                  options={[
-                    { id: Mode.AI, isAccent: true, label: "AI mode" },
-                    { id: Mode.DESIGN, label: "Design mode" },
-                  ]}
-                  value={mode}
-                  onChange={(value) => setMode(value)}
-                />
-              </div>
-            </Styled.TopControls>
+                  />
+                </Island>
+              </Item>
+              <Item>
+                <Island unstyled>
+                  <Toggle
+                    options={[
+                      { id: Mode.AI, isAccent: true, label: "AI mode" },
+                      { id: Mode.DESIGN, label: "Design mode" },
+                    ]}
+                    value={mode}
+                    onChange={(value) => setMode(value)}
+                    />
+                </Island>
+              </Item>
+            </Flex>
           </Panel>
           <Panel position="bottom-right" style={{ zIndex: 10 }}>
             <Island unstyled>
@@ -993,41 +993,29 @@ export const Editor: FC<EditorProps> = ({ onSave }) => {
           </Panel>
           {mode === Mode.AI && (
             <>
-              <Panel position="top-left">
-                <Island height="calc(100% - 108px)">
-                  {hasCurrentPrompt ? (
-                    <Styled.RailCard>
-                      <Styled.RailCardBody>
-                        <Styled.RailHeader>
-                          <Styled.RailTitle>{t("текущий запрос")}</Styled.RailTitle>
-                          <Styled.RailTag $tone="accent">
-                            {currentVersionLabel}
-                          </Styled.RailTag>
-                        </Styled.RailHeader>
-                        <Styled.RailMeta>
-                          <Styled.RailTag
-                            $tone={
-                              isStreaming || currentVersion?.status === "pending"
-                                ? "accent"
-                                : "default"
-                            }
-                          >
-                            {currentStatusLabel}
-                          </Styled.RailTag>
-                          {hasApiData ? (
-                            <Styled.RailTag $tone="success">
-                              API data
-                            </Styled.RailTag>
-                          ) : null}
-                        </Styled.RailMeta>
-                        <Styled.PromptPreview>
-                          {currentPromptLabel}
-                        </Styled.PromptPreview>
-                      </Styled.RailCardBody>
-                    </Styled.RailCard>
-                  ) : null}
-                </Island>
-              </Panel>
+              {currentVersion ? (
+                <Panel position="top-left">
+                  <Island
+                    maxHeight="calc(100vh - 327px)"
+                    width={300}
+                  >
+                    <Styled.RailCardBody>
+                      <Styled.RailHeader>
+                        <Styled.RailTitle>{t("текущий запрос")}</Styled.RailTitle>
+                        {currentVersion?.status === "pending" ? (
+                          <Loader size="lg" />
+                        ) : null}
+                        <Styled.RailTag $tone="accent">
+                          {currentVersionLabel}
+                        </Styled.RailTag>
+                      </Styled.RailHeader>
+                      <Styled.PromptPreview>
+                        {currentVersion.prompt}
+                      </Styled.PromptPreview>
+                    </Styled.RailCardBody>
+                  </Island>
+                </Panel>
+              ) : null}
               <Panel position="bottom-left">
                 <Island maxHeight={297} width={300}>
                   <Versions
@@ -1038,48 +1026,37 @@ export const Editor: FC<EditorProps> = ({ onSave }) => {
                   />
                  </Island>
               </Panel>
-              <Panel
-                position="bottom-center"
-                style={{
-                  marginLeft: "clamp(0px, 10vw, 120px)",
-                  maxWidth: "calc(100% - 160px)",
-                  width: "min(720px, calc(100% - 360px))",
-                }}
-              >
-                <Styled.BottomComposer>
-                  {isToolDataVisible ? (
-                    <Island
-                      width="100%"
-                      style={{ marginBottom: 12, maxHeight: 320, overflow: "hidden" }}
-                    >
-                      <Flex vertical>
-                        <Item>
-                          <Tabs
-                            items={[
-                              { id: "api", label: "апи" },
-                              { id: "structure", label: "структура" },
-                              { id: "data", label: "данные" },
-                            ]}
-                            value={activeTabData}
-                            onChange={(tab) => setActiveTabData(tab)}
-                          />
-                        </Item>
-                        <Item grow>
-                          {activeTabData === "api" ? apiEditor : null}
-                        </Item>
-                      </Flex>
-                    </Island>
-                  ) : null}
+              <Panel position="bottom-center">
+                {isToolDataVisible ? (
                   <Island width="100%">
-                    <OmniBox
-                      loading={isStreaming}
-                      placeholder="Что вы хотите изменить или создать?"
-                      onSubmit={handleOmniBoxSubmit}
-                      onReset={clear}
-                      onToolRequest={handleOmniBoxToolRequest}
-                    />
+                    <Flex vertical>
+                      <Item>
+                        <Tabs
+                          items={[
+                            { id: "api", label: "апи" },
+                            { id: "structure", label: "структура" },
+                            { id: "data", label: "данные" },
+                          ]}
+                          value={activeTabData}
+                          onChange={(tab) => setActiveTabData(tab)}
+                        />
+                      </Item>
+                      <Item grow>
+                        {activeTabData === "api" ? apiEditor : null}
+                      </Item>
+                    </Flex>
                   </Island>
-                </Styled.BottomComposer>
+                ) : null}
+                <Island width={500}>
+                  <OmniBox
+
+                    loading={isStreaming}
+                    placeholder="Что вы хотите изменить или создать?"
+                    onSubmit={handleOmniBoxSubmit}
+                    onReset={clear}
+                    onToolRequest={handleOmniBoxToolRequest}
+                  />
+                </Island>
               </Panel>
             </>
           )}

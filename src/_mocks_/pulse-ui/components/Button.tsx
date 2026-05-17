@@ -54,7 +54,7 @@ const buttonStyle = (disabled?: boolean): CSSProperties => ({
   border: "1px solid #d1d5db",
   borderRadius: 6,
   color: disabled ? "#9ca3af" : "#111827",
-  cursor: disabled ? "not-allowed" : "pointer",
+  cursor: disabled ? "default" : "pointer",
   font: "inherit",
   opacity: disabled ? 0.72 : 1,
   padding: "6px 12px",

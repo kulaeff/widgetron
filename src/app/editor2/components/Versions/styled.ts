@@ -5,6 +5,7 @@ export const Versions = styled.div`
   display: flex;
   flex-direction: column;
   height: 100%;
+  gap: 16px;
   margin: 0;
   overflow: hidden;
   padding: 0;

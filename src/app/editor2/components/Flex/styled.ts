@@ -12,6 +12,7 @@ export const Item = styled.div<Wrap<ItemProps>>(
 
 export const Flex = styled.div<Wrap<FlexProps>>(
   ({ $vertical }) => css`
+    align-items: ${$vertical ? "stretch" : "center"};
     display: flex;
     flex-direction: ${$vertical ? "column" : "row"};
     gap: 8px;

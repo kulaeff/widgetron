@@ -37,6 +37,7 @@ export const theme: DefaultTheme = {
           "01": "#f3f4f6"
         },
         accent: {
+          primary: "#0066ff",
           secondary: "#dbeafe"
         }
       },

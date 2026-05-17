@@ -47,7 +47,6 @@ export const SaveDock = styled("div")`
   border-radius: 18px;
   box-shadow: 0 10px 24px rgba(15, 23, 42, 0.1);
   display: inline-flex;
-  padding: 5px;
 `;
 
 export const TopControls = styled("div")`
@@ -116,22 +115,20 @@ export const RailCard = styled("section")<{ $withAccent?: boolean }>(
 export const RailCardBody = styled("div")`
   display: flex;
   flex-direction: column;
-  gap: 14px;
+  gap: 8px;
   min-height: 0;
 `;
 
 export const RailHeader = styled("div")`
-  align-items: flex-start;
-  display: flex;
+  align-items: center;
+  display: grid;
   gap: 10px;
-  justify-content: space-between;
+  grid-template-columns: 1fr auto auto;
 `;
 
 export const RailTitle = styled("div")`
-  ${({ theme }) => theme.typography.captionRegular};
+  ${({ theme }) => theme.typography.body1Regular};
   color: ${({ theme }) => theme.tokens.current.core.text.secondary};
-  letter-spacing: 0.02em;
-  text-transform: uppercase;
 `;
 
 export const RailMeta = styled("div")`
@@ -171,8 +168,7 @@ export const RailTag = styled("span")<{
       border-radius: 999px;
       color: ${styles.color};
       display: inline-flex;
-      min-height: 24px;
-      padding: 0 10px;
+      padding: 2px 8px;
       white-space: nowrap;
     `;
   }
