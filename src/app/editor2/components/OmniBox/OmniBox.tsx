@@ -1,6 +1,7 @@
 import { IconButton } from "@pulse/ui/components/Button";
 import {
   MouseEventHandler,
+  useRef,
   useState,
   type ChangeEventHandler,
   type FC,
@@ -10,6 +11,8 @@ import { useTranslation } from "react-i18next";
 import { Button } from "../Button";
 import * as Styled from "./styled";
 import { Prompt } from "./Prompt";
+import { Dropdown } from "../Dropdown";
+import { Menu } from "../Menu";
 
 export type OmniBoxProps = {
   loading?: boolean;
@@ -29,6 +32,8 @@ export const OmniBox: FC<OmniBoxProps> = ({
   const { t } = useTranslation();
 
   const [localValue, setLocalValue] = useState("");
+
+  const dropdownAttachRef = useRef<HTMLDivElement>(null);
 
   const handlePromptChange: ChangeEventHandler<HTMLTextAreaElement> = (e) => {
     setLocalValue(e.target.value);
@@ -58,6 +63,12 @@ export const OmniBox: FC<OmniBoxProps> = ({
     }
   };
 
+  const handleMenuCommand = (id: string) => {
+    dropdownAttachRef.current?.hidePopover();
+
+    onToolRequest?.(id);
+  };
+
   return (
     <Styled.OmniBox>
       <Prompt
@@ -69,9 +80,38 @@ export const OmniBox: FC<OmniBoxProps> = ({
       />
       <Styled.Buttons>
         <div style={{ alignItems: "center", display: "flex", gap: 8 }}>
-          <IconButton size="s" $type="secondary">
-            +
-          </IconButton>
+          <Button label="+" size="sm" variant="secondary" popovertarget="dropdown" style={{ anchorName: "--button-attach" }} />
+          <Dropdown
+            id="dropdown"
+            ref={dropdownAttachRef}
+            style={{
+              marginBottom: "4px",
+              positionAnchor: "--button-attach",
+              positionArea: "top span-right",
+            }}
+          >
+            <Menu
+              items={[
+                {
+                  id: "image",
+                  label: t("изображение"),
+                },
+                {
+                  id: "dom",
+                  label: t("дерево DOM"),
+                },
+                {
+                  id: "openapi",
+                  label: t("спецификация OpenAPI"),
+                },
+                {
+                  id: "data",
+                  label: t("данные"),
+                },
+              ]}
+              onCommand={(id) => handleMenuCommand?.(id)}
+            />
+          </Dropdown>
           <Button
             label={t("данные")}
             size="sm"

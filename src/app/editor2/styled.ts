@@ -121,9 +121,9 @@ export const RailCardBody = styled("div")`
 
 export const RailHeader = styled("div")`
   align-items: center;
-  display: grid;
+  display: flex;
   gap: 10px;
-  grid-template-columns: 1fr auto auto;
+  justify-content: space-between;
 `;
 
 export const RailTitle = styled("div")`
@@ -134,7 +134,6 @@ export const RailTitle = styled("div")`
 export const RailMeta = styled("div")`
   align-items: center;
   display: flex;
-  flex-wrap: wrap;
   gap: 8px;
 `;
 

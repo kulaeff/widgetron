@@ -192,7 +192,7 @@ export const Editor: FC<EditorProps> = ({ onSave }) => {
   const [state, setState] = useState<Record<string, unknown>>({});
   const [type, setType] = useState("");
   const [mode, setMode] = useState<string>(Mode.AI);
-  const [versions, setVersions] = useState<Version[]>([{ id: "1", prompt: "test", spec: DEFAULT_SPEC, status: "pending" }, { id: "2", prompt: "test", spec: DEFAULT_SPEC, status: "pending" }, { id: "3", prompt: "test", spec: DEFAULT_SPEC, status: "pending" }, { id: "4", prompt: "test", spec: DEFAULT_SPEC, status: "pending" }, { id: "5", prompt: "test", spec: DEFAULT_SPEC, status: "pending" }]);
+  const [versions, setVersions] = useState<Version[]>([]);
   const [activeDropTargetId, setActiveDropTargetId] = useState<string | null>(
     null
   );
@@ -1002,12 +1002,14 @@ export const Editor: FC<EditorProps> = ({ onSave }) => {
                     <Styled.RailCardBody>
                       <Styled.RailHeader>
                         <Styled.RailTitle>{t("текущий запрос")}</Styled.RailTitle>
-                        {currentVersion?.status === "pending" ? (
-                          <Loader size="lg" />
-                        ) : null}
-                        <Styled.RailTag $tone="accent">
-                          {currentVersionLabel}
-                        </Styled.RailTag>
+                          <Styled.RailMeta>
+                          {currentVersion?.status === "pending" ? (
+                            <Loader size="lg" />
+                          ) : null}
+                          <Styled.RailTag $tone="accent">
+                            {currentVersionLabel}
+                          </Styled.RailTag>
+                        </Styled.RailMeta>
                       </Styled.RailHeader>
                       <Styled.PromptPreview>
                         {currentVersion.prompt}
