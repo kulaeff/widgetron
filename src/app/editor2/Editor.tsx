@@ -439,6 +439,62 @@ export const Editor: FC<EditorProps> = ({ onSave }) => {
     [selectedElementId, selectedVersionId]
   );
 
+  const handleSelectedElementRename = useCallback(
+    (nextId: string) => {
+      const trimmedNextId = nextId.trim();
+      if (!selectedElementId || trimmedNextId.length === 0) {
+        return;
+      }
+
+      setVersions((prevVersions) =>
+        prevVersions.map((version) => {
+          if (
+            version.id !== selectedVersionId ||
+            !version.spec ||
+            !version.spec.elements[selectedElementId] ||
+            selectedElementId === trimmedNextId ||
+            version.spec.elements[trimmedNextId]
+          ) {
+            return version;
+          }
+
+          const nextElements = Object.fromEntries(
+            Object.entries(version.spec.elements).map(([elementId, element]) => {
+              const mappedId =
+                elementId === selectedElementId ? trimmedNextId : elementId;
+              const nextChildren = element.children?.map((childId) =>
+                childId === selectedElementId ? trimmedNextId : childId
+              );
+
+              return [
+                mappedId,
+                {
+                  ...element,
+                  ...(nextChildren ? { children: nextChildren } : {}),
+                },
+              ];
+            })
+          ) as Spec["elements"];
+
+          return {
+            ...version,
+            spec: {
+              ...version.spec,
+              root:
+                version.spec.root === selectedElementId
+                  ? trimmedNextId
+                  : version.spec.root,
+              elements: nextElements,
+            },
+          };
+        })
+      );
+
+      setSelectedElementId(trimmedNextId);
+    },
+    [selectedElementId, selectedVersionId]
+  );
+
   const handleMonacoEditorChange = (value: string | undefined) => {
     if (value) {
       try {
@@ -1250,6 +1306,7 @@ export const Editor: FC<EditorProps> = ({ onSave }) => {
                             name={selectedElement.id}
                             type={selectedElement.type}
                             controls={selectedElement.controls}
+                            onNameChange={handleSelectedElementRename}
                             onControlChange={handleLevaControlChange}
                           />
                         ) : (

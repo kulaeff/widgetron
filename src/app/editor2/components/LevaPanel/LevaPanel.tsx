@@ -1,5 +1,12 @@
 import { Tag } from "@pulse/ui/components/Tags/Tag";
-import { type ChangeEvent, type FC, useMemo, useState } from "react";
+import {
+  type ChangeEvent,
+  type FC,
+  type KeyboardEvent,
+  useEffect,
+  useMemo,
+  useState,
+} from "react";
 import * as Styled from "./styled";
 
 type BaseControl = {
@@ -170,6 +177,7 @@ interface LevaPanelProps {
   controls: LevaControl[];
   name?: string;
   type?: string;
+  onNameChange?: (nextId: string) => void;
   onControlChange: (id: string, value: LevaControlValue) => void;
 }
 
@@ -496,13 +504,47 @@ export const LevaPanel: FC<LevaPanelProps> = ({
   controls,
   name,
   type,
+  onNameChange,
   onControlChange,
 }) => {
+  const [nameDraft, setNameDraft] = useState(name ?? "");
+
+  useEffect(() => {
+    setNameDraft(name ?? "");
+  }, [name]);
+
+  const handleRename = () => {
+    const next = nameDraft.trim();
+    if (!onNameChange || !name || next.length === 0 || next === name) {
+      return;
+    }
+
+    onNameChange(next);
+  };
+
+  const handleNameKeyDown = (event: KeyboardEvent<HTMLInputElement>) => {
+    if (event.key === "Enter") {
+      event.preventDefault();
+      handleRename();
+      event.currentTarget.blur();
+    }
+  };
+
   return (
     <Styled.Container>
       <Styled.Header>
         <Tag>{type}</Tag>
-        {name ? <Styled.Name>{name}</Styled.Name> : null}
+        {name ? (
+          <Styled.NameEditor>
+            <Styled.NameInput
+              type="text"
+              value={nameDraft}
+              onChange={(event) => setNameDraft(event.target.value)}
+              onBlur={handleRename}
+              onKeyDown={handleNameKeyDown}
+            />
+          </Styled.NameEditor>
+        ) : null}
       </Styled.Header>
       <Styled.Panel>
         {controls.map((control) => (

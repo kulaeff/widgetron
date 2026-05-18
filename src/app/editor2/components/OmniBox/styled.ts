@@ -19,6 +19,7 @@ export const TextArea = styled("textarea")(({ theme }) => ({
   appearance: "none",
   border: "none",
   boxSizing: "border-box",
+  fontFamily: "inherit",
   maxHeight: "100px",
   outline: "none",
   padding: 0,

@@ -18,6 +18,26 @@ export const Name = styled.span(
   `
 );
 
+export const NameEditor = styled.div`
+  align-items: center;
+  display: grid;
+  gap: 0;
+  grid-template-columns: 1fr;
+`;
+
+export const NameInput = styled.input(
+  ({ theme }) => css`
+    ${theme.typography.body2Regular};
+    background: ${theme.tokens.current.core.layer["01"]};
+    border: 1px solid ${theme.tokens.current.core.border.strong};
+    border-radius: 6px;
+    color: ${theme.tokens.current.core.text.primary};
+    min-height: 30px;
+    padding: 4px 8px;
+    width: 100%;
+  `
+);
+
 export const Panel = styled.div`
   display: grid;
   gap: 8px;

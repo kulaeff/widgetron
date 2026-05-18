@@ -63,7 +63,6 @@ export const catalog = defineCatalog(schema, {
       props: z.object({
         border: z.boolean().default(false).optional(),
         shadow: z.boolean().default(true).optional(),
-        type: z.enum(["default", "contrast"]).default("default").optional(),
         variant: z.enum(["primary", "secondary"]).default("primary").optional(),
       }),
       slots: ["default"],

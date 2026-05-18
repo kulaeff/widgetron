@@ -79,7 +79,6 @@ export const { registry, handlers, executeAction } = defineRegistry(catalog, {
         {...(getSpecMarkerProps(props) as any)}
         $border={props.border}
         $shadow={props.shadow}
-        $type={props.type}
         $variant={props.variant}
       >
         {children}
