@@ -6,10 +6,19 @@ export const Image: FC<ImageProps> = ({
   height = 64,
   width = 64,
   src,
+  ...rest
 }) => {
   if (typeof src !== "string") {
     return JSON.stringify(src);
   }
 
-  return <img alt={alt ?? ""} height={height} src={src} width={width} />;
+  return (
+    <img
+      alt={alt ?? ""}
+      height={height}
+      src={src}
+      width={width}
+      {...rest}
+    />
+  );
 };

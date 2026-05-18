@@ -8,8 +8,15 @@ export const Grid: FC<PropsWithChildren<GridProps>> = ({
   gap = 0,
   align = "stretch",
   justify = "stretch",
+  ...rest
 }) => (
-  <Styled.Stack $align={align} $columns={columns} $gap={gap} $justify={justify}>
+  <Styled.Grid
+    $align={align}
+    $columns={columns}
+    $gap={gap}
+    $justify={justify}
+    {...rest}
+  >
     {children}
-  </Styled.Stack>
+  </Styled.Grid>
 );

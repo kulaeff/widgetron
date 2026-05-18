@@ -1,6 +1,7 @@
-import { DefaultTheme } from "styled-components";
+import type { HTMLAttributes } from "react";
+import type { DefaultTheme } from "styled-components";
 
-export interface TextProps {
+export interface TextProps extends HTMLAttributes<HTMLParagraphElement> {
   variant?: Extract<
     keyof DefaultTheme["typography"],
     | "body1Regular"

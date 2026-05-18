@@ -35,7 +35,7 @@ const buildGridTemplateColumnsRule = (columns?: string) => {
     .join(" ");
 };
 
-export const Stack = styled.div<
+export const Grid = styled.div<
   Wrap<
     RequiredProperty<Omit<GridProps, "children">, "align" | "gap" | "justify">
   >

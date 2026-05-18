@@ -270,6 +270,7 @@ export const Editor: FC<EditorProps> = ({ onSave }) => {
             ? "Ожидание генерации интерфейса..."
             : "Перетащите сюда компонент из палитры",
         loading: isStreaming,
+        selectedElementId,
         viewportSize: selectedViewport,
         spec: currentSpec,
         state: currentState,

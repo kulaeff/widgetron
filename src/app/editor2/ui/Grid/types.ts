@@ -1,6 +1,6 @@
-import type { CSSProperties } from "react";
+import type { CSSProperties, HTMLAttributes } from "react";
 
-export interface GridProps {
+export interface GridProps extends HTMLAttributes<HTMLDivElement> {
   /**
    * Выравнивание по основной оси
    */

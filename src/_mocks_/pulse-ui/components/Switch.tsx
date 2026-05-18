@@ -11,7 +11,7 @@ export function Switch({ disabled, checked, label, ...props }: Props) {
       style={{
         display: "inline-flex",
         alignItems: "center",
-        cursor: disabled ? "not-allowed" : "pointer",
+        cursor: disabled ? "default" : "pointer",
         opacity: disabled ? 0.5 : 1,
         margin: 0,
       }}

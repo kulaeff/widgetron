@@ -8,12 +8,14 @@ export const Stack: FC<PropsWithChildren<StackProps>> = ({
   direction = "column",
   gap = 0,
   justify = "stretch",
+  ...rest
 }) => (
   <Styled.Stack
     $align={align}
     $direction={direction}
     $gap={gap}
     $justify={justify}
+    {...rest}
   >
     {children}
   </Styled.Stack>

@@ -1,14 +1,15 @@
 import {
   Children,
-  FC,
-  PropsWithChildren,
+  type FC,
+  type HTMLAttributes,
+  type PropsWithChildren,
   useEffect,
   useRef,
   useState,
 } from "react";
 import * as Styled from "./styled";
 
-interface SliderProps {
+interface SliderProps extends HTMLAttributes<HTMLDivElement> {
   autoplay?: boolean | number;
   loop?: boolean | number;
 }
@@ -17,6 +18,7 @@ export const Slider: FC<PropsWithChildren<SliderProps>> = ({
   children,
   autoplay,
   loop,
+  ...rest
 }) => {
   const slides = Children.toArray(children);
   const [activeIndex, setActiveIndex] = useState(0);
@@ -37,7 +39,7 @@ export const Slider: FC<PropsWithChildren<SliderProps>> = ({
   }, [activeIndex, slideCount, loop]);
 
   return (
-    <Styled.Slider>
+    <Styled.Slider {...rest}>
       <Styled.Container>
         <Styled.Track
           ref={trackRef}

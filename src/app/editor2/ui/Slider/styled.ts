@@ -16,7 +16,7 @@ export const Track = styled.div`
   display: flex;
   height: 100%;
   will-change: transform;
-  & > * > * {
+  & > * {
     flex: 0 0 100%;
   }
 `;

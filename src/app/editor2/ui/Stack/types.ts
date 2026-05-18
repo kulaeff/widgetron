@@ -1,6 +1,6 @@
-import type { CSSProperties } from "react";
+import type { CSSProperties, HTMLAttributes } from "react";
 
-export interface StackProps {
+export interface StackProps extends HTMLAttributes<HTMLDivElement> {
   /**
    * Выравнивание по основной оси
    */
