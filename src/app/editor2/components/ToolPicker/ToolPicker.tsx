@@ -1,5 +1,5 @@
 import { type FC } from "react";
-import * as Styled from "./styled";
+import { Toggle } from "../Toggle";
 
 export type ToolPickerItem = {
   id: string;
@@ -17,20 +17,13 @@ export const ToolPicker: FC<ToolPickerProps> = ({
   value,
   onSelect,
 }) => {
+  const selectedValue = value ?? tools[0]?.id ?? "";
+  const options = tools.map((tool) => ({
+    id: tool.id,
+    label: tool.title,
+  }));
+
   return (
-    <Styled.Container>
-      {tools.map((tool) => (
-        <Styled.Button
-          key={tool.id}
-          type="button"
-          $active={tool.id === value}
-          onClick={() => {
-            onSelect(tool.id);
-          }}
-        >
-          {tool.title}
-        </Styled.Button>
-      ))}
-    </Styled.Container>
+    <Toggle options={options} value={selectedValue} onChange={onSelect} />
   );
 };

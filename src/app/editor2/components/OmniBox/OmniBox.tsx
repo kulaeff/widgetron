@@ -79,52 +79,51 @@ export const OmniBox: FC<OmniBoxProps> = ({
         onKeyDown={handleKeyDown}
       />
       <Styled.Buttons>
-        <div style={{ alignItems: "center", display: "flex", gap: 8 }}>
-          <Button label="+" size="sm" variant="secondary" popovertarget="dropdown" style={{ anchorName: "--button-attach" }} />
-          <Dropdown
-            id="dropdown"
-            ref={dropdownAttachRef}
-            style={{
-              marginBottom: "4px",
-              positionAnchor: "--button-attach",
-              positionArea: "top span-right",
-            }}
-          >
-            <Menu
-              items={[
-                {
-                  id: "image",
-                  label: t("изображение"),
-                },
-                {
-                  id: "api",
-                  label: t("API"),
-                  command: "show-modal",
-                  commandFor: "modalApi",
-                },
-                {
-                  id: "dom",
-                  label: t("дерево DOM"),
-                },
-                {
-                  id: "openapi",
-                  label: t("спецификация OpenAPI"),
-                },
-                {
-                  id: "data",
-                  label: t("данные"),
-                },
-              ]}
-              onCommand={(id) => handleMenuCommand?.(id)}
-            />
-          </Dropdown>
-          <Button
-            label={t("данные")}
-            size="sm"
-            variant="secondary"
-            onClick={() => onToolRequest?.("data")}
+        <Button
+          label="+"
+          size="sm"
+          variant="secondary"
+          // @ts-expect-error Not typed yet
+          popovertarget="dropdown"
+          style={{ anchorName: "--button-attach" }}
+        />
+        <Dropdown
+          id="dropdown"
+          ref={dropdownAttachRef}
+          style={{
+            marginBottom: "4px",
+            positionAnchor: "--button-attach",
+            positionArea: "top span-right",
+          }}
+        >
+          <Menu
+            items={[
+              {
+                id: "image",
+                label: t("изображение"),
+              },
+              {
+                id: "api",
+                label: t("API"),
+                command: "show-modal",
+                commandFor: "modalApi",
+              },
+              {
+                id: "dom",
+                label: t("дерево DOM"),
+              },
+              {
+                id: "openapi",
+                label: t("спецификация OpenAPI"),
+              },
+              {
+                id: "data",
+                label: t("данные"),
+              },
+            ]}
+            onCommand={(id) => handleMenuCommand?.(id)}
           />
-        </div>
+        </Dropdown>
         <IconButton
           aria-label={loading ? "Stop" : "Send"}
           disabled={loading ? !onReset : localValue.length === 0}

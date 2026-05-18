@@ -1124,7 +1124,7 @@ export const Editor: FC<EditorProps> = ({ onSave }) => {
           {mode === Mode.DESIGN && (
             <>
               {selectedDesignToolId === "component" ? (
-                <Panel position="bottom-center">
+                <Panel position="bottom-center" style={{ marginBottom: 70 }}>
                   <Island height={360} width="40vw">
                     <Styled.ComponentPickerSurface
                       data-component-picker-surface
@@ -1266,14 +1266,13 @@ export const Editor: FC<EditorProps> = ({ onSave }) => {
                 </Island>
               </Panel>
               <Panel position="bottom-center">
-                <Island>
-                  <div data-component-picker-trigger>
-                    <ToolPicker
-                      tools={DESIGN_TOOLS}
-                      value={selectedDesignToolId}
-                      onSelect={setSelectedDesignToolId}
-                    />
-                  </div>
+                <Island unstyled>
+                  <ToolPicker
+                    items={toolBarItems}
+                    tools={DESIGN_TOOLS}
+                    value={selectedDesignToolId}
+                    onSelect={setSelectedDesignToolId}
+                  />
                 </Island>
               </Panel>
               {isCodeModalOpen ? (
