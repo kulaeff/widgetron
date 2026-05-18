@@ -1,6 +1,5 @@
 import type { CSSProperties, DragEvent, DragEventHandler, FC, KeyboardEvent, MouseEvent, ReactNode } from "react";
 import { useRef, useState } from "react";
-import { ReactComponent as AddIcon } from "$common/icons/add-icon.svg";
 import * as Styled from "./styled";
 
 export const TREE_ROOT_DROP_TARGET_ID = "__tree-root__";
@@ -28,6 +27,7 @@ export type TreeViewProps = {
     targetId: string;
     placement: "inside" | "before" | "after";
   }) => void;
+  onItemDelete?: (id: string) => void;
 };
 
 const INDENT_PER_LEVEL = 16;
@@ -38,6 +38,7 @@ export const TreeView: FC<TreeViewProps> = ({
   items,
   value,
   onItemPositionChange,
+  onItemDelete,
   onChange,
 }) => {
   const [collapsedIds, setCollapsedIds] = useState<Set<string>>(
@@ -102,6 +103,12 @@ export const TreeView: FC<TreeViewProps> = ({
   };
 
   const handleKeyDown = (event: KeyboardEvent<HTMLDivElement>, item: TreeItem) => {
+    if (event.key === "Delete" || event.key === "Backspace") {
+      event.preventDefault();
+      onItemDelete?.(item.id);
+      return;
+    }
+
     if (event.key === "Enter" || event.key === " ") {
       event.preventDefault();
       handleClick(item);
@@ -142,11 +149,6 @@ export const TreeView: FC<TreeViewProps> = ({
   const handleArrowClick = (event: MouseEvent<HTMLButtonElement>, id: string) => {
     event.stopPropagation();
     toggleCollapsed(id);
-  };
-
-  const handleIconButtonAddClick = (item: TreeItem) => {
-    // not yet implemented
-    console.log(item);
   };
 
   const resolveDropPlacement = (

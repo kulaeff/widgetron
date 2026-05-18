@@ -60,6 +60,7 @@ import {
   addCatalogComponentToVersions,
   buildSpecTreeItems,
   moveElementInSpec,
+  removeElementFromSpec,
 } from "./spec-utils";
 import { Toggle } from "./components/Toggle";
 import { Loader } from "@pulse/ui/components/Loader";
@@ -709,6 +710,24 @@ export const Editor: FC<EditorProps> = ({ onSave }) => {
     [selectedVersionId]
   );
 
+  const handleTreeViewDelete = useCallback(
+    (id: string) => {
+      setVersions((p) =>
+        p.map((v) =>
+          v.id === selectedVersionId
+            ? {
+                ...v,
+                spec: removeElementFromSpec(v.spec, id),
+              }
+            : v
+        )
+      );
+
+      setSelectedElementId((prev) => (prev === id ? undefined : prev));
+    },
+    [selectedVersionId]
+  );
+
   useEffect(() => {
     if (generatingVersionIdRef && !isStreaming && spec) {
       setVersions((p) =>
@@ -1040,6 +1059,7 @@ export const Editor: FC<EditorProps> = ({ onSave }) => {
                           items={treeViewElementsItems}
                           value={selectedElementId}
                           onChange={handleTreeViewElementsChange}
+                          onItemDelete={handleTreeViewDelete}
                           onItemPositionChange={handleTreeViewMove}
                         />
                       ) : null}
@@ -1114,16 +1134,13 @@ export const Editor: FC<EditorProps> = ({ onSave }) => {
                 <Island width={300} height="calc(100vh - 119px)">
                   <Flex vertical>
                     <Item>
-                      <Styled.Tabs>
-                        <Tabs
-                          items={[
-                            { id: "properties", label: t("свойства") },
-                            { id: "api", label: t("api") },
-                          ]}
-                          value={activeRightTab}
-                          onChange={(id) => setActiveRightTab(id)}
-                        />
-                      </Styled.Tabs>
+                      <Tabs
+                        items={[
+                          { id: "properties", label: t("свойства") },
+                        ]}
+                        value={activeRightTab}
+                        onChange={(id) => setActiveRightTab(id)}
+                      />
                     </Item>
                     <Item grow>
                       {/* eslint-disable-next-line no-nested-ternary */}

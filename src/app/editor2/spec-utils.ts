@@ -12,6 +12,29 @@ export type TreeMovePayload = {
   placement: "inside" | "before" | "after";
 };
 
+const collectDescendantIds = (
+  elements: Spec["elements"],
+  id: string,
+  visited = new Set<string>()
+): Set<string> => {
+  if (visited.has(id)) {
+    return visited;
+  }
+
+  visited.add(id);
+  const node = elements[id];
+
+  if (!node?.children?.length) {
+    return visited;
+  }
+
+  node.children.forEach((childId) => {
+    collectDescendantIds(elements, childId, visited);
+  });
+
+  return visited;
+};
+
 export const buildSpecTreeItems = (
   spec: Spec | null | undefined,
   components: CatalogComponentInfo[]
@@ -147,6 +170,57 @@ export const moveElementInSpec = (
         children: nextTargetParentChildren,
       },
     },
+  };
+};
+
+export const removeElementFromSpec = (
+  spec: Spec | null,
+  id: string
+): Spec | null => {
+  if (!spec || !spec.elements[id]) {
+    return spec;
+  }
+
+  const idsToDelete = collectDescendantIds(spec.elements, id);
+  const nextElements = Object.fromEntries(
+    Object.entries(spec.elements).reduce<
+      Array<[string, Spec["elements"][string]]>
+    >((acc, [elementId, element]) => {
+      if (idsToDelete.has(elementId)) {
+        return acc;
+      }
+
+      acc.push([
+        elementId,
+        {
+          ...element,
+          ...(element.children
+            ? {
+                children: element.children.filter(
+                  (childId) => !idsToDelete.has(childId)
+                ),
+              }
+            : {}),
+        },
+      ]);
+
+      return acc;
+    }, [])
+  ) as Spec["elements"];
+
+  if (idsToDelete.has(spec.root)) {
+    const nextRoot = Object.keys(nextElements)[0] ?? "";
+
+    return {
+      ...spec,
+      root: nextRoot,
+      elements: nextElements,
+    };
+  }
+
+  return {
+    ...spec,
+    elements: nextElements,
   };
 };
 

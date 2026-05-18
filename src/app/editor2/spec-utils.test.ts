@@ -6,6 +6,7 @@ import {
   addCatalogComponentToVersions,
   buildSpecTreeItems,
   moveElementInSpec,
+  removeElementFromSpec,
 } from "./spec-utils";
 
 const components: CatalogComponentInfo[] = [
@@ -221,6 +222,52 @@ describe("Editor spec utils", () => {
 
     expect(before?.elements.root.children).toEqual(["c", "a", "b"]);
     expect(after?.elements.root.children).toEqual(["b", "c", "a"]);
+  });
+
+  it("removes an element subtree and cleans parent references", () => {
+    const spec: Spec = {
+      root: "root",
+      elements: {
+        root: {
+          type: "Stack",
+          props: {},
+          children: ["section", "tail"],
+        },
+        section: {
+          type: "Stack",
+          props: {},
+          children: ["title", "cta"],
+        },
+        title: { type: "Text", props: { text: "Title" } },
+        cta: { type: "Button", props: { label: "Go" } },
+        tail: { type: "Text", props: { text: "Tail" } },
+      },
+    };
+
+    const next = removeElementFromSpec(spec, "section");
+
+    expect(next?.elements.section).toBeUndefined();
+    expect(next?.elements.title).toBeUndefined();
+    expect(next?.elements.cta).toBeUndefined();
+    expect(next?.elements.root.children).toEqual(["tail"]);
+    expect(next?.elements.tail).toEqual(spec.elements.tail);
+  });
+
+  it("updates root when removing the current root element", () => {
+    const spec: Spec = {
+      root: "root",
+      elements: {
+        root: { type: "Stack", props: {}, children: ["child"] },
+        child: { type: "Text", props: { text: "Child" } },
+        detached: { type: "Button", props: { label: "Detached" } },
+      },
+    };
+
+    const next = removeElementFromSpec(spec, "root");
+
+    expect(next?.elements.root).toBeUndefined();
+    expect(next?.elements.child).toBeUndefined();
+    expect(next?.root).toBe("detached");
   });
 
   it("creates the first version when dropping a catalog component into an empty project", () => {

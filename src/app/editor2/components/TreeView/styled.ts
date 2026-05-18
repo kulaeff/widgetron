@@ -142,19 +142,14 @@ export const Text = styled.span(({ theme }) => css`
 `);
 
 export const TypeBadge = styled.span(({ theme }) => css`
-  ${theme.typography.smallTextSemibold};
-  align-items: center;
+  ${theme.typography.captionRegular};
   background: ${theme.tokens.current.core.layer["01"]};
   border: 1px solid ${theme.tokens.current.core.border.strong};
   border-radius: 4px;
   color: ${theme.tokens.current.core.text.secondary};
-  display: inline-flex;
-  justify-content: center;
-  line-height: 14px;
   max-width: 112px;
-  min-width: 0;
   overflow: hidden;
-  padding: 1px 5px;
+  padding: 0 4px;
   text-overflow: ellipsis;
   white-space: nowrap;
 `);
