@@ -64,11 +64,13 @@ import {
 } from "./spec-utils";
 import { Toggle } from "./components/Toggle";
 import { Loader } from "@pulse/ui/components/Loader";
+import { Modal } from "./components/Modal";
 
 interface Api {
   id: string;
   method: string;
   url: string;
+  body: string;
 }
 
 const EDITOR_RULES = [
@@ -187,7 +189,6 @@ export const Editor: FC<EditorProps> = ({ onSave }) => {
   const [activeTabData, setActiveTabData] = useState("api");
   const [activeRightTab, setActiveRightTab] = useState("properties");
   const [apis, setApis] = useState<Api[]>([]);
-  const [isToolDataVisible, setIsToolDataVisible] = useState(false);
   const [selectedElementId, setSelectedElementId] = useState<string>();
   const [selectedVersionId, setSelectedVersionId] = useState<string>();
   const [state, setState] = useState<Record<string, unknown>>({});
@@ -205,6 +206,7 @@ export const Editor: FC<EditorProps> = ({ onSave }) => {
   const [viewportId, setViewportId] = useState(VIEWPORT_OPTIONS[0].id);
 
   const generatingVersionIdRef = useRef<string>();
+  const apiModalRef = useRef<HTMLDialogElement>(null);
 
   const { actions, components, functions } = useMemo(
     () => buildCatalogData(catalog.data),
@@ -455,8 +457,16 @@ export const Editor: FC<EditorProps> = ({ onSave }) => {
     }
   };
 
-  const handleOmniBoxToolRequest = useCallback(() => {
-    setIsToolDataVisible((p) => !p);
+  const handleOmniBoxToolRequest = useCallback((id: string) => {
+    switch (id) {
+      case "api":
+        if (!apiModalRef.current?.open) {
+          apiModalRef.current?.showModal();
+        }
+        break;
+      default:
+        break;
+    }
   }, []);
 
   const handleOmniBoxSubmit = useCallback(
@@ -484,9 +494,16 @@ export const Editor: FC<EditorProps> = ({ onSave }) => {
       let data: Array<Record<string, unknown>> | null = null;
 
       if (apis.length > 0) {
-        const promises = apis.map((api) =>
-          fetch(api.url, { method: api.method })
-        );
+        const promises = apis.map((api) => {
+          const method = api.method.toUpperCase();
+
+          return fetch(api.url, {
+            method,
+            ...(method === "POST" && api.body.trim().length > 0
+              ? { body: api.body }
+              : {}),
+          });
+        });
 
         const responses = await Promise.all(promises);
 
@@ -842,6 +859,21 @@ export const Editor: FC<EditorProps> = ({ onSave }) => {
                 }
               />
             </Item>
+            {api.method === "post" ? (
+              <Item grow>
+                <Input
+                  placeholder={t("Тело запроса")}
+                  value={api.body}
+                  onChange={(e) =>
+                    setApis((p) =>
+                      p.map((a) =>
+                        a.id === api.id ? { ...a, body: e.target.value } : a
+                      )
+                    )
+                  }
+                />
+              </Item>
+            ) : null}
             <Item>
               <IconButton size="m-alt" $type="tertiary">
                 x
@@ -861,6 +893,7 @@ export const Editor: FC<EditorProps> = ({ onSave }) => {
                 id: Date.now().toString(),
                 method: "get",
                 url: "",
+                body: "",
               },
             ])
           }
@@ -989,29 +1022,91 @@ export const Editor: FC<EditorProps> = ({ onSave }) => {
                  </Island>
               </Panel>
               <Panel position="bottom-center">
-                {isToolDataVisible ? (
-                  <Island width="100%">
-                    <Flex vertical>
-                      <Item>
-                        <Tabs
-                          items={[
-                            { id: "api", label: "апи" },
-                            { id: "structure", label: "структура" },
-                            { id: "data", label: "данные" },
-                          ]}
-                          value={activeTabData}
-                          onChange={(tab) => setActiveTabData(tab)}
-                        />
-                      </Item>
-                      <Item grow>
-                        {activeTabData === "api" ? apiEditor : null}
-                      </Item>
-                    </Flex>
-                  </Island>
-                ) : null}
+                <Modal ref={apiModalRef} id="modalApi">
+                  <Flex vertical>
+                    <Item grow>
+                      <Flex vertical>
+                        {apis.map((api) => (
+                          <Item key={api.id}>
+                            <Flex>
+                              <Item>
+                                <Toggle
+                                  options={[
+                                    { id: "get", label: "GET" },
+                                    { id: "post", label: "POST" },
+                                  ]}
+                                  value={api.method}
+                                  onChange={(id) =>
+                                    setApis((p) =>
+                                      p.map((a) =>
+                                        a.id === api.id ? { ...a, method: id } : a
+                                      )
+                                    )
+                                  }
+                                />
+                              </Item>
+                              <Item grow>
+                                <Input
+                                  value={api.url}
+                                  onChange={(e) =>
+                                    setApis((p) =>
+                                      p.map((a) =>
+                                        a.id === api.id ? { ...a, url: e.target.value } : a
+                                      )
+                                    )
+                                  }
+                                />
+                              </Item>
+                                {api.method === "post" ? (
+                                  <Item grow>
+                                    <Input
+                                      placeholder={t("Тело запроса")}
+                                      value={api.body}
+                                      onChange={(e) =>
+                                        setApis((p) =>
+                                          p.map((a) =>
+                                            a.id === api.id
+                                              ? { ...a, body: e.target.value }
+                                              : a
+                                          )
+                                        )
+                                      }
+                                    />
+                                  </Item>
+                                ) : null}
+                              <Item>
+                                <IconButton size="m-alt" $type="tertiary">
+                                  x
+                                </IconButton>
+                              </Item>
+                            </Flex>
+                          </Item>
+                        ))}
+                        <Item>
+                          <IconButton
+                            size="s"
+                            $type="secondary"
+                            onClick={() =>
+                              setApis((p) => [
+                                ...p,
+                                {
+                                  id: Date.now().toString(),
+                                  method: "get",
+                                  url: "",
+                                  body: "",
+                                },
+                              ])
+                            }
+                          >
+                            +
+                          </IconButton>
+                        </Item>
+                      </Flex>
+                    </Item>
+                  </Flex>
+                </Modal>
                 <Island width={500}>
                   <OmniBox
-
                     loading={isStreaming}
                     placeholder="Что вы хотите изменить или создать?"
                     onSubmit={handleOmniBoxSubmit}

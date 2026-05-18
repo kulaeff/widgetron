@@ -97,6 +97,12 @@ export const OmniBox: FC<OmniBoxProps> = ({
                   label: t("изображение"),
                 },
                 {
+                  id: "api",
+                  label: t("API"),
+                  command: "show-modal",
+                  commandFor: "modalApi",
+                },
+                {
                   id: "dom",
                   label: t("дерево DOM"),
                 },
