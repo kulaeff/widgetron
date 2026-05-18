@@ -1,1 +1,1 @@
-export { type LevaControl, LevaPanel } from "./LevaPanel";
+export { type LevaControl, type LevaControlValue, LevaPanel } from "./LevaPanel";

@@ -1,4 +1,6 @@
 import { describe, expect, it } from "vitest";
+import { catalog } from "../lib/catalog";
+import { buildCatalogData } from "./catalog-data";
 import type { CatalogComponentInfo } from "./catalog-data";
 import {
   buildSafeDefaultProps,
@@ -23,6 +25,7 @@ describe("catalog drag helpers", () => {
         { name: "gap", type: "0 | 1 | 2" },
         { name: "config", type: "record" },
         { name: "url", type: "string" },
+        { name: "align", type: "start | center | end | stretch", default: "stretch" },
       ],
     };
 
@@ -35,6 +38,28 @@ describe("catalog drag helpers", () => {
       gap: 0,
       config: {},
       url: "#",
+      align: "stretch",
+    });
+  });
+
+  it("prefers real catalog defaults over enum first value", () => {
+    const { components } = buildCatalogData(catalog.data);
+    const stack = components.find((component) => component.name === "Stack");
+    const grid = components.find((component) => component.name === "Grid");
+
+    expect(stack).toBeDefined();
+    expect(grid).toBeDefined();
+
+    expect(buildSafeDefaultProps(stack as CatalogComponentInfo)).toMatchObject({
+      align: "stretch",
+      direction: "column",
+      gap: 0,
+      justify: "stretch",
+    });
+    expect(buildSafeDefaultProps(grid as CatalogComponentInfo)).toMatchObject({
+      align: "stretch",
+      gap: 0,
+      justify: "stretch",
     });
   });
 

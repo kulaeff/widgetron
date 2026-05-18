@@ -46,7 +46,11 @@ import {
   buildCatalogData,
   type CatalogComponentInfo,
 } from "./utils/catalog-data";
-import { type LevaControl, LevaPanel } from "./components/LevaPanel";
+import {
+  type LevaControl,
+  type LevaControlValue,
+  LevaPanel,
+} from "./components/LevaPanel";
 import { Tabs } from "./components/Tabs";
 import { Item, Flex } from "./components/Flex";
 import { Versions } from "./components/Versions";
@@ -312,21 +316,21 @@ export const Editor: FC<EditorProps> = ({ onSave }) => {
                 id,
                 label: id,
                 type: "boolean",
-                value: typeof value === "boolean" ? value : false,
+                value,
               };
             case "number":
               return {
                 id,
                 label: id,
                 type: "number",
-                value: typeof value === "number" ? value : 0,
+                value,
               };
             case "string":
               return {
                 id,
                 label: id,
                 type: "string",
-                value: typeof value === "string" ? value : "",
+                value,
               };
             default: {
               const options = prop.type.split("|").map((item) => item.trim());
@@ -336,7 +340,7 @@ export const Editor: FC<EditorProps> = ({ onSave }) => {
                 label: id,
                 options,
                 type: "select",
-                value: typeof value === "string" ? value : "",
+                value,
               };
             }
           }
@@ -400,7 +404,7 @@ export const Editor: FC<EditorProps> = ({ onSave }) => {
   );
 
   const handleLevaControlChange = useCallback(
-    (id: string, value: string | number | boolean) => {
+    (id: string, value: LevaControlValue) => {
       if (!selectedElementId) return;
 
       setVersions((p) =>
@@ -1130,11 +1134,11 @@ export const Editor: FC<EditorProps> = ({ onSave }) => {
                   </Island>
                 </Panel>
               ) : null}
-              <Panel
-                position="top-left"
-                style={{ height: "calc(100% - 212px)", marginTop: 76 }}
-              >
-                <Island width="min(300px, calc(50vw - 24px))" height="100%">
+              <Panel position="top-left">
+                <Island
+                  maxHeight="calc(100vh - 30px)"
+                  minWidth={300}
+                >
                   <Flex vertical>
                     <Item>
                       <Tabs

@@ -63,7 +63,7 @@ export const EmptyDropZone = styled.li<{ $isActive?: boolean }>`
 export const Item = styled.li<{ $isSelected?: boolean }>`
   border-radius: 4px;
   list-style: none;
-  margin: 4px 0 0 0;
+  margin: 2px 0 0 0;
   padding: 0;
 `;
 

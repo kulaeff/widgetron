@@ -81,7 +81,10 @@ export const buildSafeDefaultProps = (
 ): Record<string, unknown> => {
   return component.props.reduce<Record<string, unknown>>((acc, field) => {
     const propName = field.name.replace("?", "");
-    acc[propName] = defaultValueFromType(field, component.name);
+    acc[propName] =
+      field.default !== undefined
+        ? field.default
+        : defaultValueFromType(field, component.name);
     return acc;
   }, {});
 };

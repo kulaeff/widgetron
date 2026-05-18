@@ -28,6 +28,8 @@ export const Island = styled("div")<IslandStyleProps>(
     borderRadius: 8,
     boxShadow: "0 4px 12px rgba(0, 0, 0, 0.1)",
     boxSizing: "border-box",
+    display: "grid",
+    gridTemplateRows: "minmax(0, 1fr)",
     padding: $unstyled ? 0 : "16px",
     ...(typeof $width !== "undefined" ? { width: $width } : {}),
     ...(typeof $height !== "undefined" ? { height: $height } : {}),

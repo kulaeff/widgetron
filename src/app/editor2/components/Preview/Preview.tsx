@@ -2,6 +2,7 @@ import type { Spec } from "@json-render/core";
 import { useEffect, useMemo, type FC } from "react";
 import * as Styled from "./styled";
 import { Renderer, type RendererProps } from "../../components/Renderer";
+import { ta } from "zod/locales";
 
 export interface PreviewProps extends Omit<RendererProps, "spec">, Record<string, unknown> {
   spec: Spec | null;
@@ -71,7 +72,7 @@ export const Preview: FC<PreviewProps> = ({
     const highlightedElements = document.querySelectorAll("[data-preview-highlight]");
     highlightedElements.forEach((element) => {
       if (element instanceof HTMLElement) {
-        element.style.boxShadow = "";
+        element.style.outline = "";
         element.removeAttribute("data-preview-highlight");
       }
     });
@@ -83,7 +84,9 @@ export const Preview: FC<PreviewProps> = ({
     const targetElement = resolveHighlightElement(selectedElementId);
 
     if (targetElement instanceof HTMLElement) {
-      targetElement.style.boxShadow = "inset 0 0 0 2px rgba(35, 111, 255, 0.9)";
+      // targetElement.style.isolation = "isolate";
+      targetElement.style.outline = "2px solid rgba(35, 111, 255, 0.9)";
+      // targetElement.style.outlineOffset = "-2px";
       targetElement.setAttribute("data-preview-highlight", "selected");
     }
   }, [selectedElementId]);
