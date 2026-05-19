@@ -45,6 +45,5 @@ export const Grid = styled.div<
   grid-template-columns: ${({ $columns }) =>
     buildGridTemplateColumnsRule($columns)};
   gap: ${({ $gap }) => $gap * 4}px;
-  height: 100%;
   justify-content: ${({ $justify }) => $justify};
 `;

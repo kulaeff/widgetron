@@ -22,6 +22,7 @@ export const MenuButton = styled.button(({ theme }) => css`
   padding: 4px 12px;
   text-align: left;
   transition: background-color 60ms;
+  white-space: nowrap;
   width: 100%;
   &:hover:not(:disabled) {
     background: ${theme.tokens.current.interactive.hover.tertiary};

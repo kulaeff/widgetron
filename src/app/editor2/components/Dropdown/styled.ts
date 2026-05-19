@@ -1,5 +1,9 @@
 import styled, { css } from 'styled-components';
 
+export const Root = styled.div`
+  position: relative;
+`;
+
 export const Dropdown = styled.div(({ theme }) => css`
   ${theme.typography.body2Regular};
   background: ${theme.tokens.current.core.background.default};
@@ -8,17 +12,9 @@ export const Dropdown = styled.div(({ theme }) => css`
   box-shadow: 0 4px 16px 0 rgba(0, 0, 0, 0.1);
   color: ${theme.tokens.current.core.text.primary};
   margin: 0;
-  opacity: 0;
+  position: absolute;
+  bottom: calc(100% + 4px);
+  left: 0;
   padding: 8px;
-  transition: opacity 60ms;
-
-  &:popover-open {
-    opacity: 1;
-  }
-
-  @starting-style {
-    &:popover-open {
-      opacity: 0;
-    }
-  }
+  z-index: 10;
 `);

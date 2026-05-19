@@ -1,7 +1,6 @@
 import { IconButton } from "@pulse/ui/components/Button";
 import {
   MouseEventHandler,
-  useRef,
   useState,
   type ChangeEventHandler,
   type FC,
@@ -32,8 +31,7 @@ export const OmniBox: FC<OmniBoxProps> = ({
   const { t } = useTranslation();
 
   const [localValue, setLocalValue] = useState("");
-
-  const dropdownAttachRef = useRef<HTMLDivElement>(null);
+  const [isDropdownOpen, setIsDropdownOpen] = useState(false);
 
   const handlePromptChange: ChangeEventHandler<HTMLTextAreaElement> = (e) => {
     setLocalValue(e.target.value);
@@ -64,7 +62,7 @@ export const OmniBox: FC<OmniBoxProps> = ({
   };
 
   const handleMenuCommand = (id: string) => {
-    dropdownAttachRef.current?.hidePopover();
+    setIsDropdownOpen(false);
 
     onToolRequest?.(id);
   };
@@ -79,21 +77,19 @@ export const OmniBox: FC<OmniBoxProps> = ({
         onKeyDown={handleKeyDown}
       />
       <Styled.Buttons>
-        <Button
-          label="+"
-          size="sm"
-          variant="secondary"
-          // @ts-expect-error Not typed yet
-          popovertarget="dropdown"
-          style={{ anchorName: "--button-attach" }}
-        />
         <Dropdown
-          id="dropdown"
-          ref={dropdownAttachRef}
+          isOpen={isDropdownOpen}
+          onChange={setIsDropdownOpen}
+          trigger={(
+            <Button
+              label="+"
+              size="sm"
+              variant="secondary"
+              onClick={() => setIsDropdownOpen(true)}
+            />
+          )}
           style={{
             marginBottom: "4px",
-            positionAnchor: "--button-attach",
-            positionArea: "top span-right",
           }}
         >
           <Menu

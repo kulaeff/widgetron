@@ -1,7 +1,7 @@
-import type { CSSProperties, HTMLAttributes, Ref } from 'react';
+import type { HTMLAttributes, ReactNode } from "react";
 
-export interface DropdownProps extends HTMLAttributes<HTMLDivElement> {
-  inset?: CSSProperties['inset'];
-  ref?: Ref<HTMLDivElement>;
-  type?: 'auto' | 'manual' | 'hint';
+export interface DropdownProps extends Omit<HTMLAttributes<HTMLDivElement>, "onChange"> {
+  isOpen: boolean;
+  onChange: (state: boolean) => void;
+  trigger: ReactNode;
 }
