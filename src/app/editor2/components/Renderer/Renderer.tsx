@@ -52,7 +52,7 @@ export const Renderer: FC<RendererProps> = ({
           }).format(value);
         },
         formatDate: (args) => {
-          const value = Number(args.value ?? 0);
+          const value = new Date(Number(args.value ?? 0));
 
           return new Intl.DateTimeFormat("en-US", {
             dateStyle:
@@ -92,7 +92,7 @@ export const Renderer: FC<RendererProps> = ({
           );
         },
         formatTime: (args) => {
-          const value = Number(args.value ?? 0);
+          const value = new Date(Number(args.value ?? 0));
 
           return new Intl.DateTimeFormat("en-US", {
             timeStyle:

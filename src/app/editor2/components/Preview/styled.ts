@@ -17,8 +17,7 @@ export const Label = styled.span(
     align-content: center;
     color: ${theme.tokens.current.core.text.secondary};
     display: block;
-    max-width: 240px;
-    margin: auto 0;
+    height: 100%;
     text-align: center;
   `
 );
