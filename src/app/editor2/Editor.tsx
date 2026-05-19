@@ -1193,6 +1193,8 @@ export const Editor: FC<EditorProps> = ({ onSave }) => {
               <Panel position="top-left">
                 <Island
                   maxHeight="calc(100vh - 30px)"
+                  maxWidth={300}
+                  minHeight={300}
                   minWidth={300}
                 >
                   <Flex vertical>
