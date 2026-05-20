@@ -442,7 +442,7 @@ export const catalog = defineCatalog(schema, {
       params: z.object({
         url: z.string(),
         method: z
-          .enum(["GET", "POST", "PUT", "DELETE", "PATCH", "OPTIONS", "HEAD"])
+          .enum(["GET", "POST", "PUT", "DELETE", "PATCH"])
           .optional(),
         headers: z.record(z.string(), z.string()).optional(),
         body: z.record(z.string(), z.unknown()).optional(),

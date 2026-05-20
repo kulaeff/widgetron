@@ -1,4 +1,3 @@
-import * as Styled from "./styled";
 import {
   DragDropProvider,
   DragOverlay,
@@ -9,9 +8,10 @@ import {
 import { validateSpec } from "@json-render/core";
 import type { Spec } from "@json-render/react";
 import { Editor as MonacoEditor } from "@monaco-editor/react";
-import { JsonEditor, JsonValue } from "@visual-json/react";
 import { Input } from "@pulse/ui/components/Input";
 import { IconButton } from "@pulse/ui/components/Button";
+import { Loader } from "@pulse/ui/components/Loader";
+import { JsonEditor, JsonValue } from "@visual-json/react";
 import {
   Background,
   Node,
@@ -34,28 +34,27 @@ import { useTranslation } from "react-i18next";
 import { useTheme } from "styled-components";
 import { Button } from "./components/Button";
 import { Island } from "./components/Island";
-import { Preview, type PreviewProps } from "./components/Preview";
-import { useUIStream } from "./hooks/useUIStream";
-import { OmniBox } from "./components/OmniBox";
-import { ToolBar } from "./components/ToolBar";
-import { ToolPicker, type ToolPickerItem } from "./components/ToolPicker";
-import { ZoomControl, type ZoomOption } from "./components/ZoomControl";
-import { TREE_ROOT_DROP_TARGET_ID, TreeView } from "./components/TreeView";
-import { catalog } from "./lib/catalog";
-import {
-  buildCatalogData,
-  type CatalogComponentInfo,
-} from "./utils/catalog-data";
 import {
   type LevaControl,
   type LevaControlValue,
   LevaPanel,
 } from "./components/LevaPanel";
+import { OmniBox } from "./components/OmniBox";
+import { ToolBar } from "./components/ToolBar";
+import { ToolPicker, type ToolPickerItem } from "./components/ToolPicker";
+import { ZoomControl, type ZoomOption } from "./components/ZoomControl";
+import { TREE_ROOT_DROP_TARGET_ID, TreeView } from "./components/TreeView";
+import { Preview, type PreviewProps } from "./modules/Preview";
+import { Runtime } from "./modules/Runtime";
 import { Tabs } from "./components/Tabs";
 import { Item, Flex } from "./components/Flex";
 import { Versions } from "./components/Versions";
 import { CodeBlock } from "./components/CodeBlock";
 import { VisibilityEditor } from "./components/VisibilityEditor";
+import { Toggle } from "./components/Toggle";
+import { Modal } from "./components/Modal";
+import { useUIStream } from "./hooks/useUIStream";
+import { catalog } from "./lib/catalog";
 import { Version } from "./types";
 import type {
   WidgetCreatorProps,
@@ -67,10 +66,11 @@ import {
   moveElementInSpec,
   removeElementFromSpec,
 } from "./spec-utils";
-import { Toggle } from "./components/Toggle";
-import { Loader } from "@pulse/ui/components/Loader";
-import { Modal } from "./components/Modal";
-import { Runtime } from "./modules/Runtime";
+import {
+  buildCatalogData,
+  type CatalogComponentInfo,
+} from "./utils/catalog-data";
+import * as Styled from "./styled";
 
 interface Api {
   id: string;
@@ -197,12 +197,10 @@ export const Editor: FC<EditorProps> = ({ onSave }) => {
   const { fitView, zoomIn, zoomOut, zoomTo } = useReactFlow();
 
   const [activeTab, setActiveTab] = useState("elements");
-  const [activeTabData, setActiveTabData] = useState("api");
   const [activeRightTab, setActiveRightTab] = useState("properties");
   const [apis, setApis] = useState<Api[]>([]);
   const [selectedElementId, setSelectedElementId] = useState<string>();
   const [selectedVersionId, setSelectedVersionId] = useState<string>();
-  const [state, setState] = useState<Record<string, unknown>>({});
   const [type, setType] = useState("");
   const [mode, setMode] = useState<string>(Mode.AI);
   const [versions, setVersions] = useState<Version[]>([]);
@@ -211,7 +209,6 @@ export const Editor: FC<EditorProps> = ({ onSave }) => {
   >(null);
   const [draggedCatalogComponentName, setDraggedCatalogComponentName] =
     useState<string | null>(null);
-  const [isHistoryOpen, setIsHistoryOpen] = useState(false);
   const [isCodeModalOpen, setIsCodeModalOpen] = useState(false);
   const [selectedDesignToolId, setSelectedDesignToolId] = useState("select");
   const [viewportId, setViewportId] = useState(VIEWPORT_OPTIONS[0].id);
@@ -233,8 +230,16 @@ export const Editor: FC<EditorProps> = ({ onSave }) => {
     url: "https://api.z.ai/api/paas/v4/chat/completions",
   });
 
-  const currentVersion = useMemo(
-    () => versions.find((v) => v.id === selectedVersionId),
+  const [currentVersion, currentVersionIndex] = useMemo(
+    () => {
+      const index = versions.findIndex((v) => v.id === selectedVersionId);
+
+      if (index === -1) {
+        return [null, 0];
+      }
+
+      return [versions[index], index];
+    },
     [selectedVersionId, versions]
   );
   const selectedViewport = useMemo(
@@ -246,31 +251,8 @@ export const Editor: FC<EditorProps> = ({ onSave }) => {
 
   const currentSpec = currentVersion?.spec ?? spec;
   const currentSpecCode = JSON.stringify(currentSpec, null, 2);
-  const currentState = {
-    ...(currentSpec?.state),
-    ...state,
-  };
-  const currentSnapshotData = currentState.data ?? null;
-  const currentVersionNumber = currentVersion
-    ? versions.findIndex((version) => version.id === currentVersion.id) + 1
-    : null;
-  const currentVersionLabel = currentVersionNumber
-    ? `v${currentVersionNumber}`
-    : "без версии";
-  const currentPromptLabel = currentVersion?.prompt?.trim() ?? "";
-  const hasCurrentPrompt = currentPromptLabel.length > 0;
-  const currentStatusLabel =
-    isStreaming || currentVersion?.status === "pending"
-      ? "генерация"
-      : currentVersion
-        ? "готово"
-        : "черновик";
-  const hasApiData = currentSnapshotData !== null;
-  const historyPreviewLabel = hasCurrentPrompt
-    ? currentPromptLabel
-    : versions.length > 0
-      ? "Выбрать версию"
-      : "История пуста";
+  const currentState = currentSpec?.state;
+  const currentSnapshotData = currentState?.data ?? null;
   const isSaveDisabled = isStreaming || !currentSpec;
 
   console.log("currentState", currentState);
@@ -368,7 +350,6 @@ export const Editor: FC<EditorProps> = ({ onSave }) => {
   const handleVersionSelect = useCallback((id: string) => {
     setSelectedVersionId(id);
     setSelectedElementId(undefined);
-    setIsHistoryOpen(false);
   }, []);
 
   const handleJsonEditorChange = useCallback(
@@ -596,8 +577,13 @@ export const Editor: FC<EditorProps> = ({ onSave }) => {
       }
 
       await send(value, {
-        data: data && data.length > 1 ? data : data?.[0],
-        previousSpec: currentVersion?.spec,
+        previousSpec: currentVersion?.spec ?? {
+          root: "",
+          elements: {},
+          state: {
+            data: data ?? undefined
+          },
+        },
       });
     },
     [apis, currentVersion, send]
@@ -750,31 +736,6 @@ export const Editor: FC<EditorProps> = ({ onSave }) => {
     [handlePreviewDropComponent]
   );
 
-  const handlePreviewStateChange = useCallback(
-    (changes: Array<{ path: string; value: unknown }>) => {
-      setState((prev) => {
-        const next = { ...prev };
-
-        for (let i = 0; i < changes.length; i += 1) {
-          const { path, value } = changes[i];
-          const parts = path.split("/").filter(Boolean);
-          let current: Record<string, unknown> = next;
-          for (let i = 0; i < parts.length - 1; i += 1) {
-            const part = parts[i]!;
-            if (!(part in current) || typeof current[part] !== "object") {
-              current[part] = {};
-            }
-            current = current[part] as Record<string, unknown>;
-          }
-          const lastPart = parts[parts.length - 1]!;
-          current[lastPart] = value;
-        }
-        return next;
-      });
-    },
-    []
-  );
-
   const handleTreeViewElementsChange = (id: string) => {
     setSelectedElementId(id);
   };
@@ -842,11 +803,8 @@ export const Editor: FC<EditorProps> = ({ onSave }) => {
             : "Перетащите сюда компонент из палитры",
         loading: isStreaming,
         selectedElementId,
-        viewportSize: selectedViewport,
         spec: currentSpec,
-        state: currentState,
-        setState,
-        onStateChange: handlePreviewStateChange,
+        viewportSize: selectedViewport,
       },
       draggable: false,
       origin: [0.5, 0.5] as NodeOrigin,
@@ -863,7 +821,7 @@ export const Editor: FC<EditorProps> = ({ onSave }) => {
             ? {
               ...v,
               raw,
-              spec: { ...spec, state: { ...spec?.state, ...state } },
+              spec,
               status: "complete",
               usage,
             }
@@ -871,7 +829,7 @@ export const Editor: FC<EditorProps> = ({ onSave }) => {
         )
       );
     }
-  }, [isStreaming, raw, spec, state, usage]);
+  }, [isStreaming, raw, spec, usage]);
 
   useEffect(() => {
     if (mode !== Mode.DESIGN || selectedDesignToolId !== "component") {
@@ -1078,7 +1036,7 @@ export const Editor: FC<EditorProps> = ({ onSave }) => {
                               <Loader size="lg" />
                             ) : null}
                             <Styled.RailTag $tone="accent">
-                              {currentVersionLabel}
+                              v{currentVersionIndex + 1}
                             </Styled.RailTag>
                           </Styled.RailMeta>
                         </Styled.RailHeader>
@@ -1270,7 +1228,7 @@ export const Editor: FC<EditorProps> = ({ onSave }) => {
                                   tokens.current.colors.orange.solid["60"],
                               } as CSSProperties
                             }
-                            value={currentState as JsonValue}
+                            value={currentSpec?.state as JsonValue}
                             onChange={handleJsonEditorChange}
                           />
                         ) : null}

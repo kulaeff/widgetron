@@ -13,7 +13,6 @@ export interface RendererProps {
   spec: Spec | null;
   state: Record<string, unknown>;
   setState: SetState;
-  onStateChange?: (changes: Array<{ path: string; value: unknown }>) => void;
 }
 
 export const Renderer: FC<RendererProps> = ({
@@ -21,7 +20,6 @@ export const Renderer: FC<RendererProps> = ({
   spec,
   state,
   setState,
-  onStateChange,
 }) => {
   const handlers = useMemo(
     () =>
@@ -38,7 +36,6 @@ export const Renderer: FC<RendererProps> = ({
       handlers={handlers}
       initialState={state}
       registry={registry}
-      onStateChange={onStateChange}
     >
       <JSONUIRenderer
         fallback={({ element }) => <Fallback type={element.type} />}

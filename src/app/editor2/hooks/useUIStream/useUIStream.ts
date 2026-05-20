@@ -116,16 +116,15 @@ export const useUIStream = ({
       setUsage(null);
       setRaw([]);
 
-      const customState = context?.data as Record<string, unknown>;
-      const previousSpec = context?.previousSpec as Spec;
+      const previousSpec = context.previousSpec as Spec;
 
       let currentSpec =
-        previousSpec && previousSpec.root
+        previousSpec
           ? structuredClone(previousSpec)
           : {
               root: "",
               elements: {},
-              state: customState ?? undefined,
+              state: {},
             };
 
       setSpec(currentSpec);
@@ -175,7 +174,7 @@ export const useUIStream = ({
           throw new Error(error);
         } */
 
-        const reader = response.body?.getReader();
+        /* const reader = response.body?.getReader();
 
         if (!reader) {
           throw new Error("No response body");
@@ -188,11 +187,9 @@ export const useUIStream = ({
           // eslint-disable-next-line no-await-in-loop
           const { done, value } = await reader.read();
 
-          if (done) break;
+          if (done) break; */
 
-          const json = JSON.parse(
-            decoder.decode(value, { stream: true })
-          ) as GigachatResponse;
+          const json = ( await response.json()) as GigachatResponse;
           const lines = json.choices[0].message.content.split("\n");
           const patches = lines.map((line) => JSON.parse(line));
 
@@ -203,7 +200,7 @@ export const useUIStream = ({
           }
 
           setSpec({ ...currentSpec });
-        }
+        // }
       } catch (e) {
         if ((e as Error).name === "AbortError") {
           return;

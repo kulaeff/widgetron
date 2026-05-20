@@ -1,4 +1,4 @@
-import { useCallback, useState, type FC } from "react";
+import { useState, type FC } from "react";
 import { Renderer, type RendererProps } from "../../components/Renderer";
 import * as Styled from "./styled";
 

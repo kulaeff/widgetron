@@ -3,8 +3,12 @@ import { useEffect, useMemo, type FC } from "react";
 import * as Styled from "./styled";
 import { Renderer, type RendererProps } from "../../components/Renderer";
 import { ta } from "zod/locales";
+import { JSONUIProvider, Renderer as JSONUIRenderer } from "@json-render/react";
+import { standardDirectives } from "@json-render/directives";
+import { Fallback, registry } from "../../lib/registry";
 
-export interface PreviewProps extends Omit<RendererProps, "spec">, Record<string, unknown> {
+export interface PreviewProps extends Record<string, unknown> {
+  loading: boolean;
   spec: Spec | null;
   selected?: boolean;
   selectedElementId?: string;
@@ -17,12 +21,9 @@ export interface PreviewProps extends Omit<RendererProps, "spec">, Record<string
 
 export const Preview: FC<PreviewProps> = ({
   spec,
-  state,
-  loading = false,
-  setState,
+  loading,
   selected = false,
   selectedElementId,
-  onStateChange,
   viewportSize,
   emptyLabel,
 }) => {
@@ -100,13 +101,18 @@ export const Preview: FC<PreviewProps> = ({
     >
       {/* eslint-disable-next-line no-nested-ternary */}
       {markedSpec ? (
-        <Renderer
-          loading={loading}
-          spec={markedSpec}
-          state={state}
-          setState={setState}
-          onStateChange={onStateChange}
-        />
+        <JSONUIProvider
+          directives={standardDirectives}
+          initialState={spec?.state}
+          registry={registry}
+        >
+          <JSONUIRenderer
+            fallback={({ element }) => <Fallback type={element.type} />}
+            loading={loading}
+            registry={registry}
+            spec={spec}
+          />
+        </JSONUIProvider>
       ) : emptyLabel ? (
         <Styled.Label>{emptyLabel}</Styled.Label>
       ) : (
