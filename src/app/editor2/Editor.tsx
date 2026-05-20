@@ -929,12 +929,6 @@ export const Editor: FC<EditorProps> = ({ onSave }) => {
     };
   }, [isCodeModalOpen]);
 
-  useEffect(() => {
-    if (mode !== Mode.AI) {
-      setIsHistoryOpen(false);
-    }
-  }, [mode]);
-
   const apiEditor = (
     <Flex vertical>
       {apis.map((api) => (
@@ -1419,7 +1413,7 @@ export const Editor: FC<EditorProps> = ({ onSave }) => {
           </ReactFlow>
         ) : null}
         {mode === Mode.DEV ? (
-          <Runtime spec={currentSpec} loading={isStreaming} viewportSize={selectedViewport} />
+          <Runtime spec={currentSpec} loading={isStreaming} size={selectedViewport} />
         ) : null}
         {/* Always on top */}
         <Panel position="top-right">

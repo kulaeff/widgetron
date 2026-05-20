@@ -1,7 +1,7 @@
 import type { Spec } from "@json-render/core";
 import { standardDirectives } from "@json-render/directives";
 import { JSONUIProvider, Renderer as JSONUIRenderer, type SetState } from "@json-render/react";
-import { useMemo, type FC } from "react";
+import { useMemo, useRef, type FC } from "react";
 import {
   registry,
   handlers as createHandlers,
@@ -29,7 +29,7 @@ export const Renderer: FC<RendererProps> = ({
         () => setState,
         () => state
       ),
-    []
+    [state, setState]
   );
 
   return (

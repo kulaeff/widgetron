@@ -31,6 +31,8 @@ import { Text } from "../ui/Text";
 // import { Link } from "@/components/ui/link";
 import { catalog } from "./catalog";
 import { Slider } from "../ui/Slider";
+import { createStateStore } from "@json-render/react";
+import { setByPath } from "@json-render/core";
 
 const getSpecMarkerProps = (props: unknown) => {
   const id =
@@ -336,16 +338,6 @@ export const { registry, handlers, executeAction } = defineRegistry(catalog, {
     },
   },
   actions: {
-    // Demo actions — show toasts
-    buttonClick: async (params) => {
-      console.log("click", params);
-    },
-    formSubmit: async (params) => {
-      console.log("submit", params);
-    },
-    linkClick: async (params) => {
-      console.log("link", params);
-    },
     httpRequest: async (params, setState) => {
       if (params) {
         const { url, method, headers, body, statePath = "data" } = params;
@@ -358,7 +350,13 @@ export const { registry, handlers, executeAction } = defineRegistry(catalog, {
 
         const data = await response.json();
 
-        setState((p) => ({ ...p, [statePath]: data }));
+        setState((prev) => {
+          const next = {...prev};
+
+          setByPath(next, statePath, data);
+
+          return next;
+        });
       }
     },
   },

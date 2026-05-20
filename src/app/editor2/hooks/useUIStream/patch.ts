@@ -1,83 +1,10 @@
-import type { JsonPatch, UIElement } from "@json-render/core";
+import { removeByPath, setByPath, type JsonPatch, type UIElement } from "@json-render/core";
 import type { Spec } from "@json-render/react";
 
 const cloneState = (state: Spec["state"]): Spec["state"] => {
   if (!state) return undefined;
 
   return structuredClone(state);
-};
-
-const removeByPath = (obj: Record<string, unknown>, path: string) => {
-  const segments = path.split("/").filter(Boolean);
-
-  let current: Record<string, unknown> | unknown[] = obj;
-
-  for (let i = 0; i < segments.length - 1; i += 1) {
-    const segment = segments[i];
-
-    if (Array.isArray(current)) {
-      const index = parseInt(segment, 10);
-
-      if (current[index] !== undefined) {
-        current = current[index] as Record<string, unknown> | unknown[];
-      }
-    } else if (segment in current) {
-      current = current[segment] as Record<string, unknown> | unknown[];
-    }
-  }
-
-  const lastSegment = segments[segments.length - 1];
-
-  if (Array.isArray(current)) {
-    const index = parseInt(lastSegment, 10);
-
-    current.splice(index, 1);
-  } else {
-    delete current[lastSegment];
-  }
-};
-
-const setByPath = (
-  obj: Record<string, unknown>,
-  path: string,
-  value: unknown
-) => {
-  const segments = path.split("/").filter(Boolean);
-
-  let current: Record<string, unknown> | unknown[] = obj;
-
-  for (let i = 0; i < segments.length - 1; i += 1) {
-    const segment = segments[i];
-    const nextSegment = segments[i + 1];
-    const isNextSegmentNumeric =
-      nextSegment !== undefined && !Number.isNaN(Number(nextSegment));
-
-    if (Array.isArray(current)) {
-      const index = parseInt(segment, 10);
-
-      if (current[index] === undefined) {
-        current[index] = isNextSegmentNumeric ? [] : {};
-      }
-
-      current = current[index] as Record<string, unknown> | unknown[];
-    } else {
-      if (!(segment in current)) {
-        current[segment] = isNextSegmentNumeric ? [] : {};
-      }
-
-      current = current[segment] as Record<string, unknown> | unknown[];
-    }
-  }
-
-  const lastSegment = segments[segments.length - 1];
-
-  if (Array.isArray(current)) {
-    const index = parseInt(lastSegment, 10);
-
-    current[index] = value;
-  } else {
-    current[lastSegment] = value;
-  }
 };
 
 const setSpecValue = (spec: Spec, path: string, value: unknown) => {

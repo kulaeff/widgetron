@@ -437,24 +437,6 @@ export const catalog = defineCatalog(schema, {
   },
 
   actions: {
-    buttonClick: {
-      params: z.object({
-        message: z.string().optional(),
-      }),
-      description: "Shows a toast with the message.",
-    },
-    formSubmit: {
-      params: z.object({
-        formName: z.string().optional(),
-      }),
-      description: "Shows a toast confirming form submission.",
-    },
-    linkClick: {
-      params: z.object({
-        href: z.string(),
-      }),
-      description: "Shows a toast with the link destination.",
-    },
     httpRequest: {
       description: "Makes an HTTP request.",
       params: z.object({
