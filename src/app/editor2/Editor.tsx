@@ -55,6 +55,7 @@ import { Tabs } from "./components/Tabs";
 import { Item, Flex } from "./components/Flex";
 import { Versions } from "./components/Versions";
 import { CodeBlock } from "./components/CodeBlock";
+import { VisibilityEditor } from "./components/VisibilityEditor";
 import { Version } from "./types";
 import type {
   WidgetCreatorProps,
@@ -69,6 +70,7 @@ import {
 import { Toggle } from "./components/Toggle";
 import { Loader } from "@pulse/ui/components/Loader";
 import { Modal } from "./components/Modal";
+import { Runtime } from "./modules/Runtime";
 
 interface Api {
   id: string;
@@ -170,9 +172,14 @@ const DESIGN_TOOLS: ToolPickerItem[] = [
 const Mode = {
   AI: "ai",
   DESIGN: "design",
+  DEV: "dev",
 } as const;
 
 type PreviewNode = Node<PreviewProps, "renderer">;
+type ElementVisibilityValue =
+  | Spec["elements"][string]["visible"]
+  | boolean
+  | undefined;
 
 const RendererNode: FC<NodeProps<PreviewNode>> = ({ data, selected }) => {
   return <Preview {...data} selected={selected} />;
@@ -182,7 +189,7 @@ const nodeTypes = {
   renderer: RendererNode,
 };
 
-export interface EditorProps extends Pick<WidgetCreatorProps, "onSave"> {}
+export interface EditorProps extends Pick<WidgetCreatorProps, "onSave"> { }
 
 export const Editor: FC<EditorProps> = ({ onSave }) => {
   const { t } = useTranslation();
@@ -240,7 +247,7 @@ export const Editor: FC<EditorProps> = ({ onSave }) => {
   const currentSpec = currentVersion?.spec ?? spec;
   const currentSpecCode = JSON.stringify(currentSpec, null, 2);
   const currentState = {
-    ...(currentVersion?.spec?.state ?? spec?.state),
+    ...(currentSpec?.state),
     ...state,
   };
   const currentSnapshotData = currentState.data ?? null;
@@ -256,38 +263,17 @@ export const Editor: FC<EditorProps> = ({ onSave }) => {
     isStreaming || currentVersion?.status === "pending"
       ? "генерация"
       : currentVersion
-      ? "готово"
-      : "черновик";
+        ? "готово"
+        : "черновик";
   const hasApiData = currentSnapshotData !== null;
   const historyPreviewLabel = hasCurrentPrompt
     ? currentPromptLabel
     : versions.length > 0
-    ? "Выбрать версию"
-    : "История пуста";
+      ? "Выбрать версию"
+      : "История пуста";
   const isSaveDisabled = isStreaming || !currentSpec;
 
-  const currentNodes = [
-    {
-      id: "n1",
-      position: { x: 0, y: 0 },
-      data: {
-        emptyLabel:
-          mode === Mode.AI
-            ? "Ожидание генерации интерфейса..."
-            : "Перетащите сюда компонент из палитры",
-        loading: isStreaming,
-        selectedElementId,
-        viewportSize: selectedViewport,
-        spec: currentSpec,
-        state: currentState,
-        setState,
-      },
-      draggable: false,
-      origin: [0.5, 0.5] as NodeOrigin,
-      selectable: false,
-      type: "renderer",
-    },
-  ];
+  console.log("currentState", currentState);
 
   const toolBarItems = useMemo(
     () =>
@@ -307,44 +293,44 @@ export const Editor: FC<EditorProps> = ({ onSave }) => {
     const component = components.find((c) => c.name === element.type);
     const controls = component
       ? component.props.map<LevaControl>((prop) => {
-          const id = prop.name.replace("?", "");
-          const value = element.props?.[prop.name] ?? prop.default;
+        const id = prop.name.replace("?", "");
+        const value = element.props?.[prop.name] ?? prop.default;
 
-          switch (prop.type) {
-            case "boolean":
-              return {
-                id,
-                label: id,
-                type: "boolean",
-                value,
-              };
-            case "number":
-              return {
-                id,
-                label: id,
-                type: "number",
-                value,
-              };
-            case "string":
-              return {
-                id,
-                label: id,
-                type: "string",
-                value,
-              };
-            default: {
-              const options = prop.type.split("|").map((item) => item.trim());
+        switch (prop.type) {
+          case "boolean":
+            return {
+              id,
+              label: id,
+              type: "boolean",
+              value,
+            };
+          case "number":
+            return {
+              id,
+              label: id,
+              type: "number",
+              value,
+            };
+          case "string":
+            return {
+              id,
+              label: id,
+              type: "string",
+              value,
+            };
+          default: {
+            const options = prop.type.split("|").map((item) => item.trim());
 
-              return {
-                id,
-                label: id,
-                options,
-                type: "select",
-                value,
-              };
-            }
+            return {
+              id,
+              label: id,
+              options,
+              type: "select",
+              value,
+            };
           }
-        })
+        }
+      })
       : [];
 
     return {
@@ -491,6 +477,45 @@ export const Editor: FC<EditorProps> = ({ onSave }) => {
       );
 
       setSelectedElementId(trimmedNextId);
+    },
+    [selectedElementId, selectedVersionId]
+  );
+
+  const handleSelectedElementVisibilityChange = useCallback(
+    (value: ElementVisibilityValue) => {
+      if (!selectedElementId) return;
+
+      setVersions((prevVersions) =>
+        prevVersions.map((version) => {
+          if (
+            version.id !== selectedVersionId ||
+            !version.spec ||
+            !version.spec.elements[selectedElementId]
+          ) {
+            return version;
+          }
+
+          const currentElement = version.spec.elements[selectedElementId];
+          const nextElement = { ...currentElement };
+
+          if (value === true || value === undefined) {
+            delete nextElement.visible;
+          } else {
+            nextElement.visible = value as Spec["elements"][string]["visible"];
+          }
+
+          return {
+            ...version,
+            spec: {
+              ...version.spec,
+              elements: {
+                ...version.spec.elements,
+                [selectedElementId]: nextElement,
+              },
+            },
+          };
+        })
+      );
     },
     [selectedElementId, selectedVersionId]
   );
@@ -732,7 +757,7 @@ export const Editor: FC<EditorProps> = ({ onSave }) => {
 
         for (let i = 0; i < changes.length; i += 1) {
           const { path, value } = changes[i];
-          const parts = path.split("/");
+          const parts = path.split("/").filter(Boolean);
           let current: Record<string, unknown> = next;
           for (let i = 0; i < parts.length - 1; i += 1) {
             const part = parts[i]!;
@@ -772,15 +797,15 @@ export const Editor: FC<EditorProps> = ({ onSave }) => {
         p.map((v) =>
           v.id === selectedVersionId
             ? {
-                ...v,
-                spec: moveElementInSpec(v.spec, {
-                  sourceParentId,
-                  sourceId,
-                  targetParentId,
-                  targetId,
-                  placement,
-                }),
-              }
+              ...v,
+              spec: moveElementInSpec(v.spec, {
+                sourceParentId,
+                sourceId,
+                targetParentId,
+                targetId,
+                placement,
+              }),
+            }
             : v
         )
       );
@@ -794,9 +819,9 @@ export const Editor: FC<EditorProps> = ({ onSave }) => {
         p.map((v) =>
           v.id === selectedVersionId
             ? {
-                ...v,
-                spec: removeElementFromSpec(v.spec, id),
-              }
+              ...v,
+              spec: removeElementFromSpec(v.spec, id),
+            }
             : v
         )
       );
@@ -806,18 +831,42 @@ export const Editor: FC<EditorProps> = ({ onSave }) => {
     [selectedVersionId]
   );
 
+  const currentNodes = [
+    {
+      id: "n1",
+      position: { x: 0, y: 0 },
+      data: {
+        emptyLabel:
+          mode === Mode.AI
+            ? "Ожидание генерации интерфейса..."
+            : "Перетащите сюда компонент из палитры",
+        loading: isStreaming,
+        selectedElementId,
+        viewportSize: selectedViewport,
+        spec: currentSpec,
+        state: currentState,
+        setState,
+        onStateChange: handlePreviewStateChange,
+      },
+      draggable: false,
+      origin: [0.5, 0.5] as NodeOrigin,
+      selectable: false,
+      type: "renderer",
+    },
+  ];
+
   useEffect(() => {
     if (generatingVersionIdRef && !isStreaming && spec) {
       setVersions((p) =>
         p.map((v) =>
           v.id === generatingVersionIdRef.current
             ? {
-                ...v,
-                raw,
-                spec: { ...spec, state: { ...spec?.state, ...state } },
-                status: "complete",
-                usage,
-              }
+              ...v,
+              raw,
+              spec: { ...spec, state: { ...spec?.state, ...state } },
+              status: "complete",
+              usage,
+            }
             : v
         )
       );
@@ -978,145 +1027,120 @@ export const Editor: FC<EditorProps> = ({ onSave }) => {
         ) : null}
       </DragOverlay>
       <Styled.Container>
-        <ReactFlow
-          fitView
-          fitViewOptions={{
-            maxZoom: 1,
-          }}
-          nodes={currentNodes}
-          nodeTypes={nodeTypes}
-          panOnDrag={false}
-          panOnScroll
-          proOptions={{ hideAttribution: true }}
-          zoomActivationKeyCode={["Control", "Meta", "z"]}
-        >
-          <Background />
-          <Panel position="top-center">
-            <Island unstyled>
-              <Toggle
-                options={VIEWPORT_OPTIONS}
-                value={viewportId}
-                onChange={(value) => setViewportId(value)}
-              />
-            </Island>
-          </Panel>
-          <Panel position="top-right">
-            <Flex>
-              <Item>
-                <Island unstyled>
-                  <Button
-                    $type="primary"
-                    disabled={isSaveDisabled}
-                    label={t("сохранить")}
-                    onClick={handleSave}
-                  />
-                </Island>
-              </Item>
-              <Item>
-                <Island unstyled>
-                  <Toggle
-                    options={[
-                      { id: Mode.AI, isAccent: true, label: "AI mode" },
-                      { id: Mode.DESIGN, label: "Design mode" },
-                    ]}
-                    value={mode}
-                    onChange={(value) => setMode(value)}
-                    />
-                </Island>
-              </Item>
-            </Flex>
-          </Panel>
-          <Panel position="bottom-right" style={{ zIndex: 10 }}>
-            <Island unstyled>
-              <ZoomControl
-                options={ZOOM_OPTIONS}
-                onChange={(id) => {
-                  if (id === "in") {
-                    zoomIn({ duration: 120, interpolate: "smooth" });
-                  } else if (id === "out") {
-                    zoomOut({ duration: 120, interpolate: "smooth" });
-                  } else if (id === "100") {
-                    zoomTo(1, { duration: 120, interpolate: "smooth" });
-                  } else if (id === "fit") {
-                    fitView({ duration: 120, interpolate: "smooth" });
-                  }
-                }}
-              />
-            </Island>
-          </Panel>
-          {mode === Mode.AI && (
-            <>
-              {currentVersion ? (
-                <Panel position="top-left">
-                  <Island
-                    maxHeight="calc(100vh - 327px)"
-                    width={300}
-                  >
-                    <Styled.RailCardBody>
-                      <Styled.RailHeader>
-                        <Styled.RailTitle>{t("текущий запрос")}</Styled.RailTitle>
+        {mode !== Mode.DEV ? (
+          <ReactFlow
+            fitView
+            fitViewOptions={{
+              maxZoom: 1,
+            }}
+            nodes={currentNodes}
+            nodeTypes={nodeTypes}
+            panOnDrag={false}
+            panOnScroll
+            proOptions={{ hideAttribution: true }}
+            zoomActivationKeyCode={["Control", "Meta", "z"]}
+          >
+            <Background />
+            <Panel position="top-center">
+              <Island unstyled>
+                <Toggle
+                  options={VIEWPORT_OPTIONS}
+                  value={viewportId}
+                  onChange={(value) => setViewportId(value)}
+                />
+              </Island>
+            </Panel>
+            <Panel position="bottom-right" style={{ zIndex: 10 }}>
+              <Island unstyled>
+                <ZoomControl
+                  options={ZOOM_OPTIONS}
+                  onChange={(id) => {
+                    if (id === "in") {
+                      zoomIn({ duration: 120, interpolate: "smooth" });
+                    } else if (id === "out") {
+                      zoomOut({ duration: 120, interpolate: "smooth" });
+                    } else if (id === "100") {
+                      zoomTo(1, { duration: 120, interpolate: "smooth" });
+                    } else if (id === "fit") {
+                      fitView({ duration: 120, interpolate: "smooth" });
+                    }
+                  }}
+                />
+              </Island>
+            </Panel>
+            {mode === Mode.AI && (
+              <>
+                {currentVersion ? (
+                  <Panel position="top-left">
+                    <Island
+                      maxHeight="calc(100vh - 327px)"
+                      width={300}
+                    >
+                      <Styled.RailCardBody>
+                        <Styled.RailHeader>
+                          <Styled.RailTitle>{t("текущий запрос")}</Styled.RailTitle>
                           <Styled.RailMeta>
-                          {currentVersion?.status === "pending" ? (
-                            <Loader size="lg" />
-                          ) : null}
-                          <Styled.RailTag $tone="accent">
-                            {currentVersionLabel}
-                          </Styled.RailTag>
-                        </Styled.RailMeta>
-                      </Styled.RailHeader>
-                      <Styled.PromptPreview>
-                        {currentVersion.prompt}
-                      </Styled.PromptPreview>
-                    </Styled.RailCardBody>
+                            {currentVersion?.status === "pending" ? (
+                              <Loader size="lg" />
+                            ) : null}
+                            <Styled.RailTag $tone="accent">
+                              {currentVersionLabel}
+                            </Styled.RailTag>
+                          </Styled.RailMeta>
+                        </Styled.RailHeader>
+                        <Styled.PromptPreview>
+                          {currentVersion.prompt}
+                        </Styled.PromptPreview>
+                      </Styled.RailCardBody>
+                    </Island>
+                  </Panel>
+                ) : null}
+                <Panel position="bottom-left">
+                  <Island maxHeight={297} width={300}>
+                    <Versions
+                      disabled={isStreaming}
+                      items={versions}
+                      value={selectedVersionId}
+                      onChange={handleVersionSelect}
+                    />
                   </Island>
                 </Panel>
-              ) : null}
-              <Panel position="bottom-left">
-                <Island maxHeight={297} width={300}>
-                  <Versions
-                    disabled={isStreaming}
-                    items={versions}
-                    value={selectedVersionId}
-                    onChange={handleVersionSelect}
-                  />
-                 </Island>
-              </Panel>
-              <Panel position="bottom-center">
-                <Modal ref={apiModalRef} id="modalApi">
-                  <Flex vertical>
-                    <Item grow>
-                      <Flex vertical>
-                        {apis.map((api) => (
-                          <Item key={api.id}>
-                            <Flex>
-                              <Item>
-                                <Toggle
-                                  options={[
-                                    { id: "get", label: "GET" },
-                                    { id: "post", label: "POST" },
-                                  ]}
-                                  value={api.method}
-                                  onChange={(id) =>
-                                    setApis((p) =>
-                                      p.map((a) =>
-                                        a.id === api.id ? { ...a, method: id } : a
+                <Panel position="bottom-center">
+                  <Modal ref={apiModalRef} id="modalApi">
+                    <Flex vertical>
+                      <Item grow>
+                        <Flex vertical>
+                          {apis.map((api) => (
+                            <Item key={api.id}>
+                              <Flex>
+                                <Item>
+                                  <Toggle
+                                    options={[
+                                      { id: "get", label: "GET" },
+                                      { id: "post", label: "POST" },
+                                    ]}
+                                    value={api.method}
+                                    onChange={(id) =>
+                                      setApis((p) =>
+                                        p.map((a) =>
+                                          a.id === api.id ? { ...a, method: id } : a
+                                        )
                                       )
-                                    )
-                                  }
-                                />
-                              </Item>
-                              <Item grow>
-                                <Input
-                                  value={api.url}
-                                  onChange={(e) =>
-                                    setApis((p) =>
-                                      p.map((a) =>
-                                        a.id === api.id ? { ...a, url: e.target.value } : a
+                                    }
+                                  />
+                                </Item>
+                                <Item grow>
+                                  <Input
+                                    value={api.url}
+                                    onChange={(e) =>
+                                      setApis((p) =>
+                                        p.map((a) =>
+                                          a.id === api.id ? { ...a, url: e.target.value } : a
+                                        )
                                       )
-                                    )
-                                  }
-                                />
-                              </Item>
+                                    }
+                                  />
+                                </Item>
                                 {api.method === "post" ? (
                                   <Item grow>
                                     <Input
@@ -1134,247 +1158,297 @@ export const Editor: FC<EditorProps> = ({ onSave }) => {
                                     />
                                   </Item>
                                 ) : null}
-                              <Item>
-                                <IconButton size="m-alt" $type="tertiary">
-                                  x
-                                </IconButton>
-                              </Item>
-                            </Flex>
+                                <Item>
+                                  <IconButton size="m-alt" $type="tertiary">
+                                    x
+                                  </IconButton>
+                                </Item>
+                              </Flex>
+                            </Item>
+                          ))}
+                          <Item>
+                            <IconButton
+                              size="s"
+                              $type="secondary"
+                              onClick={() =>
+                                setApis((p) => [
+                                  ...p,
+                                  {
+                                    id: Date.now().toString(),
+                                    method: "get",
+                                    url: "",
+                                    body: "",
+                                  },
+                                ])
+                              }
+                            >
+                              +
+                            </IconButton>
                           </Item>
-                        ))}
-                        <Item>
-                          <IconButton
-                            size="s"
-                            $type="secondary"
-                            onClick={() =>
-                              setApis((p) => [
-                                ...p,
-                                {
-                                  id: Date.now().toString(),
-                                  method: "get",
-                                  url: "",
-                                  body: "",
-                                },
-                              ])
-                            }
-                          >
-                            +
-                          </IconButton>
-                        </Item>
-                      </Flex>
-                    </Item>
-                  </Flex>
-                </Modal>
-                <Island width={500}>
-                  <OmniBox
-                    loading={isStreaming}
-                    placeholder="Что вы хотите изменить или создать?"
-                    onSubmit={handleOmniBoxSubmit}
-                    onReset={clear}
-                    onToolRequest={handleOmniBoxToolRequest}
-                  />
-                </Island>
-              </Panel>
-            </>
-          )}
-          {mode === Mode.DESIGN && (
-            <>
-              {selectedDesignToolId === "component" ? (
-                <Panel position="bottom-center" style={{ marginBottom: 70 }}>
-                  <Island height={360} width="40vw">
-                    <Styled.ComponentPickerSurface
-                      data-component-picker-surface
-                    >
-                      <ToolBar items={toolBarItems} />
-                    </Styled.ComponentPickerSurface>
+                        </Flex>
+                      </Item>
+                    </Flex>
+                  </Modal>
+                  <Island width={500}>
+                    <OmniBox
+                      loading={isStreaming}
+                      placeholder="Что вы хотите изменить или создать?"
+                      onSubmit={handleOmniBoxSubmit}
+                      onReset={clear}
+                      onToolRequest={handleOmniBoxToolRequest}
+                    />
                   </Island>
                 </Panel>
-              ) : null}
-              <Panel position="top-left">
-                <Island
-                  maxHeight="calc(100vh - 30px)"
-                  maxWidth={300}
-                  minHeight={300}
-                  minWidth={300}
-                >
-                  <Flex vertical>
-                    <Item>
-                      <Tabs
-                        items={[
-                          { id: "elements", label: t("элементы") },
-                          { id: "state", label: t("стейт") },
-                          { id: "stream", label: t("поток") },
-                          { id: "code", label: t("код") },
-                        ]}
-                        value={activeTab}
-                        onChange={(id) => setActiveTab(id)}
-                      />
-                    </Item>
-                    <Item grow>
-                      {activeTab === "elements" ? (
-                        <TreeView
-                          activeCatalogDropTargetId={activeTreeDropTargetId}
-                          items={treeViewElementsItems}
-                          value={selectedElementId}
-                          onChange={handleTreeViewElementsChange}
-                          onItemDelete={handleTreeViewDelete}
-                          onItemPositionChange={handleTreeViewMove}
-                        />
-                      ) : null}
-                      {activeTab === "state" ? (
-                        <JsonEditor
-                          height="100%"
-                          readOnly={isStreaming}
-                          sidebarOpen={false}
-                          style={
-                            {
-                              "--vj-bg": "transparent",
-                              "--vj-bg-panel":
-                                tokens.current.core.background.default,
-                              "--vj-bg-hover":
-                                tokens.current.interactive.hover.tertiary,
-                              "--vj-bg-selected": tokens.current.system["30"],
-                              "--vj-bg-selected-muted":
-                                tokens.current.system["20"],
-                              "--vj-border": tokens.current.core.border.strong,
-                              "--vj-input-font-size":
-                                typography.body1Regular.fontSize,
-                              "--vj-text": tokens.current.core.text.primary,
-                              "--vj-text-muted":
-                                tokens.current.core.text.secondary,
-                              "--vj-text-selected":
-                                tokens.current.core.text.onColor,
-                              "--vj-boolean":
-                                tokens.current.colors.green.solid["60"],
-                              "--vj-number":
-                                tokens.current.colors.blue.solid["60"],
-                              "--vj-string":
-                                tokens.current.colors.orange.solid["60"],
-                            } as CSSProperties
-                          }
-                          value={currentState as JsonValue}
-                          onChange={handleJsonEditorChange}
-                        />
-                      ) : null}
-                      {activeTab === "stream" ? (
-                        <CodeBlock
-                          code={currentVersion?.raw.join("\n") ?? ""}
-                          fillHeight
-                          lang="json"
-                        />
-                      ) : null}
-                      {activeTab === "code" ? (
-                        <Styled.CodePanel>
-                          <Styled.CodeExpandButton
-                            type="button"
-                            aria-label={t("Развернуть код")}
-                            title={t("Развернуть код")}
-                            onClick={() => setIsCodeModalOpen(true)}
-                          >
-                            ⤢
-                          </Styled.CodeExpandButton>
-                          <MonacoEditor
-                            language="json"
-                            options={{
-                              minimap: { enabled: false },
-                              readOnly: isStreaming,
-                            }}
-                            value={currentSpecCode}
-                            onChange={handleMonacoEditorChange}
-                          />
-                        </Styled.CodePanel>
-                      ) : null}
-                    </Item>
-                  </Flex>
-                </Island>
-              </Panel>
-              <Panel position="center-right">
-                <Island width={300} height="calc(100vh - 119px)">
-                  <Flex vertical>
-                    <Item>
-                      <Tabs
-                        items={[
-                          { id: "properties", label: t("свойства") },
-                        ]}
-                        value={activeRightTab}
-                        onChange={(id) => setActiveRightTab(id)}
-                      />
-                    </Item>
-                    <Item grow>
-                      {/* eslint-disable-next-line no-nested-ternary */}
-                      {activeRightTab === "properties" ? (
-                        selectedElement ? (
-                          <LevaPanel
-                            name={selectedElement.id}
-                            type={selectedElement.type}
-                            controls={selectedElement.controls}
-                            onNameChange={handleSelectedElementRename}
-                            onControlChange={handleLevaControlChange}
-                          />
-                        ) : (
-                          <Styled.Placeholder>
-                            {t(
-                              "Выберите узел дерева для редактирования его свойств"
-                            )}
-                          </Styled.Placeholder>
-                        )
-                      ) : null}
-                      {activeRightTab === "api" ? apiEditor : null}
-                    </Item>
-                  </Flex>
-                </Island>
-              </Panel>
-              <Panel position="bottom-center">
-                <Island unstyled>
-                  <ToolPicker
-                    items={toolBarItems}
-                    tools={DESIGN_TOOLS}
-                    value={selectedDesignToolId}
-                    onSelect={setSelectedDesignToolId}
-                  />
-                </Island>
-              </Panel>
-              {isCodeModalOpen ? (
-                <Styled.CodeModalBackdrop
-                  role="presentation"
-                  onMouseDown={(event) => {
-                    if (event.target === event.currentTarget) {
-                      setIsCodeModalOpen(false);
-                    }
-                  }}
-                >
-                  <Styled.CodeModal
-                    aria-label={t("Код спецификации")}
-                    role="dialog"
-                    aria-modal="true"
-                  >
-                    <Styled.CodeModalHeader>
-                      <Styled.CodeModalTitle>
-                        {t("Код спецификации")}
-                      </Styled.CodeModalTitle>
-                      <Button
-                        type="button"
-                        onClick={() => setIsCodeModalOpen(false)}
+              </>
+            )}
+            {mode === Mode.DESIGN && (
+              <>
+                {selectedDesignToolId === "component" ? (
+                  <Panel position="bottom-center" style={{ marginBottom: 70 }}>
+                    <Island height={360} width="40vw">
+                      <Styled.ComponentPickerSurface
+                        data-component-picker-surface
                       >
-                        {t("Закрыть")}
-                      </Button>
-                    </Styled.CodeModalHeader>
-                    <Styled.CodeModalBody>
-                      <MonacoEditor
-                        language="json"
-                        options={{
-                          readOnly: isStreaming,
-                        }}
-                        value={currentSpecCode}
-                        onChange={handleMonacoEditorChange}
-                      />
-                    </Styled.CodeModalBody>
-                  </Styled.CodeModal>
-                </Styled.CodeModalBackdrop>
-              ) : null}
-            </>
-          )}
-        </ReactFlow>
+                        <ToolBar items={toolBarItems} />
+                      </Styled.ComponentPickerSurface>
+                    </Island>
+                  </Panel>
+                ) : null}
+                <Panel position="top-left">
+                  <Island
+                    maxHeight="calc(100vh - 30px)"
+                    maxWidth={300}
+                    minHeight={300}
+                    minWidth={300}
+                  >
+                    <Flex vertical>
+                      <Item>
+                        <Tabs
+                          items={[
+                            { id: "elements", label: t("элементы") },
+                            { id: "state", label: t("стейт") },
+                            { id: "stream", label: t("поток") },
+                            { id: "code", label: t("код") },
+                          ]}
+                          value={activeTab}
+                          onChange={(id) => setActiveTab(id)}
+                        />
+                      </Item>
+                      <Item grow>
+                        {activeTab === "elements" ? (
+                          <TreeView
+                            activeCatalogDropTargetId={activeTreeDropTargetId}
+                            items={treeViewElementsItems}
+                            value={selectedElementId}
+                            onChange={handleTreeViewElementsChange}
+                            onItemDelete={handleTreeViewDelete}
+                            onItemPositionChange={handleTreeViewMove}
+                          />
+                        ) : null}
+                        {activeTab === "state" ? (
+                          <JsonEditor
+                            height="100%"
+                            readOnly={isStreaming}
+                            sidebarOpen={false}
+                            style={
+                              {
+                                "--vj-bg": "transparent",
+                                "--vj-bg-panel":
+                                  tokens.current.core.background.default,
+                                "--vj-bg-hover":
+                                  tokens.current.interactive.hover.tertiary,
+                                "--vj-bg-selected": tokens.current.system["30"],
+                                "--vj-bg-selected-muted":
+                                  tokens.current.system["20"],
+                                "--vj-border": tokens.current.core.border.strong,
+                                "--vj-input-font-size":
+                                  typography.body1Regular.fontSize,
+                                "--vj-text": tokens.current.core.text.primary,
+                                "--vj-text-muted":
+                                  tokens.current.core.text.secondary,
+                                "--vj-text-selected":
+                                  tokens.current.core.text.onColor,
+                                "--vj-boolean":
+                                  tokens.current.colors.green.solid["60"],
+                                "--vj-number":
+                                  tokens.current.colors.blue.solid["60"],
+                                "--vj-string":
+                                  tokens.current.colors.orange.solid["60"],
+                              } as CSSProperties
+                            }
+                            value={currentState as JsonValue}
+                            onChange={handleJsonEditorChange}
+                          />
+                        ) : null}
+                        {activeTab === "stream" ? (
+                          <CodeBlock
+                            code={currentVersion?.raw.join("\n") ?? ""}
+                            fillHeight
+                            lang="json"
+                          />
+                        ) : null}
+                        {activeTab === "code" ? (
+                          <Styled.CodePanel>
+                            <Styled.CodeExpandButton
+                              type="button"
+                              aria-label={t("Развернуть код")}
+                              title={t("Развернуть код")}
+                              onClick={() => setIsCodeModalOpen(true)}
+                            >
+                              ⤢
+                            </Styled.CodeExpandButton>
+                            <MonacoEditor
+                              language="json"
+                              options={{
+                                minimap: { enabled: false },
+                                readOnly: isStreaming,
+                              }}
+                              value={currentSpecCode}
+                              onChange={handleMonacoEditorChange}
+                            />
+                          </Styled.CodePanel>
+                        ) : null}
+                      </Item>
+                    </Flex>
+                  </Island>
+                </Panel>
+                <Panel position="center-right">
+                  <Island width={300} height="calc(100vh - 138px)">
+                    <Flex vertical>
+                      <Item>
+                        <Tabs
+                          items={[
+                            { id: "properties", label: t("свойства") },
+                            { id: "visibility", label: t("видимость") },
+                          ]}
+                          value={activeRightTab}
+                          onChange={(id) => setActiveRightTab(id)}
+                        />
+                      </Item>
+                      <Item grow>
+                        {/* eslint-disable-next-line no-nested-ternary */}
+                        {activeRightTab === "properties" ? (
+                          selectedElement ? (
+                            <LevaPanel
+                              name={selectedElement.id}
+                              type={selectedElement.type}
+                              controls={selectedElement.controls}
+                              onNameChange={handleSelectedElementRename}
+                              onControlChange={handleLevaControlChange}
+                            />
+                          ) : (
+                            <Styled.Placeholder>
+                              {t(
+                                "Выберите узел дерева для редактирования его свойств"
+                              )}
+                            </Styled.Placeholder>
+                          )
+                        ) : null}
+                        {activeRightTab === "visibility" ? (
+                          selectedElementId && currentSpec?.elements[selectedElementId] ? (
+                            <VisibilityEditor
+                              value={
+                                currentSpec.elements[selectedElementId]
+                                  .visible as ElementVisibilityValue
+                              }
+                              onChange={handleSelectedElementVisibilityChange}
+                            />
+                          ) : (
+                            <Styled.Placeholder>
+                              {t(
+                                "Выберите узел дерева для редактирования его видимости"
+                              )}
+                            </Styled.Placeholder>
+                          )
+                        ) : null}
+                        {activeRightTab === "api" ? apiEditor : null}
+                      </Item>
+                    </Flex>
+                  </Island>
+                </Panel>
+                <Panel position="bottom-center">
+                  <Island unstyled>
+                    <ToolPicker
+                      items={toolBarItems}
+                      tools={DESIGN_TOOLS}
+                      value={selectedDesignToolId}
+                      onSelect={setSelectedDesignToolId}
+                    />
+                  </Island>
+                </Panel>
+                {isCodeModalOpen ? (
+                  <Styled.CodeModalBackdrop
+                    role="presentation"
+                    onMouseDown={(event) => {
+                      if (event.target === event.currentTarget) {
+                        setIsCodeModalOpen(false);
+                      }
+                    }}
+                  >
+                    <Styled.CodeModal
+                      aria-label={t("Код спецификации")}
+                      role="dialog"
+                      aria-modal="true"
+                    >
+                      <Styled.CodeModalHeader>
+                        <Styled.CodeModalTitle>
+                          {t("Код спецификации")}
+                        </Styled.CodeModalTitle>
+                        <Button
+                          type="button"
+                          onClick={() => setIsCodeModalOpen(false)}
+                        >
+                          {t("Закрыть")}
+                        </Button>
+                      </Styled.CodeModalHeader>
+                      <Styled.CodeModalBody>
+                        <MonacoEditor
+                          language="json"
+                          options={{
+                            readOnly: isStreaming,
+                          }}
+                          value={currentSpecCode}
+                          onChange={handleMonacoEditorChange}
+                        />
+                      </Styled.CodeModalBody>
+                    </Styled.CodeModal>
+                  </Styled.CodeModalBackdrop>
+                ) : null}
+              </>
+            )}
+          </ReactFlow>
+        ) : null}
+        {mode === Mode.DEV ? (
+          <Runtime spec={currentSpec} loading={isStreaming} viewportSize={selectedViewport} />
+        ) : null}
+        {/* Always on top */}
+        <Panel position="top-right">
+          <Flex>
+            <Item>
+              <Island unstyled>
+                <Button
+                  $type="primary"
+                  disabled={isSaveDisabled}
+                  label={t("сохранить")}
+                  onClick={handleSave}
+                />
+              </Island>
+            </Item>
+            <Item>
+              <Island unstyled>
+                <Toggle
+                  options={[
+                    { id: Mode.AI, isAccent: true, label: "AI" },
+                    { id: Mode.DESIGN, label: "DESIGN" },
+                    { id: Mode.DEV, label: "DEV" },
+                  ]}
+                  value={mode}
+                  onChange={(value) => setMode(value)}
+                />
+              </Island>
+            </Item>
+          </Flex>
+        </Panel>
       </Styled.Container>
     </DragDropProvider>
   );

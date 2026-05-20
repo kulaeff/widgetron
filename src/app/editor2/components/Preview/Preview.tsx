@@ -24,7 +24,7 @@ export const Preview: FC<PreviewProps> = ({
   selectedElementId,
   onStateChange,
   viewportSize,
-  emptyLabel = "Сгенерируйте интерфейс в AI mode или перетащите компонент в Design mode",
+  emptyLabel,
 }) => {
   const resolveHighlightElement = (targetId: string): HTMLElement | null => {
     const markerElement = document.querySelector(
@@ -99,11 +99,11 @@ export const Preview: FC<PreviewProps> = ({
       }}
     >
       {/* eslint-disable-next-line no-nested-ternary */}
-      {markedSpec && markedSpec.root.length > 0 ? (
+      {markedSpec ? (
         <Renderer
           loading={loading}
           spec={markedSpec}
-          state={{ ...markedSpec.state, ...state }}
+          state={state}
           setState={setState}
           onStateChange={onStateChange}
         />

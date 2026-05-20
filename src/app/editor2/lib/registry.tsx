@@ -70,7 +70,7 @@ export const { registry, handlers, executeAction } = defineRegistry(catalog, {
         $size={props.size}
         $type={props.type}
         disabled={props.disabled}
-        onClick={() => emit("press")}
+        onClick={() => { console.log("click", props); emit("press")}}
       >
         {props.label}
       </Button>,

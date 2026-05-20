@@ -10,5 +10,6 @@ export const Card = styled.div<
   border-radius: 8px;
   box-shadow: ${$shadow ? "0 0 8px 0 rgba(0, 0, 0, 0.1)" : "none"};
   height: 100%;
+  padding: 16px;
   width: 100%;
 `);

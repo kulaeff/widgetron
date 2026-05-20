@@ -85,7 +85,7 @@ export const OmniBox: FC<OmniBoxProps> = ({
               label="+"
               size="sm"
               variant="secondary"
-              onClick={() => setIsDropdownOpen(true)}
+              onClick={() => setIsDropdownOpen((prev) => !prev)}
             />
           )}
           style={{

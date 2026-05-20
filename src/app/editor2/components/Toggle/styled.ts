@@ -5,7 +5,7 @@ export const Toggle = styled.div(({ theme }) => css`
   border: 1px solid ${theme.tokens.current.core.border.strong};
   border-radius: 8px;
   display: inline-flex;
-  gap: 6px;
+  gap: 3px;
   padding: 3px;
 `);
 

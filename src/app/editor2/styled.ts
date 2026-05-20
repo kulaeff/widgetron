@@ -1,9 +1,8 @@
 import styled, { css } from "styled-components";
 
 export const Container = styled("div")({
-  display: "flex",
-  flexDirection: "column",
-  height: "100vh",
+  height: "100%",
+  position: "relative",
   width: "100%",
   overflow: "hidden",
 });

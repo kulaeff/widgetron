@@ -1,10 +1,5 @@
 import {
-  cloneElement,
   forwardRef,
-  isValidElement,
-  type MouseEvent as ReactMouseEvent,
-  type ReactElement,
-  useCallback,
   useEffect,
   useRef,
   type PropsWithChildren,
@@ -15,7 +10,6 @@ import type { DropdownProps } from "./types";
 export const Dropdown = forwardRef<HTMLDivElement, PropsWithChildren<DropdownProps>>((props, ref) => {
   const {
     children,
-    className,
     isOpen,
     onChange,
     trigger,
@@ -25,29 +19,10 @@ export const Dropdown = forwardRef<HTMLDivElement, PropsWithChildren<DropdownPro
 
   const rootRef = useRef<HTMLDivElement | null>(null);
 
-  const setRootRef = useCallback((node: HTMLDivElement | null) => {
-    rootRef.current = node;
-  }, []);
-
-  const setDropdownRef = useCallback((node: HTMLDivElement | null) => {
-    if (!ref) return;
-
-    if (typeof ref === "function") {
-      ref(node);
-      return;
-    }
-
-    ref.current = node;
-  }, [ref]);
-
-  const triggerElement = isValidElement<{ onClick?: (event: ReactMouseEvent<HTMLElement>) => void }>(trigger)
-    ? trigger as ReactElement<{ onClick?: (event: ReactMouseEvent<HTMLElement>) => void }>
-    : null;
-
   useEffect(() => {
     if (!isOpen) return;
 
-    const handlePointerDown = (event: MouseEvent) => {
+    const handlePointerDown = (event: Event) => {
       const target = event.target as Node;
       if (rootRef.current?.contains(target)) return;
       onChange(false);
@@ -70,20 +45,13 @@ export const Dropdown = forwardRef<HTMLDivElement, PropsWithChildren<DropdownPro
     };
   }, [isOpen, onChange]);
 
-  const resolvedTrigger = triggerElement
-    ? cloneElement(triggerElement, {
-        ...triggerElement.props,
-      })
-    : trigger;
-
   return (
-    <Styled.Root ref={setRootRef}>
-      {resolvedTrigger}
+    <Styled.Root ref={rootRef}>
+      {trigger}
       {isOpen ? (
         <Styled.Dropdown
           {...rest}
-          className={className}
-          ref={setDropdownRef}
+          ref={ref}
           style={style}
         >
           {children}
