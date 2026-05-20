@@ -1,11 +1,12 @@
 import styled, { css } from "styled-components";
 
-export const Runtime = styled.div`
+export const Runtime = styled.div(({ theme }) => css`
   align-items: center;
+  background: linear-gradient(135deg, beige, ${theme.tokens.current.colors.blue.solid[10]});
   display: flex;
   height: 100%;
   justify-content: center;
-`;
+`);
 
 export const Tile = styled.div`
   background-color: rgba(255, 255, 255, 0.44);

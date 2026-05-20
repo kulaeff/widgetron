@@ -16,7 +16,6 @@ export interface PreviewProps extends Record<string, unknown> {
     width: number;
     height: number;
   };
-  emptyLabel?: string | null;
 }
 
 export const Preview: FC<PreviewProps> = ({
@@ -25,7 +24,6 @@ export const Preview: FC<PreviewProps> = ({
   selected = false,
   selectedElementId,
   viewportSize,
-  emptyLabel,
 }) => {
   const resolveHighlightElement = (targetId: string): HTMLElement | null => {
     const markerElement = document.querySelector(
@@ -113,11 +111,7 @@ export const Preview: FC<PreviewProps> = ({
             spec={spec}
           />
         </JSONUIProvider>
-      ) : emptyLabel ? (
-        <Styled.Label>{emptyLabel}</Styled.Label>
-      ) : (
-        null
-      )}
+      ) : null}
     </Styled.Container>
   );
 };
