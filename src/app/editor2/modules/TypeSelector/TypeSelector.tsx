@@ -16,8 +16,8 @@ export type TypeSelectorValue =
   (typeof TypeSelectorValue)[keyof typeof TypeSelectorValue];
 
 const OPTIONS = [
-  { id: TypeSelectorValue.WIDGET, label: "Виджет" },
-  { id: TypeSelectorValue.PAGE, label: "Страница" },
+  { id: TypeSelectorValue.WIDGET, label: "В" },
+  { id: TypeSelectorValue.PAGE, label: "С" },
 ];
 
 export interface TypeSelectorProps {

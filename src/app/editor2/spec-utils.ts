@@ -243,9 +243,31 @@ const createCatalogElementKey = (
   return `${baseKey}-${index}`;
 };
 
+const DEV_SPEC_ROOT_ELEMENT_ID = "default-view";
+
+export const createEmptyDevSpec = (): Spec => ({
+  root: DEV_SPEC_ROOT_ELEMENT_ID,
+  elements: {
+    [DEV_SPEC_ROOT_ELEMENT_ID]: {
+      type: "View",
+      props: {},
+      children: [],
+    },
+  },
+  state: {},
+});
+
+export const createDevVersion = (id: string): Version => ({
+  id,
+  prompt: "",
+  raw: [],
+  spec: createEmptyDevSpec(),
+  status: "complete",
+  usage: null,
+});
+
 export const addCatalogComponentToVersions = ({
   component,
-  nextVersionId,
   placement = "inside",
   selectedVersionId,
   targetParentId,
@@ -253,7 +275,6 @@ export const addCatalogComponentToVersions = ({
   versions,
 }: {
   component: CatalogComponentInfo;
-  nextVersionId: string;
   placement?: "inside" | "before" | "after";
   selectedVersionId?: string;
   targetParentId?: string | null;
@@ -266,30 +287,11 @@ export const addCatalogComponentToVersions = ({
 } => {
   const defaultProps = buildSafeDefaultProps(component);
 
-  if (versions.length === 0) {
-    const nextElementKey = `root-${component.name.toLocaleLowerCase()}`;
-
+  if (!selectedVersionId || versions.length === 0) {
     return {
-      nextElementKey,
-      selectedVersionId: nextVersionId,
-      versions: [
-        {
-          id: nextVersionId,
-          prompt: "xxx",
-          raw: [],
-          spec: {
-            root: nextElementKey,
-            elements: {
-              [nextElementKey]: {
-                type: component.name,
-                props: defaultProps,
-              },
-            },
-          },
-          status: "complete",
-          usage: null,
-        },
-      ],
+      nextElementKey: "",
+      selectedVersionId: selectedVersionId ?? "",
+      versions,
     };
   }
 
@@ -355,27 +357,43 @@ export const addCatalogComponentToVersions = ({
       );
     }
 
+    const rootElement = version.spec.root
+      ? version.spec.elements[version.spec.root]
+      : undefined;
+    const previewTargetsViewRoot =
+      targetElementId === "preview" && rootElement?.type === "View";
+    const shouldSetRoot =
+      targetElementId === "preview" && version.spec.root.length === 0;
+
     return {
       ...version,
       spec: {
         ...version.spec,
+        ...(shouldSetRoot ? { root: nextElementKey } : {}),
         elements: {
           ...version.spec.elements,
           [nextElementKey]: {
             type: component.name,
-              props: defaultProps,
-            },
-          ...(targetElementId === "preview" || placement !== "inside"
-            ? {}
-            : {
-                [targetElementId]: {
-                  ...targetElement,
-                  children: [
-                    ...(targetElement?.children ?? []),
-                    nextElementKey,
-                  ],
+            props: defaultProps,
+          },
+          ...(previewTargetsViewRoot
+            ? {
+                [version.spec.root]: {
+                  ...rootElement,
+                  children: [...(rootElement?.children ?? []), nextElementKey],
                 },
-              }),
+              }
+            : targetElementId === "preview" || placement !== "inside"
+              ? {}
+              : {
+                  [targetElementId]: {
+                    ...targetElement,
+                    children: [
+                      ...(targetElement?.children ?? []),
+                      nextElementKey,
+                    ],
+                  },
+                }),
           ...(targetParent && placement !== "inside"
             ? {
                 [targetParentId as string]: {
@@ -391,7 +409,7 @@ export const addCatalogComponentToVersions = ({
 
   return {
     nextElementKey,
-    selectedVersionId: selectedVersionId ?? nextVersionId,
+    selectedVersionId,
     versions: nextVersions,
   };
 };

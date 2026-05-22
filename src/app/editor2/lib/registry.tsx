@@ -33,6 +33,7 @@ import { catalog } from "./catalog";
 import { Slider } from "../ui/Slider";
 import { createStateStore } from "@json-render/react";
 import { setByPath } from "@json-render/core";
+import { View } from "../ui/View";
 
 const getSpecMarkerProps = (props: unknown) => {
   const id =
@@ -51,7 +52,7 @@ export const { registry, handlers, executeAction } = defineRegistry(catalog, {
   components: {
     Avatar: ({ props }) =>
       <Avatar
-        {...(getSpecMarkerProps(props) as any)}
+        {...(getSpecMarkerProps(props))}
         $hasBadge={props.hasBadge}
         $icon={props.url}
         $label={props.label}
@@ -336,6 +337,10 @@ export const { registry, handlers, executeAction } = defineRegistry(catalog, {
         />
       );
     },
+    View: ({ props, children }) => {
+      return (
+      <View {...getSpecMarkerProps(props)}>{children}</View>
+    )},
   },
   actions: {
     httpRequest: async (params, setState) => {

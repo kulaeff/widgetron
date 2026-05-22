@@ -5,6 +5,8 @@ import type { Version } from "./types";
 import {
   addCatalogComponentToVersions,
   buildSpecTreeItems,
+  createDevVersion,
+  createEmptyDevSpec,
   moveElementInSpec,
   removeElementFromSpec,
 } from "./spec-utils";
@@ -270,37 +272,68 @@ describe("Editor spec utils", () => {
     expect(next?.root).toBe("detached");
   });
 
-  it("creates the first version when dropping a catalog component into an empty project", () => {
+  it("creates a dev version with View as the root element", () => {
+    expect(createEmptyDevSpec()).toEqual({
+      root: "view",
+      elements: {
+        view: {
+          type: "View",
+          props: {},
+          children: [],
+        },
+      },
+      state: {},
+    });
+    expect(createDevVersion("v1")).toEqual({
+      id: "v1",
+      prompt: "",
+      raw: [],
+      spec: {
+        root: "view",
+        elements: {
+          view: {
+            type: "View",
+            props: {},
+            children: [],
+          },
+        },
+        state: {},
+      },
+      status: "complete",
+      usage: null,
+    });
+  });
+
+  it("adds the first component inside View when dropping on preview", () => {
+    const versions: Version[] = [createDevVersion("v1")];
+
     const result = addCatalogComponentToVersions({
       component: components[2],
-      nextVersionId: "v1",
+      selectedVersionId: "v1",
       targetElementId: "preview",
-      versions: [],
+      versions,
     });
 
     expect(result.selectedVersionId).toBe("v1");
-    expect(result.nextElementKey).toBe("root-button");
-    expect(result.versions).toEqual([
-      {
-        id: "v1",
-        prompt: "xxx",
-        raw: [],
-        spec: {
-          root: "root-button",
-          elements: {
-            "root-button": {
-              type: "Button",
-              props: {
-                disabled: false,
-                label: "New Button",
-              },
-            },
+    expect(result.nextElementKey).toBe("button");
+    expect(result.versions[0].spec).toEqual({
+      root: "view",
+      elements: {
+        view: {
+          type: "View",
+          props: {},
+          children: ["button"],
+        },
+        button: {
+          type: "Button",
+          props: {
+            disabled: false,
+            label: "New Button",
           },
         },
-        status: "complete",
-        usage: null,
       },
-    ]);
+      state: {},
+    });
   });
 
   it("adds duplicate catalog components with unique keys and default props", () => {
@@ -330,7 +363,6 @@ describe("Editor spec utils", () => {
 
     const result = addCatalogComponentToVersions({
       component: components[2],
-      nextVersionId: "v2",
       selectedVersionId: "v1",
       targetElementId: "root",
       versions,
@@ -374,7 +406,6 @@ describe("Editor spec utils", () => {
 
     const result = addCatalogComponentToVersions({
       component: components[2],
-      nextVersionId: "v2",
       selectedVersionId: "v1",
       targetElementId: "preview",
       versions,
@@ -422,7 +453,6 @@ describe("Editor spec utils", () => {
 
     const result = addCatalogComponentToVersions({
       component: components[2],
-      nextVersionId: "v2",
       placement: "after",
       selectedVersionId: "v1",
       targetElementId: "title",

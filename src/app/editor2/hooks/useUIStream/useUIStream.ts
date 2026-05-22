@@ -190,8 +190,11 @@ export const useUIStream = ({
           if (done) break; */
 
           const json = ( await response.json()) as GigachatResponse;
+          console.log('json', json);
           const lines = json.choices[0].message.content.split("\n");
+          console.log('lines', lines);
           const patches = lines.map((line) => JSON.parse(line));
+          console.log('patches', patches);
 
           setRaw(lines);
 

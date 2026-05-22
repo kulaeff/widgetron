@@ -111,7 +111,7 @@ export const Preview: FC<PreviewProps> = ({
             fallback={({ element }) => <Fallback type={element.type} />}
             loading={loading}
             registry={registry}
-            spec={spec}
+            spec={markedSpec}
           />
         </JSONUIProvider>
       ) : null}

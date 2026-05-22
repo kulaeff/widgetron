@@ -434,8 +434,15 @@ export const catalog = defineCatalog(schema, {
       description:
         "Набор кнопок для переключения между страницами. Используй { $bindState } в свойстве page для установки текущей выбранной страницы.",
     },
+    View: {
+      description:
+        "Служебный контейнер. Всегда используй этот компонент как root, а также в случае, когда нужно реализовать страничную логику (отображение того или иного экрана по условию).",
+      example: { root: "default-view" },
+      group: "system",
+      props: z.object({}),
+      slots: ["default"],
+    },
   },
-
   actions: {
     httpRequest: {
       description: "Makes an HTTP request.",

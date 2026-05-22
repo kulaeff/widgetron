@@ -75,6 +75,7 @@ import type {
 } from "../../widgets/WidgetCreator/types";
 import {
   addCatalogComponentToVersions,
+  createDevVersion,
   buildSpecTreeItems,
   moveElementInSpec,
   removeElementFromSpec,
@@ -381,6 +382,23 @@ export const Editor: FC<EditorProps> = ({ onSave }) => {
     setSelectedElementId(undefined);
   }, []);
 
+  const handleModeChange = useCallback(
+    (value: string) => {
+      setMode(value);
+
+      if (value !== Mode.DEV || versions.length > 0) {
+        return;
+      }
+
+      const nextVersionId = Date.now().toString();
+
+      setVersions([createDevVersion(nextVersionId)]);
+      setSelectedVersionId(nextVersionId);
+      setSelectedElementId(undefined);
+    },
+    [versions.length]
+  );
+
   const handleJsonEditorChange = useCallback(
     (value: JsonValue) => {
       setVersions((p) =>
@@ -631,10 +649,8 @@ export const Editor: FC<EditorProps> = ({ onSave }) => {
 
       if (!component) return;
 
-      const nextVersionId = Date.now().toString();
       const result = addCatalogComponentToVersions({
         component,
-        nextVersionId,
         placement: options.placement,
         selectedVersionId,
         targetParentId: options.targetParentId,
@@ -1074,7 +1090,7 @@ export const Editor: FC<EditorProps> = ({ onSave }) => {
             </Panel>
             {mode === Mode.AI && (
               <>
-                {currentVersion ? (
+                {currentVersion && currentVersion.prompt ? (
                   <Panel position="top-left">
                     <Island
                       maxHeight="calc(100vh - 327px)"
@@ -1452,7 +1468,7 @@ export const Editor: FC<EditorProps> = ({ onSave }) => {
                     { id: Mode.RUN, label: "RUN" },
                   ]}
                   value={mode}
-                  onChange={(value) => setMode(value)}
+                  onChange={handleModeChange}
                 />
               </Island>
             </Item>
