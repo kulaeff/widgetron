@@ -44,7 +44,20 @@ import { ToolBar } from "./components/ToolBar";
 import { ToolPicker, type ToolPickerItem } from "./components/ToolPicker";
 import { ZoomControl, type ZoomOption } from "./components/ZoomControl";
 import { TREE_ROOT_DROP_TARGET_ID, TreeView } from "./components/TreeView";
+import { AutoHeightButton } from "./modules/AutoHeightButton";
+import {
+  DEFAULT_SIZE_ID,
+  getSizeOption,
+  SizeSelector,
+  type SizeId,
+} from "./modules/SizeSelector";
 import { Preview, type PreviewProps } from "./modules/Preview";
+import {
+  PAGE_SIZE,
+  TypeSelector,
+  TypeSelectorValue,
+  type TypeSelectorValue as ContentType,
+} from "./modules/TypeSelector";
 import { Runtime } from "./modules/Runtime";
 import { Tabs } from "./components/Tabs";
 import { Item, Flex } from "./components/Flex";
@@ -151,12 +164,6 @@ const DEFAULT_SPEC = {
   },
 };
 
-const VIEWPORT_OPTIONS = [
-  { id: "minor", label: "SM", width: 294, height: 280 },
-  { id: "important", label: "MD", width: 612, height: 280 },
-  { id: "major", label: "LG", width: 612, height: 612 },
-];
-
 const ZOOM_OPTIONS: ZoomOption[] = [
   { id: "in", label: "Zoom in" },
   { id: "out", label: "Zoom out" },
@@ -171,8 +178,8 @@ const DESIGN_TOOLS: ToolPickerItem[] = [
 
 const Mode = {
   AI: "ai",
-  DESIGN: "design",
   DEV: "dev",
+  RUN: "run",
 } as const;
 
 type PreviewNode = Node<PreviewProps, "renderer">;
@@ -211,7 +218,12 @@ export const Editor: FC<EditorProps> = ({ onSave }) => {
     useState<string | null>(null);
   const [isCodeModalOpen, setIsCodeModalOpen] = useState(false);
   const [selectedDesignToolId, setSelectedDesignToolId] = useState("select");
-  const [viewportId, setViewportId] = useState(VIEWPORT_OPTIONS[0].id);
+  const [contentType, setContentType] = useState<ContentType>(
+    TypeSelectorValue.WIDGET
+  );
+  const [viewportId, setViewportId] = useState<SizeId>(DEFAULT_SIZE_ID);
+  const [autoHeight, setAutoHeight] = useState(false);
+  const isWidgetType = contentType === TypeSelectorValue.WIDGET;
 
   const generatingVersionIdRef = useRef<string>();
   const apiModalRef = useRef<HTMLDialogElement>(null);
@@ -243,11 +255,28 @@ export const Editor: FC<EditorProps> = ({ onSave }) => {
     [selectedVersionId, versions]
   );
   const selectedViewport = useMemo(
-    () =>
-      VIEWPORT_OPTIONS.find((option) => option.id === viewportId) ??
-      VIEWPORT_OPTIONS[0],
+    () => getSizeOption(viewportId),
     [viewportId]
   );
+  const viewportSize = useMemo(() => {
+    if (!isWidgetType) {
+      return {
+        width: PAGE_SIZE.maxWidth,
+        minWidth: PAGE_SIZE.minWidth,
+        minHeight: PAGE_SIZE.minHeight,
+        maxWidth: PAGE_SIZE.maxWidth,
+      };
+    }
+
+    if (autoHeight) {
+      return { width: selectedViewport.width };
+    }
+
+    return {
+      width: selectedViewport.width,
+      height: selectedViewport.height,
+    };
+  }, [autoHeight, isWidgetType, selectedViewport]);
 
   const currentSpec = currentVersion?.spec ?? spec;
   const currentSpecCode = JSON.stringify(currentSpec, null, 2);
@@ -804,7 +833,7 @@ export const Editor: FC<EditorProps> = ({ onSave }) => {
         loading: isStreaming,
         selectedElementId,
         spec: currentSpec,
-        viewportSize: selectedViewport,
+        viewportSize,
       },
       draggable: false,
       origin: [0.5, 0.5] as NodeOrigin,
@@ -832,7 +861,7 @@ export const Editor: FC<EditorProps> = ({ onSave }) => {
   }, [isStreaming, raw, spec, usage]);
 
   useEffect(() => {
-    if (mode !== Mode.DESIGN || selectedDesignToolId !== "component") {
+    if (mode !== Mode.DEV || selectedDesignToolId !== "component") {
       return undefined;
     }
 
@@ -979,7 +1008,7 @@ export const Editor: FC<EditorProps> = ({ onSave }) => {
         ) : null}
       </DragOverlay>
       <Styled.Container>
-        {mode !== Mode.DEV ? (
+        {mode !== Mode.RUN ? (
           <ReactFlow
             fitView
             fitViewOptions={{
@@ -994,13 +1023,36 @@ export const Editor: FC<EditorProps> = ({ onSave }) => {
           >
             <Background />
             <Panel position="top-center">
-              <Island unstyled>
-                <Toggle
-                  options={VIEWPORT_OPTIONS}
-                  value={viewportId}
-                  onChange={(value) => setViewportId(value)}
-                />
-              </Island>
+              <Flex>
+                <Item>
+                  <Island unstyled>
+                    <TypeSelector
+                      value={contentType}
+                      onChange={setContentType}
+                    />
+                  </Island>
+                </Item>
+                {isWidgetType ? (
+                  <>
+                    <Item>
+                      <Island unstyled>
+                        <SizeSelector
+                          value={viewportId}
+                          onChange={setViewportId}
+                        />
+                      </Island>
+                    </Item>
+                    <Item>
+                      <Island unstyled>
+                        <AutoHeightButton
+                          enabled={autoHeight}
+                          onChange={setAutoHeight}
+                        />
+                      </Island>
+                    </Item>
+                  </>
+                ) : null}
+              </Flex>
             </Panel>
             <Panel position="bottom-right" style={{ zIndex: 10 }}>
               <Island unstyled>
@@ -1153,7 +1205,7 @@ export const Editor: FC<EditorProps> = ({ onSave }) => {
                 </Panel>
               </>
             )}
-            {mode === Mode.DESIGN && (
+            {mode === Mode.DEV && (
               <>
                 {selectedDesignToolId === "component" ? (
                   <Panel position="bottom-center" style={{ marginBottom: 70 }}>
@@ -1370,8 +1422,13 @@ export const Editor: FC<EditorProps> = ({ onSave }) => {
             )}
           </ReactFlow>
         ) : null}
-        {mode === Mode.DEV ? (
-          <Runtime spec={currentSpec} loading={isStreaming} size={selectedViewport} />
+        {mode === Mode.RUN ? (
+          <Runtime
+            spec={currentSpec}
+            loading={isStreaming}
+            size={viewportSize}
+            autoHeight={!isWidgetType || autoHeight}
+          />
         ) : null}
         {/* Always on top */}
         <Panel position="top-right">
@@ -1391,8 +1448,8 @@ export const Editor: FC<EditorProps> = ({ onSave }) => {
                 <Toggle
                   options={[
                     { id: Mode.AI, isAccent: true, label: "AI" },
-                    { id: Mode.DESIGN, label: "DESIGN" },
                     { id: Mode.DEV, label: "DEV" },
+                    { id: Mode.RUN, label: "RUN" },
                   ]}
                   value={mode}
                   onChange={(value) => setMode(value)}

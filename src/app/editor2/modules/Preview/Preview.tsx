@@ -13,8 +13,11 @@ export interface PreviewProps extends Record<string, unknown> {
   selected?: boolean;
   selectedElementId?: string;
   viewportSize?: {
-    width: number;
-    height: number;
+    width?: number;
+    height?: number;
+    minWidth?: number;
+    minHeight?: number;
+    maxWidth?: number;
   };
 }
 
