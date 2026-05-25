@@ -94,76 +94,14 @@ interface Api {
 }
 
 const EDITOR_RULES = [
-  "Никогда не используй Card как root.",
+  "Никогда не используй Card как потомка View.",
   "Оборачивай каждый повторяющийся элемент в Card с border:true и shadow:false для визуального разделения и лучшего UI/UX. В качестве контейнера для таких элементов используй Stack или Grid.",
   "Придерживайся визуальной иерархии элементов — используй контейнеры (Card, Stack, Grid...) для группировки элементов по смыслу.",
-  "Предпочитай Stack со свойством `direction: column` всегда, когда это возможно.",
+  // "Предпочитай Stack со свойством `direction: column` всегда, когда это возможно.",
   "Никогда не используй Title в качестве первого вложенного элемента у root элемента.",
   "Семплы данных должны быть на русском языке.",
   "При выводе радио-кнопок в цикле, используй Stack с direction:column в качестве контейнера.",
 ];
-
-const DEFAULT_SPEC = {
-  root: "stack-root",
-  elements: {
-    "stack-root": {
-      type: "Stack",
-      props: {
-        direction: "column",
-      },
-      children: ["text-1", "text-2", "stack-extra"],
-    },
-    "text-1": {
-      type: "Text",
-      props: {
-        text: { $state: "/user/name" },
-      },
-    },
-    "text-2": {
-      type: "Text",
-      props: {
-        text: { $state: "/user/age" },
-      },
-    },
-    "stack-extra": {
-      type: "Stack",
-      props: {},
-      children: ["button-submit"],
-    },
-    "button-submit": {
-      type: "Button",
-      props: {
-        label: "save",
-      },
-      on: {
-        press: {
-          action: "setState",
-          params: {
-            statePath: "test",
-            value: "test",
-          },
-        },
-      },
-    },
-  },
-  state: {
-    user: {
-      name: "John Doe",
-      age: 30,
-      isActive: true,
-      tasks: [
-        {
-          id: 1,
-          title: "Task 1",
-        },
-        {
-          id: 2,
-          title: "Task 2",
-        },
-      ],
-    },
-  },
-};
 
 const ZOOM_OPTIONS: ZoomOption[] = [
   { id: "in", label: "Zoom in" },
@@ -209,7 +147,6 @@ export const Editor: FC<EditorProps> = ({ onSave }) => {
   const [apis, setApis] = useState<Api[]>([]);
   const [selectedElementId, setSelectedElementId] = useState<string>();
   const [selectedVersionId, setSelectedVersionId] = useState<string>();
-  const [type, setType] = useState("");
   const [mode, setMode] = useState<string>(Mode.AI);
   const [versions, setVersions] = useState<Version[]>([]);
   const [activeTreeDropTargetId, setActiveTreeDropTargetId] = useState<
@@ -233,15 +170,6 @@ export const Editor: FC<EditorProps> = ({ onSave }) => {
     () => buildCatalogData(catalog.data),
     []
   );
-
-  const { isStreaming, raw, spec, usage, clear, send } = useUIStream({
-    customRules: EDITOR_RULES.concat(
-      type.length > 0 ? `Стейт должен иметь следующую структуру: ${type}.` : ""
-    ).filter(Boolean),
-    catalog: { actions, components, functions },
-    // url: "/api-web/neurosearchbar/api/v1/gigachat/completion",
-    url: "https://api.z.ai/api/paas/v4/chat/completions",
-  });
 
   const [currentVersion, currentVersionIndex] = useMemo(
     () => {
@@ -279,13 +207,21 @@ export const Editor: FC<EditorProps> = ({ onSave }) => {
     };
   }, [autoHeight, isWidgetType, selectedViewport]);
 
+  const { isStreaming, raw, spec, usage, clear, send } = useUIStream({
+    customRules: [
+      ...EDITOR_RULES,
+      ...(isWidgetType ? [`Текущий размер страницы: ${selectedViewport.width}x${selectedViewport.height}.`] : []),
+    ],
+    catalog: { actions, components, functions },
+    // url: "/api-web/neurosearchbar/api/v1/gigachat/completion",
+    url: "https://api.z.ai/api/paas/v4/chat/completions",
+  });
+
   const currentSpec = currentVersion?.spec ?? spec;
   const currentSpecCode = JSON.stringify(currentSpec, null, 2);
   const currentState = currentSpec?.state;
   const currentSnapshotData = currentState?.data ?? null;
   const isSaveDisabled = isStreaming || !currentSpec;
-
-  console.log("currentState", currentState);
 
   const toolBarItems = useMemo(
     () =>
