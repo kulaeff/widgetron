@@ -12,6 +12,7 @@ export interface CatalogField {
 
 export interface CatalogComponentInfo {
   name: string;
+  example?: unknown;
   icon?: string;
   group: string;
   description: string;
@@ -109,6 +110,7 @@ export function buildCatalogData(
       props: parseProps(schema.props),
       slots: "slots" in schema ? schema.slots ?? [] : [],
       events: "events" in schema ? schema.events ?? [] : [],
+      example: "example" in schema ? schema.example ?? null : null,
     }))
     .sort((a, b) => a.name.localeCompare(b.name));
 

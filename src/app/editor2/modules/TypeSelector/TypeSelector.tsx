@@ -1,36 +1,24 @@
 import type { FC } from "react";
 import { Toggle } from "../../components/Toggle";
-
-export const TypeSelectorValue = {
-  WIDGET: "widget",
-  PAGE: "page",
-} as const;
-
-export const PAGE_SIZE = {
-  minWidth: 512,
-  minHeight: 512,
-  maxWidth: 1024,
-} as const;
-
-export type TypeSelectorValue =
-  (typeof TypeSelectorValue)[keyof typeof TypeSelectorValue];
-
-const OPTIONS = [
-  { id: TypeSelectorValue.WIDGET, label: "В" },
-  { id: TypeSelectorValue.PAGE, label: "С" },
-];
+import { CONTENT_TYPE } from "../../constants";
+import { useTranslation } from "react-i18next";
 
 export interface TypeSelectorProps {
-  value: TypeSelectorValue;
-  onChange: (value: TypeSelectorValue) => void;
+  value: string;
+  onChange: (value: string) => void;
 }
 
 export const TypeSelector: FC<TypeSelectorProps> = ({ value, onChange }) => {
+  const { t } = useTranslation();
+
   return (
     <Toggle
-      options={OPTIONS}
+      options={[
+        { id: CONTENT_TYPE.TILE, label: t("Виджет") },
+        { id: CONTENT_TYPE.PAGE, label: t("Страница") },
+      ]}
       value={value}
-      onChange={(id) => onChange(id as TypeSelectorValue)}
+      onChange={(id) => onChange(id)}
     />
   );
 };

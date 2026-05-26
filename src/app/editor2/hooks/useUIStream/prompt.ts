@@ -1,3 +1,4 @@
+import { Spec } from "@json-render/core";
 import type {
   CatalogActionInfo,
   CatalogComponentInfo,
@@ -5,23 +6,51 @@ import type {
   CatalogFunctionInfo,
 } from "../../utils/catalog-data";
 
-const buildAvailableActions = (actions: CatalogActionInfo[]) =>
-  actions.map(
-    (c) =>
-      `- ${c.name}: { ${c.params
-        .map(formatCatalogField)
-        .join("; ")} } - ${c.description}`
-  );
+const formatCatalogField = (
+  field: CatalogActionInfo["params"][number],
+  prefix: string = '',
+) => {
+  const lines = [];
 
-const buildAvailableComponents = (components: CatalogComponentInfo[]) =>
-  components.map(
-    (c) =>
-      `- ${c.name}: { ${c.props
-        .map(formatCatalogField)
-        .join("; ")} } - ${c.description} ${
-        c.slots.length > 0 ? "[принимает children]" : ""
-      }${c.events.length > 0 ? ` [события: ${c.events.join(", ")}]` : ""}`
-  );
+  const defaultValue =
+    field.default === undefined ? "" : ` = ${String(field.default)}`;
+
+  if (field.description) {
+    lines.push(`${prefix}// ${field.description}`);
+  }
+
+  lines.push(`${prefix}${field.name}: ${field.type}${defaultValue}`);
+
+  return lines;
+};
+
+const buildAvailableActions = (actions: CatalogActionInfo[]) =>
+  actions.flatMap((c) => {
+    const lines = [];
+    lines.push(`- ${c.name}: { ${c.params.map((p) => formatCatalogField(p)).join(", ")} } - ${c.description}`);
+    return lines;
+  });
+
+const buildAvailableComponents = (components: CatalogComponentInfo[]) => {
+  const lines = [];
+
+  for (const c of components) {
+    lines.push(
+      `- **${c.name}** — ${c.description}${c.slots.length > 0 ? " [принимает children]" : ''}${c.events.length > 0 ? ` [события: ${c.events.join(", ")}]` : ''}`
+    );
+
+    lines.push("  Свойства:");
+
+    lines.push(...c.props.flatMap((p) => formatCatalogField(p, "    ")));
+
+    if (c.example) {
+      lines.push("  Пример:");
+      lines.push(`    ${JSON.stringify(c.example)}`);
+    }
+  }
+
+  return lines;
+}
 
 const buildAvailableFunctions = (functions: CatalogFunctionInfo[]) =>
   functions.map(
@@ -30,15 +59,6 @@ const buildAvailableFunctions = (functions: CatalogFunctionInfo[]) =>
         .map(formatCatalogField)
         .join("; ")} } - ${c.description}`
   );
-
-const formatCatalogField = (
-  field: CatalogActionInfo["params"][number]
-): string => {
-  const defaultValue =
-    field.default === undefined ? "" : ` = ${String(field.default)}`;
-
-  return `${field.name}: ${field.type}${defaultValue}`;
-};
 
 export const buildSystemPrompt = (
   catalog: CatalogDisplayData,
@@ -61,17 +81,17 @@ export const buildSystemPrompt = (
     'Сначала установи root: { "op": "add", "path": "/root", "value": "<root-key>" }'
   );
   lines.push(
-    'Затем последовательно выводи каждый элемент: { "op": "add", "path": "/elements/<key>", "value": { "key": <value> } }'
+    'Затем последовательно выводи каждый элемент: { "op": "add", "path": "/elements/<key>", "value": { "<key>": <value> } }'
   );
-  lines.push("Каждый элемент должен иметь поля `type` and `props`.");
+  lines.push("Каждый элемент должен иметь обязательные поля `type` and `props`.");
   lines.push(
     "Используй короткие и уникальные имена для ключей, используя kebab case (например 'header, 'stack-profile', 'chart-revenue'). Не используй camel case."
   );
   lines.push(
-    'На последнем этапе выводи патчи для стейта: { "op": "add", "path": "/state/<key>", "value": <value> }'
+    'Далее последовательно выводи патчи для стейта: { "op": "add", "path": "/state/<key>", "value": <value> }'
   );
   lines.push(
-    "Выводи /elements and /state патчи потоково и поочереди, чтобы UI заполнялся прогрессивно по мере получения потока."
+    'Выводи /elements and /state патчи прогрессивно: после каждого элемента добавляй патч для стейта, к которому он обращается. Например, если элемент использует { "$state": "/some/path" }, сразу после него добавь патч для /state/some/path.'
   );
   lines.push(
     "Всегда выводи /state патчи, если используется $state, $bindState, $bindItem, $item, $index или поле repeat."
@@ -80,31 +100,38 @@ export const buildSystemPrompt = (
   lines.push("");
 
   lines.push("Пример вывода (каждая строка это отдельный JSON объект):");
-  lines.push('{ "op": "add", "path": "/root", "value": "main" }');
+  lines.push('{ "op": "add", "path": "/root", "value": "default-view" }');
   lines.push(
-    '{ "op": "add", "path": "/elements/main", "value": { "type": "Stack", "props": { "gap": 2 }, "children": ["avatar", "name", "tasks" ]}}'
+    '{ "op": "add", "path": "/elements/default-view", "value": { "type": "View", "props": {}, "children": ["stack-main" ]}}'
   );
   lines.push(
-    '{ "op": "add", "path": "/elements/avatar", "value": { "type": "Avatar", "props": { "src": { $state: "/image" }}}}'
+    '{ "op": "add", "path": "/elements/stack-main", "value": { "type": "Stack", "props": { "gap": 2 }, "children": ["avatar", "name", "tasks" ]}}'
   );
   lines.push(
-    '{ "op": "add", "path": "/elements/name", "value": { "type": "Title", "props": { "size": "H3" }}}'
+    '{ "op": "add", "path": "/elements/avatar", "value": { "type": "Avatar", "props": { "src": { "$state": "/image" }}}}'
+  );
+  lines.push('{ "op": "add", "path": "/state/image", "value": "avatar.png" }');
+  lines.push(
+    '{ "op": "add", "path": "/elements/name", "value": { "type": "Text", "props": { "text": { "$state": "/name" }}}}'
+  );
+  lines.push('{ "op": "add", "path": "/state/name", "value": "John Doe" }');
+  lines.push(
+    '{ "op": "add", "path": "/elements/stack-tasks", "value": { "type": "Stack", "props": { "direction": "column", "gap": 2 }, "repeat": { "statePath": "/items", "key": "id" }, "children": ["card-task"] }}'
   );
   lines.push(
-    '{ "op": "add", "path": "/elements/tasks", "value": { "type": "Stack", "props": { "direction": "column", "gap": 2 }, "repeat": { "statePath": "/items", "key": "id" }, "children": ["item"] }}'
+    '{ "op": "add", "path": "/elements/card-task", "value": { "type": "Card", "props": {}, "children": ["task-title"] }}'
   );
   lines.push(
-    '{ "op": "add", "path": "/elements/item", "value": { "type": "Card", "props": {}, "children": ["task-title"] }}'
+    '{ "op": "add", "path": "/elements/task-title", "value": { "type": "Text", "props": { "text": { "$item": "title" }, "variant": "body1Regular" }}}'
   );
   lines.push(
-    '{ "op": "add", "path": "/elements/title", "value": { "type": "Text", "props": { "text": { "$item": "title" }, "variant": "body1Regular" }}}'
-  );
-  lines.push('{ "op": "add", "path": "/state/items", "value": [] }');
-  lines.push(
-    '{ "op": "add", "path": "/state/items/0", "value": { "id": "1", "title": "first" }}'
+    '{ "op": "add", "path": "/state/items", "value": [] }'
   );
   lines.push(
-    '{ "op": "add", "path": "/state/items/2", "value": { "id": "2", "title": "second" }}'
+    '{ "op": "add", "path": "/state/items/0", "value": { "id": "1", "title": "first item" }}'
+  );
+  lines.push(
+    '{ "op": "add", "path": "/state/items/1", "value": { "id": "2", "title": "second item" }}'
   );
 
   lines.push("");
@@ -157,7 +184,7 @@ export const buildSystemPrompt = (
     '  для массивов: { "op": "add", "path": "/state/posts/0", "value": { ... } затем /state/posts/1, /state/posts/2 и так далее.'
   );
   lines.push(
-    '  для объектов: { "op": "add", "path": "/state/user/name", value: "John" }'
+    '  для объектов: { "op": "add", "path": "/state/user/name", "value": "John" }'
   );
   lines.push(
     '  Сначала инициализируй массив, если это необходимо: { "op": "add", "path": "/state/posts", "value": [] }'
@@ -170,7 +197,7 @@ export const buildSystemPrompt = (
 
   lines.push("ДИНАМИЧЕСКИЕ СПИСКИ ИЛИ ЦИКЛЫ (поле `repeat`)");
   lines.push(
-    'Любой элемент может иметь опциональное верхнеуровневое поле `repeat` (рядом с type/props/children) для рендеринга своих потомков для каждого элемента массива: { "repeat": { "statePath": "/path/to/array, "key": "id" }}.'
+    'Любой элемент может иметь опциональное верхнеуровневое поле `repeat` (рядом с type/props/children) для рендеринга своих потомков для каждого элемента массива: { "repeat": { "statePath": "/path/to/array", "key": "id" }}.'
   );
   lines.push(
     "Сам элемент рендерится один раз (как контейнер), а его потомки рендерятся на каждый элемент массива. `statePath` это путь до массива, а `key` — поле элемента массива, используемое в качестве стабильных React ключей."
@@ -249,7 +276,7 @@ export const buildSystemPrompt = (
     '  - { "$state": "/path", "neq": "<value>" } - элемент видим, если значение стейта по указанному пути не равно указанному значению'
   );
   lines.push(
-    '  - { "$state": "/path", "gt/gte/lt/ltre": <number> } - числовые сравнения'
+    '  - { "$state": "/path", "gt/gte/lt/lte": <number> } - числовые сравнения'
   );
   lines.push(
     "Используй один оператор на одно условие (eq, neq, gt, gte, lt, lte). Не комбинируй несколько операторов в одном условии."
@@ -278,7 +305,7 @@ export const buildSystemPrompt = (
     'Пример: компонент с { "on": { "press": { "action": "setState", "params": { "statePath": "/activeTab", "value": "home" }}}} устанавливает стейт, затем другой компонент с { "visible": { "$state": "/activeTab", "eq": "home" }} показывается только когда таб выбран.'
   );
   lines.push(
-    'Для паттернов типа "табы", когда первый таб или таб по умолчанию должен быть видим если никакой таб еще не был выбран, используй `$or` чтобы учесть оба кейса: { "$or": [{ "$state": "/activeTab", "eq": "home}, { "$state": "/activeTab", "eq": "", "not": true }]}.'
+    'Для паттернов типа "табы", когда первый таб или таб по умолчанию должен быть видим если никакой таб еще не был выбран, используй `$or` чтобы учесть оба кейса: { "$or": [{ "$state": "/activeTab", "eq": "home" }, { "$state": "/activeTab", "eq": "", "not": true }] }.'
   );
 
   lines.push("");
@@ -310,7 +337,7 @@ export const buildSystemPrompt = (
   lines.push('   Пример: { "label": { "$template": "${likes} лайков" }}');
 
   lines.push(
-    "Используй динамические свойства вместо дублирования элементов с противоположными условиями видимосте, если отличается только значение свойства компонента."
+    "Используй динамические свойства вместо дублирования элементов с противоположными условиями видимости, если отличается только значение свойства компонента."
   );
   lines.push(
     '6. Функция: { "$computed": "<functionName>", "args": { "key": <expression> }} - вызывает зарегистрированную функцию с зарезолвленными аргументами и возвращает результат.'
@@ -318,13 +345,15 @@ export const buildSystemPrompt = (
   lines.push(
     '   Пример: { "$computed": "fullName", "args": { "first": { "$state": "/form/firstName" }, "last": { "$state": "/form/lastName" }}}'
   );
-  lines.push("   Доступные функции:");
-  lines.push(...buildAvailableFunctions(functions).map((s) => `     ${s}`));
+  if (functions.length > 0) {
+    lines.push("   Доступные функции:");
+    lines.push(...buildAvailableFunctions(functions).map((s) => `     ${s}`));
+  }
   lines.push(
     "Всегда используй косую черту (slash) в state path (синтаксис RFC 6901 JSON Pointer). Никогда не используй Javascript дот нотацию."
   );
   lines.push("Разрешено: /todos/0/title");
-  lines.push("Запрещено: /todos.o.title");
+  lines.push("Запрещено: /todos.0.title");
 
   lines.push("");
 
@@ -369,7 +398,7 @@ export const buildSystemPrompt = (
     'Пример: { "checks": [{ "type": "required", "message": "Email is required" }, { "type": "email", "message": "Invalid email" }]}'
   );
   lines.push(
-    "Когда используешь валидацю, компонент обязан также иметь { $bindState} или {$bindItem} в свойствах value или checked для двусторонней привязки."
+    "Когда используешь валидацию, компонент обязан также иметь { $bindState} или {$bindItem} в свойствах value или checked для двусторонней привязки."
   );
   lines.push("Всегда добавляй валидацию для элементов формы для хорошего UX.");
 
@@ -386,7 +415,7 @@ export const buildSystemPrompt = (
     "Пример (каскадный селект - изменение выбранной страны запускает действие по загрузке городов выбранной страны):"
   );
   lines.push(
-    '{ "type": "Select", "props": { "value": { "$bindState": "/form/country" }, "options": ["US", "Canada", "Russia"], "watch": { "/form/country": { "action": "loadCitues", "params": { "country": { "$state": "/form/country" }}}}}}'
+    '{ "type": "Select", "props": { "value": { "$bindState": "/form/country" }, "options": ["US", "Canada", "Russia"], "watch": { "/form/country": { "action": "loadCities", "params": { "country": { "$state": "/form/country" }}}}}}'
   );
   lines.push(
     "Используй `watch` для каскадных зависимостей, когда изменение одного поля должно триггерить сайд-эффекты (загрузку данных, сброс зависимых полей, вычисление производных значений и так далее)."
@@ -397,8 +426,30 @@ export const buildSystemPrompt = (
 
   lines.push("");
 
-  lines.push("ПРАВИЛА");
-  // lines.push("Self-check: ...");
+  lines.push(...customRules);
+
+  return lines.join("\n");
+};
+
+export const buildUserPrompt = (
+  prompt: string,
+  currentSpec: Spec,
+  customRules: string[],
+) => {
+  const lines = [];
+
+  lines.push("ТЕКУЩИЙ UI:");
+  lines.push("```json");
+  lines.push(JSON.stringify(currentSpec, null, 2));
+  lines.push("```");
+
+  lines.push("");
+
+  lines.push("ЗАПРОС ПОЛЬЗОВАТЕЛЯ:");
+  lines.push(prompt);
+
+  lines.push("");
+
   lines.push(...customRules);
 
   return lines.join("\n");

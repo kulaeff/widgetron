@@ -2,7 +2,7 @@ import type { Spec } from "@json-render/react";
 import { useCallback, useEffect, useRef, useState } from "react";
 import type { CatalogDisplayData } from "../../utils/catalog-data";
 import { applySpecPatch } from "./patch";
-import { buildSystemPrompt } from "./prompt";
+import { buildSystemPrompt, buildUserPrompt } from "./prompt";
 import { Usage } from "./types";
 
 interface GigachatResponse {
@@ -99,6 +99,8 @@ export const useUIStream = ({
   const [spec, setSpec] = useState<Spec | null>(null);
   const [usage, setUsage] = useState<Usage | null>(null);
 
+  console.log(buildSystemPrompt(catalog, customRules));
+
   const clear = useCallback(() => {
     setSpec(null);
     setError(null);
@@ -129,6 +131,8 @@ export const useUIStream = ({
 
       setSpec(currentSpec);
 
+      console.log(buildUserPrompt(prompt, currentSpec, context.customRules as string[]));
+
       try {
         const response = await fetch(url, {
           body: JSON.stringify({
@@ -140,15 +144,7 @@ export const useUIStream = ({
               },
               {
                 role: "user",
-                content: `
-                  ТЕКУЩИЙ UI:
-                  \`\`\`
-                  ${JSON.stringify(currentSpec, null, 2)}
-                  \`\`\`
-
-                  ЗАПРОС ПОЛЬЗОВАТЕЛЯ:
-                  ${prompt}
-                `,
+                content: buildUserPrompt(prompt, currentSpec, context.customRules as string[]),
               },
             ],
             // function_call: { name: "http_request" },

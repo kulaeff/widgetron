@@ -1,5 +1,13 @@
 import type { Spec } from "@json-render/core";
 
+export interface Viewport {
+  id: string;
+  label: string;
+  description: string;
+  width: number;
+  height: number;
+}
+
 export interface Version {
   id: string;
   prompt: string;

@@ -46,19 +46,9 @@ import { ToolPicker, type ToolPickerItem } from "./components/ToolPicker";
 import { ZoomControl, type ZoomOption } from "./components/ZoomControl";
 import { TREE_ROOT_DROP_TARGET_ID, TreeView } from "./components/TreeView";
 import { AutoHeightButton } from "./modules/AutoHeightButton";
-import {
-  DEFAULT_SIZE_ID,
-  getSizeOption,
-  SizeSelector,
-  type SizeId,
-} from "./modules/SizeSelector";
+import { SizeSelector } from "./modules/SizeSelector";
 import { Preview, type PreviewProps } from "./modules/Preview";
-import {
-  PAGE_SIZE,
-  TypeSelector,
-  TypeSelectorValue,
-  type TypeSelectorValue as ContentType,
-} from "./modules/TypeSelector";
+import { TypeSelector } from "./modules/TypeSelector";
 import { Runtime } from "./modules/Runtime";
 import { Tabs } from "./components/Tabs";
 import { Item, Flex } from "./components/Flex";
@@ -86,6 +76,8 @@ import {
   type CatalogComponentInfo,
 } from "./utils/catalog-data";
 import * as Styled from "./styled";
+import { CONTENT_TYPE, MODE, PAGE_SIZE, TILE_SIZE } from "./constants";
+import { buildCustomSystemRules, buildCustomUserRules } from "./rules";
 
 interface Api {
   id: string;
@@ -93,16 +85,6 @@ interface Api {
   url: string;
   body: string;
 }
-
-const EDITOR_RULES = [
-  "Никогда не используй Card как потомка View.",
-  "Оборачивай каждый повторяющийся элемент в Card с border:true и shadow:false для визуального разделения и лучшего UI/UX. В качестве контейнера для таких элементов используй Stack или Grid.",
-  "Придерживайся визуальной иерархии элементов — используй контейнеры (Card, Stack, Grid...) для группировки элементов по смыслу.",
-  // "Предпочитай Stack со свойством `direction: column` всегда, когда это возможно.",
-  "Никогда не используй Title в качестве первого вложенного элемента у root элемента.",
-  "Семплы данных должны быть на русском языке.",
-  "При выводе радио-кнопок в цикле, используй Stack с direction:column в качестве контейнера.",
-];
 
 const ZOOM_OPTIONS: ZoomOption[] = [
   { id: "in", label: "Zoom in" },
@@ -115,12 +97,6 @@ const DESIGN_TOOLS: ToolPickerItem[] = [
   { id: "select", title: "Select" },
   { id: "component", title: "Component" },
 ];
-
-const Mode = {
-  AI: "ai",
-  DEV: "dev",
-  RUN: "run",
-} as const;
 
 type PreviewNode = Node<PreviewProps, "renderer">;
 type ElementVisibilityValue =
@@ -151,7 +127,7 @@ export const Editor: FC<EditorProps> = ({ onSave }) => {
   const [dataSnapshot, setDataSnapshot] = useState("");
   const [selectedElementId, setSelectedElementId] = useState<string>();
   const [selectedVersionId, setSelectedVersionId] = useState<string>();
-  const [mode, setMode] = useState<string>(Mode.AI);
+  const [mode, setMode] = useState<string>(MODE.AI);
   const [versions, setVersions] = useState<Version[]>([]);
   const [activeTreeDropTargetId, setActiveTreeDropTargetId] = useState<
     string | null
@@ -160,12 +136,10 @@ export const Editor: FC<EditorProps> = ({ onSave }) => {
     useState<string | null>(null);
   const [isCodeModalOpen, setIsCodeModalOpen] = useState(false);
   const [selectedDesignToolId, setSelectedDesignToolId] = useState("select");
-  const [contentType, setContentType] = useState<ContentType>(
-    TypeSelectorValue.WIDGET
-  );
-  const [viewportId, setViewportId] = useState<SizeId>(DEFAULT_SIZE_ID);
+  const [contentType, setContentType] = useState(CONTENT_TYPE.TILE);
+  const [viewportId, setViewportId] = useState(TILE_SIZE[0].id);
   const [autoHeight, setAutoHeight] = useState(false);
-  const isWidgetType = contentType === TypeSelectorValue.WIDGET;
+  const isTile = contentType === CONTENT_TYPE.TILE;
 
   const generatingVersionIdRef = useRef<string>();
   const apiModalRef = useRef<HTMLDialogElement>(null);
@@ -191,11 +165,11 @@ export const Editor: FC<EditorProps> = ({ onSave }) => {
     [selectedVersionId, versions]
   );
   const selectedViewport = useMemo(
-    () => getSizeOption(viewportId),
+    () => TILE_SIZE.find((viewport) => viewport.id === viewportId) ?? TILE_SIZE[0],
     [viewportId]
   );
   const viewportSize = useMemo(() => {
-    if (!isWidgetType) {
+    if (!isTile) {
       return {
         width: PAGE_SIZE.maxWidth,
         minWidth: PAGE_SIZE.minWidth,
@@ -212,13 +186,10 @@ export const Editor: FC<EditorProps> = ({ onSave }) => {
       width: selectedViewport.width,
       height: selectedViewport.height,
     };
-  }, [autoHeight, isWidgetType, selectedViewport]);
+  }, [autoHeight, isTile, selectedViewport]);
 
   const { isStreaming, raw, spec, usage, clear, send } = useUIStream({
-    customRules: [
-      ...EDITOR_RULES,
-      ...(isWidgetType ? [`Текущий размер страницы: ${selectedViewport.width}x${selectedViewport.height}.`] : []),
-    ],
+    customRules: buildCustomSystemRules(),
     catalog: { actions, components, functions },
     // url: "/api-web/neurosearchbar/api/v1/gigachat/completion",
     url: "https://api.z.ai/api/paas/v4/chat/completions",
@@ -329,7 +300,7 @@ export const Editor: FC<EditorProps> = ({ onSave }) => {
     (value: string) => {
       setMode(value);
 
-      if (value !== Mode.DEV || versions.length > 0) {
+      if (value !== MODE.DEV || versions.length > 0) {
         return;
       }
 
@@ -634,18 +605,22 @@ export const Editor: FC<EditorProps> = ({ onSave }) => {
       }
 
       await send(value, {
+        customRules: buildCustomUserRules(
+          contentType,
+          viewportId,
+          autoHeight,
+          { data: dataSnapshot, dom: domSnapshot, openApi: openApiSpec }
+        ),
         previousSpec: currentVersion?.spec ?? {
           root: "",
           elements: {},
           state: {
             ...(data !== undefined ? { data } : {}),
-            // ...(domSnapshot.trim() ? { domTree: domSnapshot.trim() } : {}),
-            // ...(openApiSpec.trim() ? { openApiSpec: openApiSpec.trim() } : {}),
           },
         },
       });
     },
-    [apis, currentVersion, dataSnapshot, domSnapshot, openApiSpec, send]
+    [apis, contentType, currentVersion, dataSnapshot, domSnapshot, openApiSpec, viewportId, autoHeight, send]
   );
 
   const handlePreviewDropComponent = useCallback(
@@ -855,7 +830,7 @@ export const Editor: FC<EditorProps> = ({ onSave }) => {
       position: { x: 0, y: 0 },
       data: {
         emptyLabel:
-          mode === Mode.AI
+          mode === MODE.AI
             ? "Ожидание генерации интерфейса..."
             : "Перетащите сюда компонент из палитры",
         loading: isStreaming,
@@ -889,7 +864,7 @@ export const Editor: FC<EditorProps> = ({ onSave }) => {
   }, [isStreaming, raw, spec, usage]);
 
   useEffect(() => {
-    if (mode !== Mode.DEV || selectedDesignToolId !== "component") {
+    if (mode !== MODE.DEV || selectedDesignToolId !== "component") {
       return undefined;
     }
 
@@ -1038,7 +1013,7 @@ export const Editor: FC<EditorProps> = ({ onSave }) => {
         ) : null}
       </DragOverlay>
       <Styled.Container>
-        {mode !== Mode.RUN ? (
+        {mode !== MODE.RUN ? (
           <ReactFlow
             fitView
             fitViewOptions={{
@@ -1062,7 +1037,7 @@ export const Editor: FC<EditorProps> = ({ onSave }) => {
                     />
                   </Island>
                 </Item>
-                {isWidgetType ? (
+                {contentType === CONTENT_TYPE.TILE ? (
                   <>
                     <Item>
                       <Island unstyled>
@@ -1102,7 +1077,7 @@ export const Editor: FC<EditorProps> = ({ onSave }) => {
                 />
               </Island>
             </Panel>
-            {mode === Mode.AI && (
+            {mode === MODE.AI && (
               <>
                 {currentVersion && currentVersion.prompt ? (
                   <Panel position="top-left">
@@ -1224,7 +1199,7 @@ export const Editor: FC<EditorProps> = ({ onSave }) => {
                 </Panel>
               </>
             )}
-            {mode === Mode.DEV && (
+            {mode === MODE.DEV && (
               <>
                 {selectedDesignToolId === "component" ? (
                   <Panel position="bottom-center" style={{ marginBottom: 70 }}>
@@ -1441,12 +1416,12 @@ export const Editor: FC<EditorProps> = ({ onSave }) => {
             )}
           </ReactFlow>
         ) : null}
-        {mode === Mode.RUN ? (
+        {mode === MODE.RUN ? (
           <Runtime
             spec={currentSpec}
             loading={isStreaming}
             size={viewportSize}
-            autoHeight={!isWidgetType || autoHeight}
+            autoHeight={!isTile || autoHeight}
           />
         ) : null}
         {/* Always on top */}
@@ -1466,9 +1441,9 @@ export const Editor: FC<EditorProps> = ({ onSave }) => {
               <Island unstyled>
                 <Toggle
                   options={[
-                    { id: Mode.AI, isAccent: true, label: "AI" },
-                    { id: Mode.DEV, label: "DEV" },
-                    { id: Mode.RUN, label: "RUN" },
+                    { id: MODE.AI, isAccent: true, label: "AI" },
+                    { id: MODE.DEV, label: "DEV" },
+                    { id: MODE.RUN, label: "RUN" },
                   ]}
                   value={mode}
                   onChange={handleModeChange}

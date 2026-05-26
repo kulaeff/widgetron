@@ -6,7 +6,7 @@ export const catalog = defineCatalog(schema, {
   components: {
     Avatar: {
       description: "Аватар",
-      example: { name: "John Doe", size: "md" },
+      example: { text: "JD", size: "l", url: "https://example.com/avatar.png" },
       group: "content",
       props: z.object({
         hasBadge: z
@@ -15,7 +15,7 @@ export const catalog = defineCatalog(schema, {
           .optional()
           .meta({ description: "Если true, то отображается бейдж" }),
         text: z.string().optional().meta({
-          description: "Текст (инициалы), оторажаемые если url не задан",
+          description: "Текст (инициалы), отображаемые если url не задан",
         }),
         label: z.string().optional().meta({
           description:
@@ -53,12 +53,12 @@ export const catalog = defineCatalog(schema, {
       }),
       events: ["press"],
       description: "Кнопка. Используй on.press для привязки действий.",
-      example: { label: "Submit", variant: "secondary" },
+      example: { label: "Submit", type: "secondary" },
     },
     Card: {
       description:
         "Контейнер для визуальной группировки элементов (например, задачи, посты, карточки товаров...)",
-      example: { size: 5 },
+      example: { border: true, shadow: false, variant: "secondary" },
       group: "layout",
       props: z.object({
         border: z.boolean().default(false).optional(),
@@ -69,7 +69,7 @@ export const catalog = defineCatalog(schema, {
     },
     Slider: {
       description: "Используется для отображения списка элементов (repeat) в условиях ограниченной по вертикали контентной области.",
-      example: { autoplay: true },
+      example: { autoPlay: 5000 },
       group: "controls",
       props: z.object({
         autoPlay: z.number().default(0).optional().meta({
@@ -85,9 +85,9 @@ export const catalog = defineCatalog(schema, {
     },
     Chips: {
       description:
-        "Компактный элемент, отображающий aтрибут, статус или действие.",
+        "Компактный элемент, отображающий атрибут, статус или действие.",
       events: ["press"],
-      example: { label: "active", color: "green" },
+      example: { size: "s", type: "default", label: "active" },
       group: "content",
       props: z.object({
         type: z
@@ -101,14 +101,19 @@ export const catalog = defineCatalog(schema, {
     Stack: {
       group: "layout",
       description:
-        "Флекс-контейнер, реализующий линейный макет (вертикальный или горизонтальный)",
+        "Контейнер, реализующий линейный макет (вертикальный или горизонтальный) (flexbox)",
       example: { align: "center", direction: "column", gap: 4 },
       props: z.object({
         align: z
           .enum(["start", "center", "end", "stretch"])
           .default("stretch")
-          .optional(),
-        direction: z.enum(["row", "column"]).default("column").optional(),
+          .optional()
+          .meta({ description: "Выравнивание элементов по основной оси" }),
+        direction: z
+          .enum(["row", "column"])
+          .default("column")
+          .optional()
+          .meta({ description: "Направление расположения элементов" }),
         gap: z
           .union([
             z.literal(0),
@@ -122,7 +127,8 @@ export const catalog = defineCatalog(schema, {
             z.literal(8),
           ])
           .default(0)
-          .optional(),
+          .optional()
+          .meta({ description: "Расстояние между элементами" }),
         justify: z
           .enum([
             "start",
@@ -133,23 +139,25 @@ export const catalog = defineCatalog(schema, {
             "space-around",
           ])
           .default("stretch")
-          .optional(),
+          .optional()
+          .meta({ description: "Выравнивание элементов по вспомогательной оси" }),
       }),
       slots: ["default"],
     },
     Grid: {
       description:
-        "Грид-контейнер для расположения элементов по колонкам (1-6 колонок)",
+        "Горизонтальный контейнер для расположения элементов по колонкам (grid)",
       example: { columns: "* 2* auto", gap: 4 },
       group: "layout",
       props: z.object({
         align: z
           .enum(["start", "center", "end", "stretch"])
           .default("stretch")
-          .optional(),
+          .optional()
+          .meta({ description: "Выравнивание элементов по основной оси" }),
         columns: z.string().optional().meta({
           description:
-            "Конфигурация колонок в виде ширин, разделённых пробелами. Ширина колонки может быть относительной - `n*` (n частей доступной ширины), или по содержимлму - `auto`.",
+            "Конфигурация колонок в виде ширин, разделённых пробелами. Ширина колонки может быть относительной `n*` (n частей доступной ширины) или по содержимому `auto`.",
         }),
         gap: z
           .union([
@@ -164,7 +172,8 @@ export const catalog = defineCatalog(schema, {
             z.literal(8),
           ])
           .default(0)
-          .optional(),
+          .optional()
+          .meta({ description: "Расстояние между элементами" }),
         justify: z
           .enum([
             "start",
@@ -175,7 +184,8 @@ export const catalog = defineCatalog(schema, {
             "space-around",
           ])
           .default("stretch")
-          .optional(),
+          .optional()
+          .meta({ description: "Выравнивание элементов по вспомогательной оси" }),
       }),
       slots: ["default"],
     },
@@ -390,7 +400,7 @@ export const catalog = defineCatalog(schema, {
       }),
       events: ["change"],
       description:
-        "Выпадающий список. Use { $bindState } on value for two-way binding. Use checks for validation (e.g. required).",
+        "Выпадающий список. Используй { $bindState } в свойстве value для двусторонней привязки данных. Используй checks для валидации (например, required).",
     },
     Checkbox: {
       group: "controls",
@@ -437,7 +447,6 @@ export const catalog = defineCatalog(schema, {
     View: {
       description:
         "Служебный контейнер. Всегда используй этот компонент как root, а также в случае, когда нужно реализовать страничную логику (отображение того или иного экрана по условию).",
-      example: { root: "default-view" },
       group: "system",
       props: z.object({}),
       slots: ["default"],
@@ -445,7 +454,7 @@ export const catalog = defineCatalog(schema, {
   },
   actions: {
     httpRequest: {
-      description: "Makes an HTTP request.",
+      description: "Выполняет HTTP-запрос",
       params: z.object({
         url: z.string(),
         method: z
