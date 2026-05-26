@@ -7,6 +7,27 @@ export const Container = styled("div")({
   overflow: "hidden",
 });
 
+export const SnapshotTextArea = styled.textarea(
+  ({ theme }) => css`
+    ${theme.typography.body2Regular};
+    background: ${theme.tokens.current.core.layer["01"]};
+    border: 1px solid ${theme.tokens.current.core.border.strong};
+    border-radius: 8px;
+    box-sizing: border-box;
+    color: ${theme.tokens.current.core.text.primary};
+    font-family: inherit;
+    min-height: 240px;
+    min-width: 480px;
+    padding: 8px;
+    resize: vertical;
+    width: 100%;
+
+    &::placeholder {
+      color: ${theme.tokens.current.core.text.secondary};
+    }
+  `
+);
+
 export const Placeholder = styled.div(
   ({ theme }) => css`
     ${theme.typography.body2Regular}

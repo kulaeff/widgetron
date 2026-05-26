@@ -68,7 +68,7 @@ export const catalog = defineCatalog(schema, {
       slots: ["default"],
     },
     Slider: {
-      description: "Слайдер (всегда используется c repeat)",
+      description: "Используется для отображения списка элементов (repeat) в условиях ограниченной по вертикали контентной области.",
       example: { autoplay: true },
       group: "controls",
       props: z.object({

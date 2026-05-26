@@ -40,6 +40,7 @@ import {
   LevaPanel,
 } from "./components/LevaPanel";
 import { OmniBox } from "./components/OmniBox";
+import type { OmniBoxContextTag } from "./components/OmniBox/OmniBox";
 import { ToolBar } from "./components/ToolBar";
 import { ToolPicker, type ToolPickerItem } from "./components/ToolPicker";
 import { ZoomControl, type ZoomOption } from "./components/ZoomControl";
@@ -65,7 +66,7 @@ import { Versions } from "./components/Versions";
 import { CodeBlock } from "./components/CodeBlock";
 import { VisibilityEditor } from "./components/VisibilityEditor";
 import { Toggle } from "./components/Toggle";
-import { Modal } from "./components/Modal";
+import { Modal, ModalDescription, ModalTitle } from "./components/Modal";
 import { useUIStream } from "./hooks/useUIStream";
 import { catalog } from "./lib/catalog";
 import { Version } from "./types";
@@ -145,6 +146,9 @@ export const Editor: FC<EditorProps> = ({ onSave }) => {
   const [activeTab, setActiveTab] = useState("elements");
   const [activeRightTab, setActiveRightTab] = useState("properties");
   const [apis, setApis] = useState<Api[]>([]);
+  const [domSnapshot, setDomSnapshot] = useState("");
+  const [openApiSpec, setOpenApiSpec] = useState("");
+  const [dataSnapshot, setDataSnapshot] = useState("");
   const [selectedElementId, setSelectedElementId] = useState<string>();
   const [selectedVersionId, setSelectedVersionId] = useState<string>();
   const [mode, setMode] = useState<string>(Mode.AI);
@@ -165,6 +169,9 @@ export const Editor: FC<EditorProps> = ({ onSave }) => {
 
   const generatingVersionIdRef = useRef<string>();
   const apiModalRef = useRef<HTMLDialogElement>(null);
+  const domModalRef = useRef<HTMLDialogElement>(null);
+  const openApiModalRef = useRef<HTMLDialogElement>(null);
+  const dataModalRef = useRef<HTMLDialogElement>(null);
 
   const { actions, components, functions } = useMemo(
     () => buildCatalogData(catalog.data),
@@ -506,12 +513,73 @@ export const Editor: FC<EditorProps> = ({ onSave }) => {
     }
   };
 
+  const omniBoxContextTags = useMemo<OmniBoxContextTag[]>(() => {
+    const tags: OmniBoxContextTag[] = [];
+    const apiCount = apis.filter((api) => api.url.trim().length > 0).length;
+
+    if (apiCount > 0) {
+      tags.push({ id: "api", label: "API", count: apiCount });
+    }
+
+    if (domSnapshot.trim()) {
+      tags.push({ id: "dom", label: "DOM" });
+    }
+
+    if (openApiSpec.trim()) {
+      tags.push({ id: "openapi", label: "OpenAPI" });
+    }
+
+    if (dataSnapshot.trim()) {
+      tags.push({ id: "data", label: "Data" });
+    }
+
+    return tags;
+  }, [apis, dataSnapshot, domSnapshot, openApiSpec]);
+
   const handleOmniBoxToolRequest = useCallback((id: string) => {
     switch (id) {
       case "api":
         if (!apiModalRef.current?.open) {
           apiModalRef.current?.showModal();
         }
+        break;
+      case "dom":
+        if (!domModalRef.current?.open) {
+          domModalRef.current?.showModal();
+        }
+        break;
+      case "openapi":
+        if (!openApiModalRef.current?.open) {
+          openApiModalRef.current?.showModal();
+        }
+        break;
+      case "data":
+        if (!dataModalRef.current?.open) {
+          dataModalRef.current?.showModal();
+        }
+        break;
+      default:
+        break;
+    }
+  }, []);
+
+  const handleOmniBoxContextTagRemove = useCallback((id: string) => {
+    switch (id) {
+      case "api":
+        setApis([]);
+        apiModalRef.current?.close();
+        break;
+      case "dom":
+        setDomSnapshot("");
+        domModalRef.current?.close();
+        break;
+      case "openapi":
+        setOpenApiSpec("");
+        openApiModalRef.current?.close();
+        break;
+      case "data":
+        setDataSnapshot("");
+        dataModalRef.current?.close();
         break;
       default:
         break;
@@ -540,9 +608,15 @@ export const Editor: FC<EditorProps> = ({ onSave }) => {
       setSelectedElementId(undefined);
       setSelectedVersionId(nextId);
 
-      let data: Array<Record<string, unknown>> | null = null;
+      let data: unknown;
 
-      if (apis.length > 0) {
+      if (dataSnapshot.trim()) {
+        try {
+          data = JSON.parse(dataSnapshot.trim());
+        } catch {
+          data = dataSnapshot.trim();
+        }
+      } else if (apis.length > 0) {
         const promises = apis.map((api) => {
           const method = api.method.toUpperCase();
 
@@ -564,12 +638,14 @@ export const Editor: FC<EditorProps> = ({ onSave }) => {
           root: "",
           elements: {},
           state: {
-            data: data ?? undefined
+            ...(data !== undefined ? { data } : {}),
+            // ...(domSnapshot.trim() ? { domTree: domSnapshot.trim() } : {}),
+            // ...(openApiSpec.trim() ? { openApiSpec: openApiSpec.trim() } : {}),
           },
         },
       });
     },
-    [apis, currentVersion, send]
+    [apis, currentVersion, dataSnapshot, domSnapshot, openApiSpec, send]
   );
 
   const handlePreviewDropComponent = useCallback(
@@ -946,6 +1022,8 @@ export const Editor: FC<EditorProps> = ({ onSave }) => {
     </Flex>
   );
 
+  console.log('CURRENT SPEC', currentSpec);
+
   return (
     <DragDropProvider
       onDragStart={handleDragStart}
@@ -1064,94 +1142,83 @@ export const Editor: FC<EditorProps> = ({ onSave }) => {
                 <Panel position="bottom-center">
                   <Modal ref={apiModalRef} id="modalApi">
                     <Flex vertical>
+                      <Item>
+                        <ModalTitle>{t("API")}</ModalTitle>
+                        <ModalDescription>
+                          {t(
+                            "Укажите HTTP-эндпоинты. При отправке запроса данные будут загружены и переданы модели."
+                          )}
+                        </ModalDescription>
+                      </Item>
+                      <Item grow>{apiEditor}</Item>
+                    </Flex>
+                  </Modal>
+                  <Modal ref={domModalRef} id="modalDom">
+                    <Flex vertical>
+                      <Item>
+                        <ModalTitle>{t("Дерево DOM")}</ModalTitle>
+                        <ModalDescription>
+                          {t(
+                            "Вставьте слепок DOM-дерева страницы, чтобы модель учитывала структуру разметки при генерации."
+                          )}
+                        </ModalDescription>
+                      </Item>
                       <Item grow>
-                        <Flex vertical>
-                          {apis.map((api) => (
-                            <Item key={api.id}>
-                              <Flex>
-                                <Item>
-                                  <Toggle
-                                    options={[
-                                      { id: "get", label: "GET" },
-                                      { id: "post", label: "POST" },
-                                    ]}
-                                    value={api.method}
-                                    onChange={(id) =>
-                                      setApis((p) =>
-                                        p.map((a) =>
-                                          a.id === api.id ? { ...a, method: id } : a
-                                        )
-                                      )
-                                    }
-                                  />
-                                </Item>
-                                <Item grow>
-                                  <Input
-                                    value={api.url}
-                                    onChange={(e) =>
-                                      setApis((p) =>
-                                        p.map((a) =>
-                                          a.id === api.id ? { ...a, url: e.target.value } : a
-                                        )
-                                      )
-                                    }
-                                  />
-                                </Item>
-                                {api.method === "post" ? (
-                                  <Item grow>
-                                    <Input
-                                      placeholder={t("Тело запроса")}
-                                      value={api.body}
-                                      onChange={(e) =>
-                                        setApis((p) =>
-                                          p.map((a) =>
-                                            a.id === api.id
-                                              ? { ...a, body: e.target.value }
-                                              : a
-                                          )
-                                        )
-                                      }
-                                    />
-                                  </Item>
-                                ) : null}
-                                <Item>
-                                  <IconButton size="m-alt" $type="tertiary">
-                                    x
-                                  </IconButton>
-                                </Item>
-                              </Flex>
-                            </Item>
-                          ))}
-                          <Item>
-                            <IconButton
-                              size="s"
-                              $type="secondary"
-                              onClick={() =>
-                                setApis((p) => [
-                                  ...p,
-                                  {
-                                    id: Date.now().toString(),
-                                    method: "get",
-                                    url: "",
-                                    body: "",
-                                  },
-                                ])
-                              }
-                            >
-                              +
-                            </IconButton>
-                          </Item>
-                        </Flex>
+                        <Styled.SnapshotTextArea
+                          placeholder={t("Вставьте слепок DOM-дерева")}
+                          value={domSnapshot}
+                          onChange={(e) => setDomSnapshot(e.target.value)}
+                        />
+                      </Item>
+                    </Flex>
+                  </Modal>
+                  <Modal ref={openApiModalRef} id="modalOpenApi">
+                    <Flex vertical>
+                      <Item>
+                        <ModalTitle>{t("Спецификация OpenAPI")}</ModalTitle>
+                        <ModalDescription>
+                          {t(
+                            "Вставьте спецификацию OpenAPI — модель сможет опираться на описание методов и схем при генерации."
+                          )}
+                        </ModalDescription>
+                      </Item>
+                      <Item grow>
+                        <Styled.SnapshotTextArea
+                          placeholder={t("Вставьте спецификацию OpenAPI")}
+                          value={openApiSpec}
+                          onChange={(e) => setOpenApiSpec(e.target.value)}
+                        />
+                      </Item>
+                    </Flex>
+                  </Modal>
+                  <Modal ref={dataModalRef} id="modalData">
+                    <Flex vertical>
+                      <Item>
+                        <ModalTitle>{t("Данные")}</ModalTitle>
+                        <ModalDescription>
+                          {t(
+                            "Вставьте пример данных в формате JSON. Они будут подставлены в state виджета при генерации."
+                          )}
+                        </ModalDescription>
+                      </Item>
+                      <Item grow>
+                        <Styled.SnapshotTextArea
+                          placeholder={t("Вставьте данные (JSON)")}
+                          value={dataSnapshot}
+                          onChange={(e) => setDataSnapshot(e.target.value)}
+                        />
                       </Item>
                     </Flex>
                   </Modal>
                   <Island width={500}>
                     <OmniBox
                       loading={isStreaming}
+                      contextTags={omniBoxContextTags}
                       placeholder="Что вы хотите изменить или создать?"
                       onSubmit={handleOmniBoxSubmit}
                       onReset={clear}
                       onToolRequest={handleOmniBoxToolRequest}
+                      onContextTagRemove={handleOmniBoxContextTagRemove}
                     />
                   </Island>
                 </Panel>

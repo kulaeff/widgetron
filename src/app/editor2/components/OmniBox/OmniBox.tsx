@@ -13,20 +13,30 @@ import { Prompt } from "./Prompt";
 import { Dropdown } from "../Dropdown";
 import { Menu } from "../Menu";
 
+export type OmniBoxContextTag = {
+  id: string;
+  label: string;
+  count?: number;
+};
+
 export type OmniBoxProps = {
   loading?: boolean;
   placeholder?: string;
+  contextTags?: OmniBoxContextTag[];
   onSubmit: (value: string) => void;
   onReset?: () => void;
   onToolRequest?: (tool: string) => void;
+  onContextTagRemove?: (id: string) => void;
 };
 
 export const OmniBox: FC<OmniBoxProps> = ({
   loading = false,
   placeholder = "Опишите, что вы хотите получить...",
+  contextTags = [],
   onSubmit,
   onReset,
   onToolRequest,
+  onContextTagRemove,
 }) => {
   const { t } = useTranslation();
 
@@ -77,49 +87,81 @@ export const OmniBox: FC<OmniBoxProps> = ({
         onKeyDown={handleKeyDown}
       />
       <Styled.Buttons>
-        <Dropdown
-          isOpen={isDropdownOpen}
-          onChange={setIsDropdownOpen}
-          trigger={(
-            <Button
-              label="+"
-              size="sm"
-              variant="secondary"
-              onClick={() => setIsDropdownOpen((prev) => !prev)}
+        <Styled.LeftActions>
+          <Dropdown
+            isOpen={isDropdownOpen}
+            onChange={setIsDropdownOpen}
+            trigger={(
+              <Button
+                label="+"
+                size="sm"
+                variant="secondary"
+                onClick={() => setIsDropdownOpen((prev) => !prev)}
+              />
+            )}
+            style={{
+              marginBottom: "4px",
+            }}
+          >
+            <Menu
+              items={[
+                {
+                  id: "image",
+                  label: t("изображение"),
+                },
+                {
+                  id: "api",
+                  label: t("API"),
+                  command: "show-modal",
+                  commandFor: "modalApi",
+                },
+                {
+                  id: "dom",
+                  label: t("дерево DOM"),
+                  command: "show-modal",
+                  commandFor: "modalDom",
+                },
+                {
+                  id: "openapi",
+                  label: t("спецификация OpenAPI"),
+                  command: "show-modal",
+                  commandFor: "modalOpenApi",
+                },
+                {
+                  id: "data",
+                  label: t("данные"),
+                  command: "show-modal",
+                  commandFor: "modalData",
+                },
+              ]}
+              onCommand={(id) => handleMenuCommand?.(id)}
             />
-          )}
-          style={{
-            marginBottom: "4px",
-          }}
-        >
-          <Menu
-            items={[
-              {
-                id: "image",
-                label: t("изображение"),
-              },
-              {
-                id: "api",
-                label: t("API"),
-                command: "show-modal",
-                commandFor: "modalApi",
-              },
-              {
-                id: "dom",
-                label: t("дерево DOM"),
-              },
-              {
-                id: "openapi",
-                label: t("спецификация OpenAPI"),
-              },
-              {
-                id: "data",
-                label: t("данные"),
-              },
-            ]}
-            onCommand={(id) => handleMenuCommand?.(id)}
-          />
-        </Dropdown>
+          </Dropdown>
+          {contextTags.length > 0 ? (
+            <Styled.ContextTags>
+              {contextTags.map((tag) => (
+                <Styled.ContextTag key={tag.id}>
+                  <Styled.ContextTagButton
+                    type="button"
+                    onClick={() => onToolRequest?.(tag.id)}
+                  >
+                    {tag.label}
+                    {tag.count !== undefined ? (
+                      <Styled.ContextTagBadge>{tag.count}</Styled.ContextTagBadge>
+                    ) : null}
+                  </Styled.ContextTagButton>
+                  <Styled.ContextTagRemove
+                    aria-label={t("Удалить {{label}}", { label: tag.label })}
+                    type="button"
+                    onClick={() => onContextTagRemove?.(tag.id)}
+                  >
+                    ×
+                  </Styled.ContextTagRemove>
+                </Styled.ContextTag>
+              ))}
+            </Styled.ContextTags>
+          ) : null}
+        </Styled.LeftActions>
         <IconButton
           aria-label={loading ? "Stop" : "Send"}
           disabled={loading ? !onReset : localValue.length === 0}
