@@ -1,6 +1,8 @@
 import { type ChangeEvent, type FC, useEffect, useMemo, useState } from "react";
 import type { Spec } from "@json-render/react";
 import * as Styled from "./styled";
+import { Button } from "../Button";
+import { useTranslation } from "react-i18next";
 
 type VisibilityValue = Spec["elements"][string]["visible"] | boolean | undefined;
 type VisibilityConditionValue = Exclude<VisibilityValue, boolean | undefined>;
@@ -15,7 +17,7 @@ const getVisibilityMode = (value: VisibilityValue): VisibilityMode => {
 
 const getConditionText = (value: VisibilityValue): string => {
   if (typeof value === "object" && value !== null) {
-    return JSON.stringify(value, null, 2);
+    return JSON.stringify(value);
   }
 
   return '{ "$state": "/path/to/value" }';
@@ -36,6 +38,8 @@ interface VisibilityEditorProps {
 }
 
 export const VisibilityEditor: FC<VisibilityEditorProps> = ({ value, onChange }) => {
+  const { t } = useTranslation();
+
   const [mode, setMode] = useState<VisibilityMode>(() => getVisibilityMode(value));
   const [conditionText, setConditionText] = useState(() => getConditionText(value));
   const [error, setError] = useState<string | null>(null);
@@ -114,46 +118,39 @@ export const VisibilityEditor: FC<VisibilityEditorProps> = ({ value, onChange })
   return (
     <Styled.Container>
       <Styled.Row>
-        <Styled.Label>Режим видимости</Styled.Label>
+        <Styled.Label>{t("режим")}</Styled.Label>
         <Styled.Select value={mode} onChange={handleModeChange}>
-          <option value="always">Всегда видно (true)</option>
-          <option value="hidden">Всегда скрыто (false)</option>
-          <option value="condition">Условие (object/array)</option>
+          <option value="always">{t("всегда видно")}</option>
+          <option value="hidden">{t("всегда скрыто")}</option>
+          <option value="condition">{t("условие")}</option>
         </Styled.Select>
       </Styled.Row>
 
       {mode === "condition" ? (
         <>
           <Styled.Row>
-            <Styled.Label>Условие visible (JSON)</Styled.Label>
-            <Styled.TextArea
-              rows={10}
+            <Styled.Label>{t("условие")}</Styled.Label>
+            <Styled.Input
               value={conditionText}
-              onChange={(event) => setConditionText(event.target.value)}
+              onChange={(e) => setConditionText(e.target.value)}
             />
             {error ? <Styled.ErrorText>{error}</Styled.ErrorText> : null}
           </Styled.Row>
 
           <Styled.Actions>
-            <Styled.Button
-              type="button"
-              onClick={handleApplyCondition}
+            <Button
               disabled={!!error}
-              $primary
-            >
-              Применить
-            </Styled.Button>
-            <Styled.Button type="button" onClick={handleResetCondition}>
-              Сбросить
-            </Styled.Button>
+              label={t("применить")}
+              size="sm"
+              onClick={handleApplyCondition}
+            />
+            <Button
+              label={t('сбросить')}
+              size="sm"
+              variant="secondary"
+              onClick={handleResetCondition}
+            />
           </Styled.Actions>
-
-          <Styled.Hints>
-            <Styled.Hint>{'{ "$state": "/path" } -> truthy'}</Styled.Hint>
-            <Styled.Hint>{'{ "$state": "/path", "eq": "value" }'}</Styled.Hint>
-            <Styled.Hint>{'{ "$or": [condA, condB] } / { "$and": [condA, condB] }'}</Styled.Hint>
-            <Styled.Hint>{"[condA, condB] -> implicit AND"}</Styled.Hint>
-          </Styled.Hints>
         </>
       ) : null}
     </Styled.Container>

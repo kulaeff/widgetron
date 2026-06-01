@@ -7,6 +7,7 @@ export const Stack: FC<PropsWithChildren<StackProps>> = ({
   children,
   direction = "column",
   gap = 0,
+  height = "auto",
   justify = "stretch",
   ...rest
 }) => (
@@ -14,6 +15,7 @@ export const Stack: FC<PropsWithChildren<StackProps>> = ({
     $align={align}
     $direction={direction}
     $gap={gap}
+    $height={height}
     $justify={justify}
     {...rest}
   >

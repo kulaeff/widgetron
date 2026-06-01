@@ -9,15 +9,17 @@ import {
 } from "react";
 import * as Styled from "./styled";
 
-interface SliderProps extends HTMLAttributes<HTMLDivElement> {
+interface CarouselProps extends HTMLAttributes<HTMLDivElement> {
   autoplay?: boolean | number;
   loop?: boolean | number;
+  slidesPerPage?: number;
 }
 
-export const Slider: FC<PropsWithChildren<SliderProps>> = ({
+export const Carousel: FC<PropsWithChildren<CarouselProps>> = ({
   children,
   autoplay,
   loop,
+  slidesPerPage = 1,
   ...rest
 }) => {
   const slides = Children.toArray(children);
@@ -28,9 +30,9 @@ export const Slider: FC<PropsWithChildren<SliderProps>> = ({
 
   useEffect(() => {
     if (trackRef.current) {
-      setSlideCount(trackRef.current.children.length);
+      setSlideCount(Math.ceil(trackRef.current.children.length / slidesPerPage));
     }
-  }, []);
+  }, [slidesPerPage]);
 
   useEffect(() => {
     if (activeIndex >= slideCount && loop) {
@@ -42,6 +44,7 @@ export const Slider: FC<PropsWithChildren<SliderProps>> = ({
     <Styled.Slider {...rest}>
       <Styled.Container>
         <Styled.Track
+          $slidesPerPage={slidesPerPage}
           ref={trackRef}
           style={{ transform: `translateX(-${activeIndex * 100}%)` }}
         >

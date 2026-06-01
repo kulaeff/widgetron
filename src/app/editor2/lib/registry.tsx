@@ -30,8 +30,7 @@ import { Stack } from "../ui/Stack";
 import { Text } from "../ui/Text";
 // import { Link } from "@/components/ui/link";
 import { catalog } from "./catalog";
-import { Slider } from "../ui/Slider";
-import { createStateStore } from "@json-render/react";
+import { Carousel } from "../ui/Carousel";
 import { setByPath } from "@json-render/core";
 import { View } from "../ui/View";
 
@@ -73,7 +72,7 @@ export const { registry, handlers, executeAction } = defineRegistry(catalog, {
         $size={props.size}
         $type={props.type}
         disabled={props.disabled}
-        onClick={() => { console.log("click", props); emit("press")}}
+        onClick={() => emit("press")}
       >
         {props.label}
       </Button>,
@@ -87,14 +86,13 @@ export const { registry, handlers, executeAction } = defineRegistry(catalog, {
         {children}
       </Card>
     ),
-    Slider: ({ props, children }) => (
-      <Slider
-        {...(getSpecMarkerProps(props) as any)}
-        autoplay={props.autoPlay}
-        loop={props.loop}
+    Carousel: ({ props, children }) => (
+      <Carousel
+        {...(getSpecMarkerProps(props))}
+        {...props}
       >
         {children}
-      </Slider>
+      </Carousel>
     ),
     Chips: ({ props, emit }) =>
       <Chips

@@ -67,9 +67,9 @@ export const catalog = defineCatalog(schema, {
       }),
       slots: ["default"],
     },
-    Slider: {
-      description: "Используется для отображения списка элементов (repeat) в условиях ограниченной по вертикали контентной области.",
-      example: { autoPlay: 5000 },
+    Carousel: {
+      description: "Горизонтальный контейнер-карусель для вывода массива однотипных элементов (карточки, изображения...)",
+      example: { autoPlay: 5000, slidesPerPage: 2 },
       group: "controls",
       props: z.object({
         autoPlay: z.number().default(0).optional().meta({
@@ -80,6 +80,13 @@ export const catalog = defineCatalog(schema, {
           .default(false)
           .optional()
           .meta({ description: "Включает режим зацикливания слайдов" }),
+        slidesPerPage: z
+          .number()
+          .default(1)
+          .optional()
+          .meta({
+            description: "Количество слайдов на странице",
+          }),
       }),
       slots: ["default"],
     },
@@ -101,7 +108,7 @@ export const catalog = defineCatalog(schema, {
     Stack: {
       group: "layout",
       description:
-        "Контейнер, реализующий линейный макет (вертикальный или горизонтальный) (flexbox)",
+        "Контейнер для расположения элементов в ряд или столбец (flexbox)",
       example: { align: "center", direction: "column", gap: 4 },
       props: z.object({
         align: z
@@ -129,6 +136,13 @@ export const catalog = defineCatalog(schema, {
           .default(0)
           .optional()
           .meta({ description: "Расстояние между элементами" }),
+        height: z
+          .enum(["auto", "stretch"])
+          .default("auto")
+          .optional()
+          .meta({
+            description: "Высота контейнера (auto - по содержимому, stretch - растянуть на всю доступную высоту)",
+          }),
         justify: z
           .enum([
             "start",
@@ -140,7 +154,9 @@ export const catalog = defineCatalog(schema, {
           ])
           .default("stretch")
           .optional()
-          .meta({ description: "Выравнивание элементов по вспомогательной оси" }),
+          .meta({
+            description: "Выравнивание элементов по вспомогательной оси"
+          }),
       }),
       slots: ["default"],
     },
@@ -185,7 +201,9 @@ export const catalog = defineCatalog(schema, {
           ])
           .default("stretch")
           .optional()
-          .meta({ description: "Выравнивание элементов по вспомогательной оси" }),
+          .meta({
+            description: "Выравнивание элементов по вспомогательной оси"
+          }),
       }),
       slots: ["default"],
     },

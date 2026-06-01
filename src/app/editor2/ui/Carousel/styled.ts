@@ -12,14 +12,17 @@ export const Container = styled.div`
   overflow: hidden;
 `;
 
-export const Track = styled.div`
-  display: flex;
-  height: 100%;
-  will-change: transform;
-  & > * {
-    flex: 0 0 100%;
-  }
-`;
+export const Track = styled.div<{ $slidesPerPage: number }>(
+  ({ $slidesPerPage }) => css`
+    display: flex;
+    height: 100%;
+    transition: transform 180ms ease-in-out;
+    will-change: transform;
+    & > * {
+      flex: 0 0 calc(100% / ${$slidesPerPage});
+    }
+  `
+);
 
 export const Item = styled.div``;
 

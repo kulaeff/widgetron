@@ -1,1 +1,1 @@
-export { SizeSelector } from "./SizeSelector";
+export { SizeSelector, type SizeSelectorProps } from "./SizeSelector";

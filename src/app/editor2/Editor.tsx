@@ -13,12 +13,15 @@ import { IconButton } from "@pulse/ui/components/Button";
 import { Loader } from "@pulse/ui/components/Loader";
 import { JsonEditor, JsonValue } from "@visual-json/react";
 import {
+  applyNodeChanges,
   Background,
   Node,
+  NodeChange,
   NodeOrigin,
   NodeProps,
   Panel,
   ReactFlow,
+  useNodesState,
   useReactFlow,
 } from "@xyflow/react";
 import {
@@ -48,7 +51,6 @@ import { TREE_ROOT_DROP_TARGET_ID, TreeView } from "./components/TreeView";
 import { AutoHeightButton } from "./modules/AutoHeightButton";
 import { SizeSelector } from "./modules/SizeSelector";
 import { Preview, type PreviewProps } from "./modules/Preview";
-import { TypeSelector } from "./modules/TypeSelector";
 import { Runtime } from "./modules/Runtime";
 import { Tabs } from "./components/Tabs";
 import { Item, Flex } from "./components/Flex";
@@ -76,7 +78,7 @@ import {
   type CatalogComponentInfo,
 } from "./utils/catalog-data";
 import * as Styled from "./styled";
-import { CONTENT_TYPE, MODE, PAGE_SIZE, TILE_SIZE } from "./constants";
+import { MODE, TILE_SIZE } from "./constants";
 import { buildCustomSystemRules, buildCustomUserRules } from "./rules";
 
 interface Api {
@@ -136,10 +138,8 @@ export const Editor: FC<EditorProps> = ({ onSave }) => {
     useState<string | null>(null);
   const [isCodeModalOpen, setIsCodeModalOpen] = useState(false);
   const [selectedDesignToolId, setSelectedDesignToolId] = useState("select");
-  const [contentType, setContentType] = useState(CONTENT_TYPE.TILE);
-  const [viewportId, setViewportId] = useState(TILE_SIZE[0].id);
+  const [tileSizeId, setTileSizeId] = useState<string>(TILE_SIZE[0].id);
   const [autoHeight, setAutoHeight] = useState(false);
-  const isTile = contentType === CONTENT_TYPE.TILE;
 
   const generatingVersionIdRef = useRef<string>();
   const apiModalRef = useRef<HTMLDialogElement>(null);
@@ -164,29 +164,28 @@ export const Editor: FC<EditorProps> = ({ onSave }) => {
     },
     [selectedVersionId, versions]
   );
-  const selectedViewport = useMemo(
-    () => TILE_SIZE.find((viewport) => viewport.id === viewportId) ?? TILE_SIZE[0],
-    [viewportId]
+  const selectedTileSize = useMemo(
+    () => TILE_SIZE.find((viewport) => viewport.id === tileSizeId) ?? TILE_SIZE[0],
+    [tileSizeId]
   );
   const viewportSize = useMemo(() => {
-    if (!isTile) {
+    if (tileSizeId === "auto") {
       return {
-        width: PAGE_SIZE.maxWidth,
-        minWidth: PAGE_SIZE.minWidth,
-        minHeight: PAGE_SIZE.minHeight,
-        maxWidth: PAGE_SIZE.maxWidth,
+        width: selectedTileSize.minWidth,
+        minWidth: selectedTileSize.minWidth,
+        minHeight: selectedTileSize.minHeight,
       };
     }
 
     if (autoHeight) {
-      return { width: selectedViewport.width };
+      return { width: selectedTileSize.width };
     }
 
     return {
-      width: selectedViewport.width,
-      height: selectedViewport.height,
+      width: selectedTileSize.width,
+      height: selectedTileSize.height,
     };
-  }, [autoHeight, isTile, selectedViewport]);
+  }, [autoHeight, tileSizeId, selectedTileSize]);
 
   const { isStreaming, raw, spec, usage, clear, send } = useUIStream({
     customRules: buildCustomSystemRules(),
@@ -271,6 +270,26 @@ export const Editor: FC<EditorProps> = ({ onSave }) => {
     [components, currentSpec]
   );
 
+  const [nodes, setNodes, onNodesChange] = useNodesState<PreviewNode>([
+    {
+      id: "n1",
+      position: { x: 0, y: 0 },
+      data: {
+        loading: isStreaming,
+        selectedElementId,
+        spec: currentSpec,
+        viewportSize,
+      },
+      draggable: false,
+      origin: [0.5, 0.5] as NodeOrigin,
+      type: "renderer",
+    },
+  ]);
+
+  const selectedNode = useMemo(() => {
+    return nodes.find((n) => n.selected);
+  }, [nodes]);
+
   const handleSave = useCallback(async () => {
     const scheme = currentVersion?.spec ?? spec ?? null;
 
@@ -284,12 +303,12 @@ export const Editor: FC<EditorProps> = ({ onSave }) => {
         method: apis[0]?.method ?? "GET",
         url: apis[0]?.url ?? "",
       },
-      availableSizes: [viewportId],
+      availableSizes: [tileSizeId],
       scheme,
     };
 
     await onSave(payload);
-  }, [currentSnapshotData, currentVersion?.spec, onSave, spec, viewportId]);
+  }, [currentSnapshotData, currentVersion?.spec, onSave, spec, tileSizeId]);
 
   const handleVersionSelect = useCallback((id: string) => {
     setSelectedVersionId(id);
@@ -605,12 +624,11 @@ export const Editor: FC<EditorProps> = ({ onSave }) => {
       }
 
       await send(value, {
-        customRules: buildCustomUserRules(
-          contentType,
-          viewportId,
-          autoHeight,
-          { data: dataSnapshot, dom: domSnapshot, openApi: openApiSpec }
-        ),
+        customRules: buildCustomUserRules(tileSizeId, autoHeight, {
+          data: dataSnapshot,
+          dom: domSnapshot,
+          openApi: openApiSpec,
+        }),
         previousSpec: currentVersion?.spec ?? {
           root: "",
           elements: {},
@@ -620,7 +638,7 @@ export const Editor: FC<EditorProps> = ({ onSave }) => {
         },
       });
     },
-    [apis, contentType, currentVersion, dataSnapshot, domSnapshot, openApiSpec, viewportId, autoHeight, send]
+    [apis, currentVersion, dataSnapshot, domSnapshot, openApiSpec, tileSizeId, autoHeight, send]
   );
 
   const handlePreviewDropComponent = useCallback(
@@ -824,27 +842,6 @@ export const Editor: FC<EditorProps> = ({ onSave }) => {
     [selectedVersionId]
   );
 
-  const currentNodes = [
-    {
-      id: "n1",
-      position: { x: 0, y: 0 },
-      data: {
-        emptyLabel:
-          mode === MODE.AI
-            ? "Ожидание генерации интерфейса..."
-            : "Перетащите сюда компонент из палитры",
-        loading: isStreaming,
-        selectedElementId,
-        spec: currentSpec,
-        viewportSize,
-      },
-      draggable: false,
-      origin: [0.5, 0.5] as NodeOrigin,
-      selectable: false,
-      type: "renderer",
-    },
-  ];
-
   useEffect(() => {
     if (generatingVersionIdRef && !isStreaming && spec) {
       setVersions((p) =>
@@ -862,6 +859,16 @@ export const Editor: FC<EditorProps> = ({ onSave }) => {
       );
     }
   }, [isStreaming, raw, spec, usage]);
+
+  useEffect(() => {
+    setNodes((p) =>
+      p.map((n) =>
+        n.id === "n1"
+          ? { ...n, data: { loading: isStreaming, spec: currentSpec, selectedElementId, viewportSize } }
+          : n
+      )
+    );
+  }, [isStreaming, currentSpec, selectedElementId, viewportSize]);
 
   useEffect(() => {
     if (mode !== MODE.DEV || selectedDesignToolId !== "component") {
@@ -1019,44 +1026,34 @@ export const Editor: FC<EditorProps> = ({ onSave }) => {
             fitViewOptions={{
               maxZoom: 1,
             }}
-            nodes={currentNodes}
+            nodes={nodes}
             nodeTypes={nodeTypes}
             panOnDrag={false}
             panOnScroll
             proOptions={{ hideAttribution: true }}
             zoomActivationKeyCode={["Control", "Meta", "z"]}
+            onNodesChange={onNodesChange}
           >
             <Background />
             <Panel position="top-center">
               <Flex>
                 <Item>
                   <Island unstyled>
-                    <TypeSelector
-                      value={contentType}
-                      onChange={setContentType}
+                    <SizeSelector
+                      value={tileSizeId}
+                      onChange={setTileSizeId}
                     />
                   </Island>
                 </Item>
-                {contentType === CONTENT_TYPE.TILE ? (
-                  <>
-                    <Item>
-                      <Island unstyled>
-                        <SizeSelector
-                          value={viewportId}
-                          onChange={setViewportId}
-                        />
-                      </Island>
-                    </Item>
-                    <Item>
-                      <Island unstyled>
-                        <AutoHeightButton
-                          enabled={autoHeight}
-                          onChange={setAutoHeight}
-                        />
-                      </Island>
-                    </Item>
-                  </>
-                ) : null}
+                <Item>
+                  <Island unstyled>
+                    <AutoHeightButton
+                      disabled={tileSizeId === "auto"}
+                      enabled={autoHeight}
+                      onChange={setAutoHeight}
+                    />
+                  </Island>
+                </Item>
               </Flex>
             </Panel>
             <Panel position="bottom-right" style={{ zIndex: 10 }}>
@@ -1421,7 +1418,7 @@ export const Editor: FC<EditorProps> = ({ onSave }) => {
             spec={currentSpec}
             loading={isStreaming}
             size={viewportSize}
-            autoHeight={!isTile || autoHeight}
+            autoHeight={tileSizeId === "auto" || autoHeight}
           />
         ) : null}
         {/* Always on top */}
@@ -1430,9 +1427,9 @@ export const Editor: FC<EditorProps> = ({ onSave }) => {
             <Item>
               <Island unstyled>
                 <Button
-                  $type="primary"
                   disabled={isSaveDisabled}
                   label={t("сохранить")}
+                  variant="primary"
                   onClick={handleSave}
                 />
               </Island>

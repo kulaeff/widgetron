@@ -7,6 +7,6 @@ export const Container = styled.div<{ $selected?: boolean }>(({ $selected }) => 
   box-shadow: 0 8px 32px rgba(0, 0, 0, 0.1);
   box-sizing: border-box;
   min-width: 294px;
-  outline: ${$selected ? "1px solid rgba(35, 111, 255, 0.9)" : "none"};
+  outline: ${$selected ? "4px solid rgba(0, 0, 0, 0.1)" : "none"};
   padding: 20px;
 `);

@@ -17,6 +17,10 @@ export interface StackProps extends HTMLAttributes<HTMLDivElement> {
    */
   gap?: 0 | 1 | 2 | 3 | 4 | 5 | 6 | 7 | 8;
   /**
+   * Высота
+   */
+  height?: "auto" | "stretch";
+  /**
    * Выравнивание по вспомогательной оси
    */
   justify?: Extract<

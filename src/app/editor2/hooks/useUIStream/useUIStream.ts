@@ -99,7 +99,7 @@ export const useUIStream = ({
   const [spec, setSpec] = useState<Spec | null>(null);
   const [usage, setUsage] = useState<Usage | null>(null);
 
-  console.log(buildSystemPrompt(catalog, customRules));
+//  console.log(buildSystemPrompt(catalog, customRules));
 
   const clear = useCallback(() => {
     setSpec(null);
@@ -131,7 +131,7 @@ export const useUIStream = ({
 
       setSpec(currentSpec);
 
-      console.log(buildUserPrompt(prompt, currentSpec, context.customRules as string[]));
+      // console.log(buildUserPrompt(prompt, currentSpec, context.customRules as string[]));
 
       try {
         const response = await fetch(url, {

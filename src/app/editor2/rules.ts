@@ -1,4 +1,4 @@
-import { CONTENT_TYPE, TILE_SIZE } from "./constants";
+import { TILE_SIZE } from "./constants";
 
 const buildViewportRules = () => {
   const lines = [];
@@ -8,11 +8,12 @@ const buildViewportRules = () => {
   lines.push(`- ${TILE_SIZE[0].id} [${TILE_SIZE[0].width}x${TILE_SIZE[0].height}] (${TILE_SIZE[0].description})`);
   lines.push("  Используй компактные компоненты (size: s или m)");
   lines.push("  Минимизируй количество элементов (не более 4-6 верхнеуровневых)");
-  lines.push("  Для массивов используй Slider или Pagination");
+  lines.push("  Используй Carousel или Pagination для вывода массивов элементов");
   lines.push("  Избегай использования Stack и Grid с большим количеством элементов/колонок (не более 2)");
   lines.push(`- ${TILE_SIZE[1].id} [${TILE_SIZE[1].width}x${TILE_SIZE[1].height}] (${TILE_SIZE[1].description})`);
   lines.push("  Используй компактные компоненты (size: s или m)");
   lines.push("  Минимизируй количество элементов (не более 4-6 верхнеуровневых)");
+  lines.push("  Используй Carousel или Pagination для вывода массивов элементов");
   lines.push("  Избегай использования вертикального Stack и Grid с большим количеством элементов/колонок (не более 3-4)");
   lines.push(`- ${TILE_SIZE[2].id} [${TILE_SIZE[2].width}x${TILE_SIZE[2].height}] (${TILE_SIZE[2].description})`);
   lines.push("  Минимизируй количество элементов (не более 8-10 верхнеуровневых)");
@@ -32,10 +33,9 @@ const buildViewportRules = () => {
   lines.push("  Можно использовать больше элементов (не более 10-12 верхнеуровневых)");
   lines.push("  Используй вертикальный лейаут (direction: column)");
   lines.push("  Избегай использования Grid с большим количеством колонок (не более 4-6)");
-  lines.push(`- page (обычная страница, свободный размер)`);
+  lines.push(`- auto (обычная страница, свободный размер)`);
   lines.push("  Можно использовать любые компоненты в любом количестве с любым уровнем вложенности");
   lines.push("  Добавляй отступы и воздух между секциями/группами элементов");
-  lines.push("  Избегай использования Grid с большим количеством колонок (не более 3-4)");
 
   lines.push("Всегда учитывай текущий размер при выборе компонентов и лейаута.");
 
@@ -58,8 +58,8 @@ export const buildCustomSystemRules = () => {
   lines.push("ДОПОЛНИТЕЛЬНЫЕ ПРАВИЛА");
   lines.push("Никогда не используй Card как потомка View.");
   lines.push("Оборачивай каждый повторяющийся элемент в Card с border:true и shadow:false для визуального разделения и лучшего UI/UX. В качестве контейнера для таких элементов используй Stack или Grid.");
-  lines.push("Придерживайся визуальной иерархии элементов — используй контейнеры (Card, Stack, Grid...) для группировки элементов по смыслу.");
-  // "Предпочитай Stack со свойством `direction: column` всегда, когда это возможно.",
+  // lines.push("Придерживайся визуальной иерархии элементов — используй контейнеры (Card, Stack, Grid...) для группировки элементов по смыслу.");
+  // lines.push("Предпочитай Stack со свойством `direction: column` всегда, когда это возможно.");
   lines.push("Никогда не используй Title в качестве первого вложенного элемента у root элемента.");
   lines.push("Семплы данных должны быть на русском языке.");
   lines.push("При выводе радио-кнопок в цикле, используй Stack с direction:column в качестве контейнера.");
@@ -68,15 +68,12 @@ export const buildCustomSystemRules = () => {
 };
 
 export const buildCustomUserRules = (
-  contentType: string,
-  tileSize: string,
+  tileSizeId: string,
   autoHeight: boolean,
   context: BuildCustomUserRulesContext,
 ) => {
   const lines = [];
-  const size = contentType === CONTENT_TYPE.PAGE
-    ? "page"
-    : `${tileSize}${autoHeight ? "-auto-height" : ""}`;
+  const size = `${tileSizeId}${autoHeight ? "-auto-height" : ""}`;
 
   lines.push(`ТЕКУЩИЙ РАЗМЕР КОНТЕНТНОЙ ОБЛАСТИ: ${size}`);
 

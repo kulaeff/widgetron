@@ -28,6 +28,7 @@ export const Preview: FC<PreviewProps> = ({
   selectedElementId,
   viewportSize,
 }) => {
+  console.log(selected);
   const resolveHighlightElement = (targetId: string): HTMLElement | null => {
     const markerElement = document.querySelector(
       `[data-element-id="${targetId}"]`

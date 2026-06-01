@@ -2,13 +2,12 @@ import styled, { css } from "styled-components";
 
 export const Container = styled.div`
   display: grid;
-  gap: 12px;
-  height: 100%;
+  gap: 16px;
 `;
 
 export const Row = styled.div`
   display: grid;
-  gap: 6px;
+  gap: 4px;
 `;
 
 export const Label = styled.span(
@@ -34,31 +33,16 @@ export const Select = styled.select(
   `
 );
 
-export const TextArea = styled.textarea(
+export const Input = styled.input(
   ({ theme }) => css`
     ${theme.typography.body2Regular};
     ${controlStyles};
     background: ${theme.tokens.current.core.layer["01"]};
     border: 1px solid ${theme.tokens.current.core.border.strong};
     color: ${theme.tokens.current.core.text.primary};
-    min-height: 180px;
     padding: 8px;
-    resize: vertical;
   `
 );
-
-export const Hints = styled.ul(
-  ({ theme }) => css`
-    ${theme.typography.captionRegular};
-    color: ${theme.tokens.current.core.text.secondary};
-    margin: 0;
-    padding-left: 18px;
-  `
-);
-
-export const Hint = styled.li`
-  margin: 0;
-`;
 
 export const ErrorText = styled.span(
   ({ theme }) => css`

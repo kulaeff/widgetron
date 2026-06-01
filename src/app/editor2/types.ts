@@ -4,8 +4,10 @@ export interface Viewport {
   id: string;
   label: string;
   description: string;
-  width: number;
-  height: number;
+  width?: number;
+  height?: number;
+  minWidth?: number;
+  minHeight?: number;
 }
 
 export interface Version {
