@@ -46,8 +46,8 @@ export const Label = styled.span(
   `
 );
 
-export const Tool = styled.li<{ $isDragging?: boolean }>(
-  ({ theme, $isDragging }) => css`
+export const Tool = styled.li(
+  ({ theme }) => css`
     align-items: center;
     background-color: rgba(0, 0, 0, 0.05);
     border-radius: 6px;
@@ -55,7 +55,6 @@ export const Tool = styled.li<{ $isDragging?: boolean }>(
     display: flex;
     gap: 8px;
     height: 44px;
-    opacity: ${$isDragging ? 0.5 : 1};
     padding: 8px 10px;
     overflow: hidden;
     text-align: left;
@@ -68,7 +67,7 @@ export const Tool = styled.li<{ $isDragging?: boolean }>(
 
 export const Tools = styled.ul`
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+  grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
   gap: 6px;
   list-style: none;
   margin: 0;

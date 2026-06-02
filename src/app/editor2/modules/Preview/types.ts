@@ -13,6 +13,11 @@ export interface PreviewProps extends Record<string, unknown> {
   onElementSelect?: (id: string) => void;
 }
 
+export interface Droppable {
+  id: string;
+  rect: Rect;
+}
+
 export interface Rect {
   top: number;
   left: number;

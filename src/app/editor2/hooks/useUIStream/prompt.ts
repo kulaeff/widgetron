@@ -100,9 +100,9 @@ export const buildSystemPrompt = (
   lines.push("");
 
   lines.push("Пример вывода (каждая строка это отдельный JSON объект):");
-  lines.push('{ "op": "add", "path": "/root", "value": "default-view" }');
+  lines.push('{ "op": "add", "path": "/root", "value": "view-default" }');
   lines.push(
-    '{ "op": "add", "path": "/elements/default-view", "value": { "type": "View", "props": {}, "children": ["stack-main" ]}}'
+    '{ "op": "add", "path": "/elements/view-default", "value": { "type": "View", "props": {}, "children": ["stack-main" ]}}'
   );
   lines.push(
     '{ "op": "add", "path": "/elements/stack-main", "value": { "type": "Stack", "props": { "gap": 2 }, "children": ["avatar", "name", "tasks" ]}}'

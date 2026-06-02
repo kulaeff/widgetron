@@ -88,24 +88,3 @@ export const buildSafeDefaultProps = (
     return acc;
   }, {});
 };
-
-export const encodeCatalogDragPayload = (payload: CatalogDragPayload): string =>
-  JSON.stringify(payload);
-
-export const decodeCatalogDragPayload = (
-  value: string
-): CatalogDragPayload | null => {
-  try {
-    const parsed = JSON.parse(value) as Partial<CatalogDragPayload>;
-    if (
-      !parsed ||
-      typeof parsed.componentName !== "string" ||
-      typeof parsed.group !== "string"
-    ) {
-      return null;
-    }
-    return { componentName: parsed.componentName, group: parsed.group };
-  } catch {
-    return null;
-  }
-};

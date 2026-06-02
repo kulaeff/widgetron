@@ -2,7 +2,6 @@ import {
   DragDropProvider,
   DragOverlay,
   type DragEndEvent,
-  type DragMoveEvent,
   type DragStartEvent,
 } from "@dnd-kit/react";
 import { validateSpec } from "@json-render/core";
@@ -13,10 +12,8 @@ import { IconButton } from "@pulse/ui/components/Button";
 import { Loader } from "@pulse/ui/components/Loader";
 import { JsonEditor, JsonValue } from "@visual-json/react";
 import {
-  applyNodeChanges,
   Background,
   Node,
-  NodeChange,
   NodeOrigin,
   NodeProps,
   Panel,
@@ -47,7 +44,7 @@ import type { OmniBoxContextTag } from "./components/OmniBox/OmniBox";
 import { ToolBar } from "./components/ToolBar";
 import { ToolPicker, type ToolPickerItem } from "./components/ToolPicker";
 import { ZoomControl, type ZoomOption } from "./components/ZoomControl";
-import { TREE_ROOT_DROP_TARGET_ID, TreeView } from "./components/TreeView";
+import { TreeView } from "./components/TreeView";
 import { AutoHeightButton } from "./modules/AutoHeightButton";
 import { SizeSelector } from "./modules/SizeSelector";
 import { Preview, type PreviewProps } from "./modules/Preview";
@@ -61,17 +58,17 @@ import { Toggle } from "./components/Toggle";
 import { Modal, ModalDescription, ModalTitle } from "./components/Modal";
 import { useUIStream } from "./hooks/useUIStream";
 import { catalog } from "./lib/catalog";
-import { Version } from "./types";
+import { DraggingCatalogComponentPayload, Version } from "./types";
 import type {
   WidgetCreatorProps,
   WidgetCreatorSavePayload,
 } from "../../widgets/WidgetCreator/types";
 import {
-  addCatalogComponentToVersions,
   createDevVersion,
   buildSpecTreeItems,
   moveElementInSpec,
   removeElementFromSpec,
+  addElementToSpec,
 } from "./spec-utils";
 import {
   buildCatalogData,
@@ -134,8 +131,8 @@ export const Editor: FC<EditorProps> = ({ onSave }) => {
   const [activeTreeDropTargetId, setActiveTreeDropTargetId] = useState<
     string | null
   >(null);
-  const [draggedCatalogComponentName, setDraggedCatalogComponentName] =
-    useState<string | null>(null);
+  const [draggingCatalogComponentPayload, setDraggingCatalogComponentPayload] =
+    useState<DraggingCatalogComponentPayload | null>(null);
   const [isCodeModalOpen, setIsCodeModalOpen] = useState(false);
   const [selectedDesignToolId, setSelectedDesignToolId] = useState("select");
   const [tileSizeId, setTileSizeId] = useState<string>(TILE_SIZE[0].id);
@@ -171,7 +168,6 @@ export const Editor: FC<EditorProps> = ({ onSave }) => {
   const viewportSize = useMemo(() => {
     if (tileSizeId === "auto") {
       return {
-        width: selectedTileSize.minWidth,
         minWidth: selectedTileSize.minWidth,
         minHeight: selectedTileSize.minHeight,
       };
@@ -275,13 +271,14 @@ export const Editor: FC<EditorProps> = ({ onSave }) => {
       id: "n1",
       position: { x: 0, y: 0 },
       data: {
+        constraints: viewportSize,
         loading: isStreaming,
         selectedElementID: selectedElementId,
         spec: currentSpec,
-        viewportSize,
         onElementSelect: setSelectedElementId,
       },
       draggable: false,
+      selected: true,
       origin: [0.5, 0.5] as NodeOrigin,
       type: "renderer",
     },
@@ -642,149 +639,67 @@ export const Editor: FC<EditorProps> = ({ onSave }) => {
     [apis, currentVersion, dataSnapshot, domSnapshot, openApiSpec, tileSizeId, autoHeight, send]
   );
 
-  const handlePreviewDropComponent = useCallback(
-    (
-      targetElementId: string,
-      componentName: string,
-      options: {
-        placement?: "inside" | "before" | "after";
-        targetParentId?: string | null;
-      } = {}
-    ) => {
-      const component = components.find((c) => c.name === componentName);
+  const handleDragStart = useCallback((event: DragStartEvent) => {
+    const { source } = event.operation;
 
-      if (!component) return;
+    if (source === null) {
+      return;
+    }
 
-      const result = addCatalogComponentToVersions({
-        component,
-        placement: options.placement,
-        selectedVersionId,
-        targetParentId: options.targetParentId,
-        targetElementId,
-        versions,
+    const { data, element } = source;
+
+    if (data === null || element === undefined) {
+      return;
+    }
+
+    if (data.kind === "catalog.component") {
+      const { height, width } = element.getBoundingClientRect();
+
+      setDraggingCatalogComponentPayload({
+        height,
+        name: data.name,
+        width,
       });
 
-      if (!result.nextElementKey) {
-        return;
-      }
-
-      setVersions(result.versions);
-      setSelectedVersionId(result.selectedVersionId);
-      setSelectedElementId(result.nextElementKey);
-    },
-    [components, selectedVersionId, versions]
-  );
-
-  const resolveTreeDropTargetFromNativeEvent = (
-    event?: Event
-  ): {
-    placement: "inside" | "before" | "after";
-    targetElementId: string;
-    targetParentId?: string | null;
-  } | null => {
-    if (!(event instanceof MouseEvent || event instanceof PointerEvent)) {
-      return null;
-    }
-
-    const element = document.elementFromPoint(event.clientX, event.clientY);
-    const treeElement = element?.closest<HTMLElement>("[data-tree-element-id]");
-
-    if (!treeElement) {
-      return element?.closest("[data-tree-root-drop-zone]")
-        ? { placement: "inside", targetElementId: "preview" }
-        : null;
-    }
-
-    const targetElementId = treeElement.dataset.treeElementId;
-
-    if (!targetElementId) {
-      return null;
-    }
-
-    const bounds = treeElement.getBoundingClientRect();
-    const offsetY = event.clientY - bounds.top;
-    const threshold = bounds.height / 3;
-    const canDropInside = treeElement.dataset.treeCanDrop === "true";
-    const targetParentId = treeElement.dataset.treeParentId || null;
-    let placement: "inside" | "before" | "after" = "inside";
-
-    if (offsetY < threshold) {
-      placement = "before";
-    } else if (offsetY > bounds.height - threshold) {
-      placement = "after";
-    } else if (!canDropInside) {
-      placement = "after";
-    }
-
-    if (placement !== "inside" && !targetParentId) {
-      return { placement: "inside", targetElementId: "preview" };
-    }
-
-    return { placement, targetElementId, targetParentId };
-  };
-
-  const handleDragStart = useCallback((event: DragStartEvent) => {
-    const data = event.operation.source?.data;
-
-    if (data?.kind === "catalog-component") {
-      setDraggedCatalogComponentName(data.componentName);
       setSelectedDesignToolId("select");
     } else {
-      setDraggedCatalogComponentName(null);
+      setDraggingCatalogComponentPayload(null);
     }
-
-    setActiveTreeDropTargetId(null);
-  }, []);
-
-  const handleDragMove = useCallback((event: DragMoveEvent) => {
-    const sourceData = event.operation.source?.data;
-
-    if (sourceData?.kind !== "catalog-component") {
-      return;
-    }
-
-    const treeDropTarget = resolveTreeDropTargetFromNativeEvent(
-      event.nativeEvent
-    );
-
-    if (treeDropTarget?.targetElementId === "preview") {
-      setActiveTreeDropTargetId(TREE_ROOT_DROP_TARGET_ID);
-      return;
-    }
-
-    if (treeDropTarget?.targetElementId) {
-      setActiveTreeDropTargetId(treeDropTarget.targetElementId);
-      return;
-    }
-
-    setActiveTreeDropTargetId(null);
   }, []);
 
   const handleDragEnd = useCallback(
     (event: DragEndEvent) => {
-      const sourceData = event.operation.source?.data;
+      const { source, target } = event.operation;
 
-      if (sourceData?.kind === "catalog-component") {
-        const treeDropTarget = resolveTreeDropTargetFromNativeEvent(
-          event.nativeEvent
-        );
-
-        if (treeDropTarget) {
-          handlePreviewDropComponent(
-            treeDropTarget.targetElementId,
-            sourceData.componentName as string,
-            {
-              placement: treeDropTarget.placement,
-              targetParentId: treeDropTarget.targetParentId,
-            }
-          );
-        }
+      if (source === null || target === null) {
+        return;
       }
 
-      setDraggedCatalogComponentName(null);
-      setActiveTreeDropTargetId(null);
+      const { data: sourceData } = source;
+      const { data: targetData } = target;
+
+      if (sourceData.kind === "catalog.component" && targetData.kind === "preview.droppable") {
+        const component = components.find((c) => c.name === sourceData.name);
+
+        if (component === undefined) {
+          return;
+        }
+
+        setVersions((p) =>
+          p.map((v) =>
+            v.id === selectedVersionId
+              ? {
+                ...v,
+                spec: addElementToSpec(v.spec, component, targetData.elementId),
+              }
+              : v
+          )
+        );
+      }
+
+      setDraggingCatalogComponentPayload(null);
     },
-    [handlePreviewDropComponent]
+    [components, selectedVersionId, versions]
   );
 
   const handleTreeViewElementsChange = (id: string) => {
@@ -865,7 +780,15 @@ export const Editor: FC<EditorProps> = ({ onSave }) => {
     setNodes((p) =>
       p.map((n) =>
         n.id === "n1"
-          ? { ...n, data: { loading: isStreaming, spec: currentSpec, selectedElementID: selectedElementId, viewportSize } }
+          ? {
+            ...n,
+            data: {
+              constraints: viewportSize,
+              loading: isStreaming,
+              selectedElementID: selectedElementId,
+              spec: currentSpec,
+            },
+          }
           : n
       )
     );
@@ -1010,13 +933,17 @@ export const Editor: FC<EditorProps> = ({ onSave }) => {
   return (
     <DragDropProvider
       onDragStart={handleDragStart}
-      onDragMove={handleDragMove}
       onDragEnd={handleDragEnd}
     >
-      <DragOverlay>
-        {draggedCatalogComponentName ? (
-          <Styled.DragOverlayItem>
-            {draggedCatalogComponentName}
+      <DragOverlay dropAnimation={null}>
+        {draggingCatalogComponentPayload ? (
+          <Styled.DragOverlayItem
+            style={{
+              height: draggingCatalogComponentPayload.height,
+              width: draggingCatalogComponentPayload.width
+            }}
+          >
+            {draggingCatalogComponentPayload.name}
           </Styled.DragOverlayItem>
         ) : null}
       </DragOverlay>

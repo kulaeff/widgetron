@@ -1,12 +1,9 @@
 import type { Spec } from "@json-render/react";
 import { describe, expect, it } from "vitest";
 import type { CatalogComponentInfo } from "./utils/catalog-data";
-import type { Version } from "./types";
 import {
-  addCatalogComponentToVersions,
   buildSpecTreeItems,
   createDevVersion,
-  createEmptyDevSpec,
   moveElementInSpec,
   removeElementFromSpec,
 } from "./spec-utils";
@@ -273,25 +270,14 @@ describe("Editor spec utils", () => {
   });
 
   it("creates a dev version with View as the root element", () => {
-    expect(createEmptyDevSpec()).toEqual({
-      root: "view",
-      elements: {
-        view: {
-          type: "View",
-          props: {},
-          children: [],
-        },
-      },
-      state: {},
-    });
     expect(createDevVersion("v1")).toEqual({
       id: "v1",
       prompt: "",
       raw: [],
       spec: {
-        root: "view",
+        root: "view-default",
         elements: {
-          view: {
+          "view-default": {
             type: "View",
             props: {},
             children: [],
@@ -302,169 +288,5 @@ describe("Editor spec utils", () => {
       status: "complete",
       usage: null,
     });
-  });
-
-  it("adds the first component inside View when dropping on preview", () => {
-    const versions: Version[] = [createDevVersion("v1")];
-
-    const result = addCatalogComponentToVersions({
-      component: components[2],
-      selectedVersionId: "v1",
-      targetElementId: "preview",
-      versions,
-    });
-
-    expect(result.selectedVersionId).toBe("v1");
-    expect(result.nextElementKey).toBe("button");
-    expect(result.versions[0].spec).toEqual({
-      root: "view",
-      elements: {
-        view: {
-          type: "View",
-          props: {},
-          children: ["button"],
-        },
-        button: {
-          type: "Button",
-          props: {
-            disabled: false,
-            label: "New Button",
-          },
-        },
-      },
-      state: {},
-    });
-  });
-
-  it("adds duplicate catalog components with unique keys and default props", () => {
-    const versions: Version[] = [
-      {
-        id: "v1",
-        prompt: "existing",
-        raw: [],
-        spec: {
-          root: "root",
-          elements: {
-            root: {
-              type: "Stack",
-              props: {},
-              children: ["button"],
-            },
-            button: {
-              type: "Button",
-              props: { label: "Existing" },
-            },
-          },
-        },
-        status: "complete",
-        usage: null,
-      },
-    ];
-
-    const result = addCatalogComponentToVersions({
-      component: components[2],
-      selectedVersionId: "v1",
-      targetElementId: "root",
-      versions,
-    });
-
-    expect(result.selectedVersionId).toBe("v1");
-    expect(result.nextElementKey).toBe("button-2");
-    expect(result.versions[0].spec?.elements.root.children).toEqual([
-      "button",
-      "button-2",
-    ]);
-    expect(result.versions[0].spec?.elements["button-2"]).toEqual({
-      type: "Button",
-      props: {
-        disabled: false,
-        label: "New Button",
-      },
-    });
-  });
-
-  it("adds components to preview as detached elements", () => {
-    const versions: Version[] = [
-      {
-        id: "v1",
-        prompt: "existing",
-        raw: [],
-        spec: {
-          root: "root",
-          elements: {
-            root: {
-              type: "Stack",
-              props: {},
-              children: [],
-            },
-          },
-        },
-        status: "complete",
-        usage: null,
-      },
-    ];
-
-    const result = addCatalogComponentToVersions({
-      component: components[2],
-      selectedVersionId: "v1",
-      targetElementId: "preview",
-      versions,
-    });
-
-    expect(result.nextElementKey).toBe("button");
-    expect(result.versions[0].spec?.elements.root.children).toEqual([]);
-    expect(result.versions[0].spec?.elements.button).toEqual({
-      type: "Button",
-      props: {
-        disabled: false,
-        label: "New Button",
-      },
-    });
-  });
-
-  it("adds catalog components as siblings in tree order", () => {
-    const versions: Version[] = [
-      {
-        id: "v1",
-        prompt: "existing",
-        raw: [],
-        spec: {
-          root: "root",
-          elements: {
-            root: {
-              type: "Stack",
-              props: {},
-              children: ["title", "text"],
-            },
-            title: {
-              type: "Text",
-              props: { text: "Title" },
-            },
-            text: {
-              type: "Text",
-              props: { text: "Body" },
-            },
-          },
-        },
-        status: "complete",
-        usage: null,
-      },
-    ];
-
-    const result = addCatalogComponentToVersions({
-      component: components[2],
-      placement: "after",
-      selectedVersionId: "v1",
-      targetElementId: "title",
-      targetParentId: "root",
-      versions,
-    });
-
-    expect(result.nextElementKey).toBe("button");
-    expect(result.versions[0].spec?.elements.root.children).toEqual([
-      "title",
-      "button",
-      "text",
-    ]);
   });
 });

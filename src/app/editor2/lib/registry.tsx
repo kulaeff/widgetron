@@ -76,6 +76,7 @@ export const { registry, handlers, executeAction } = defineRegistry(catalog, {
     Card: ({ props, children }) => (
       <Card
         {...getSpecMarkerProps(props)}
+        data-accept-children="true"
         $border={props.border}
         $shadow={props.shadow}
         $variant={props.variant}
@@ -87,6 +88,7 @@ export const { registry, handlers, executeAction } = defineRegistry(catalog, {
       <Carousel
         {...getSpecMarkerProps(props)}
         {...props}
+        data-accept-children="true"
       >
         {children}
       </Carousel>
@@ -101,7 +103,11 @@ export const { registry, handlers, executeAction } = defineRegistry(catalog, {
         {props.label}
       </Chips>,
     Grid: ({ props, children }) => (
-      <Grid {...getSpecMarkerProps(props)} {...props}>
+      <Grid
+        {...getSpecMarkerProps(props)}
+        {...props}
+        data-accept-children="true"
+      >
         {children}
       </Grid>
     ),
@@ -133,7 +139,11 @@ export const { registry, handlers, executeAction } = defineRegistry(catalog, {
       );
     },
     Stack: ({ props, children }) => (
-      <Stack {...getSpecMarkerProps(props)} {...props}>
+      <Stack
+        {...getSpecMarkerProps(props)}
+        {...props}
+        data-accept-children="true"
+      >
         {children}
       </Stack>
     ),
@@ -334,7 +344,12 @@ export const { registry, handlers, executeAction } = defineRegistry(catalog, {
     },
     View: ({ props, children }) => {
       return (
-      <View {...getSpecMarkerProps(props)}>{children}</View>
+      <View
+        {...getSpecMarkerProps(props)}
+        data-accept-children="true"
+      >
+        {children}
+      </View>
     )},
   },
   actions: {

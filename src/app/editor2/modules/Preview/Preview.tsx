@@ -12,7 +12,8 @@ import {
 } from "react";
 import { registry, Fallback } from "../../lib/registry";
 import * as Styled from "./styled";
-import type { PreviewProps, Rect } from "./types";
+import type { Droppable, PreviewProps, Rect } from "./types";
+import { Droppable as DroppableZone } from "./Droppable";
 
 const HIGHLIGHT_OFFSET = 4;
 
@@ -33,6 +34,7 @@ export const Preview: FC<PreviewProps> = ({
   const { x, y } = useViewport();
   const { screenToFlowPosition } = useReactFlow();
 
+  const [dropppables, setDroppables] = useState<Droppable[]>([]);
   const [highlightRect, setHighlightRect] = useState<Rect | null>(null);
   const [hoverRect, setHoverRect] = useState<Rect | null>(null);
 
@@ -62,7 +64,7 @@ export const Preview: FC<PreviewProps> = ({
     };
   }, [spec]);
 
-  const buildRect = useCallback((el: HTMLElement, offset: number) => {
+  const buildRect = useCallback((el: HTMLElement, offset = 0) => {
     const rect = el.getBoundingClientRect();
 
     const start = screenToFlowPosition({ x: rect.left, y: rect.top });
@@ -129,18 +131,6 @@ export const Preview: FC<PreviewProps> = ({
         return;
       }
 
-      const rect = targetElement.getBoundingClientRect();
-
-      const start = screenToFlowPosition({
-        x: rect.left,
-        y: rect.top,
-      });
-
-      const end = screenToFlowPosition({
-        x: rect.right,
-        y: rect.bottom,
-      });
-
       setHighlightRect(buildRect(targetElement, HIGHLIGHT_OFFSET));
     };
 
@@ -156,12 +146,28 @@ export const Preview: FC<PreviewProps> = ({
       ro.disconnect();
     };
   }, [
-    normalizedSpec,
+    normalizedSpec, // FIXME: need when spec changes but selectedElementID not
     selectedElementID,
     x,
     y,
     screenToFlowPosition,
   ]);
+
+  useEffect(() => {
+    const ref = containerRef.current;
+
+    if (ref === null) {
+      return;
+    }
+
+    const nodes = ref.querySelectorAll<HTMLElement>("[data-accept-children]");
+    const rects = Array.from(nodes).map((node) => ({
+      id: node.getAttribute("data-element-id") ?? "",
+      rect: buildRect(node),
+    }));
+
+    setDroppables(rects);
+  }, [normalizedSpec]);
   //#endregion
 
   return (
@@ -212,6 +218,18 @@ export const Preview: FC<PreviewProps> = ({
               }}
             />
           ) : null}
+          {dropppables.map(({ id, rect }) => (
+            <DroppableZone
+              elementId={id}
+              key={id}
+              style={{
+                top: rect.top,
+                left: rect.left,
+                width: rect.width,
+                height: rect.height,
+              }}
+            />
+          ))}
         </ViewportPortal>
       ) : null}
     </Styled.Tile>

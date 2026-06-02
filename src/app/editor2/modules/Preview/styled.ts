@@ -21,6 +21,15 @@ export const Tile = styled.div<{ $selected?: boolean }>(
   `
 );
 
+export const Droppable = styled.div<{ $active?: boolean }>(
+  ({ $active, theme }) => css`
+    border: ${$active ? `2px dotted ${theme.tokens.current.core.border.strong}` : "none"};
+    // pointer-events: none;
+    position: absolute;
+    z-index: 1000;
+  `
+);
+
 export const Highlight = styled.div(
   ({ theme }) => css`
     border: 2px solid ${theme.tokens.current.core.accent.primary};

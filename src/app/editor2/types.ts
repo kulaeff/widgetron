@@ -10,11 +10,17 @@ export interface Viewport {
   minHeight?: number;
 }
 
+export interface DraggingCatalogComponentPayload {
+  height: number;
+  name: string;
+  width: number;
+}
+
 export interface Version {
   id: string;
   prompt: string;
   raw: string[];
-  spec: Spec | null;
+  spec: Spec;
   status: "pending" | "complete" | "error";
   usage: {
     prompt: number;

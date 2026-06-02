@@ -1,8 +1,9 @@
 import type { Spec } from "@json-render/react";
 import type { TreeItem } from "./components/TreeView";
-import { buildSafeDefaultProps } from "./utils/catalog-dnd";
 import type { CatalogComponentInfo } from "./utils/catalog-data";
 import type { Version } from "./types";
+import { setByPath } from "@json-render/core";
+import { buildSafeDefaultProps } from "./utils/catalog-dnd";
 
 export type TreeMovePayload = {
   sourceParentId: string | null;
@@ -103,6 +104,18 @@ export const buildSpecTreeItems = (
   return [...treeItems, ...detachedItems];
 };
 
+const getNextElementKey = (elements: Spec["elements"], name: string) => {
+  const baseKey = name.toLocaleLowerCase();
+
+  let index = 1;
+
+  while (elements[`${baseKey}-${index}`] !== undefined) {
+    index += 1;
+  }
+
+  return `${baseKey}-${index}`;
+};
+
 export const moveElementInSpec = (
   spec: Spec | null,
   {
@@ -173,6 +186,34 @@ export const moveElementInSpec = (
   };
 };
 
+export const addElementToSpec = (
+  spec: Spec,
+  component: CatalogComponentInfo,
+  targetID: string
+) => {
+  const key = getNextElementKey(spec.elements, component.name);
+
+  const nextSpec = { ...spec };
+
+  setByPath(
+    nextSpec,
+    `/elements/${targetID}/children`,
+    [...(spec.elements[targetID].children ?? []), key]
+  );
+
+  setByPath(
+    nextSpec,
+    `/elements/${key}`,
+    {
+      type: component.name,
+      props: buildSafeDefaultProps(component),
+      children: [],
+    }
+  );
+
+  return nextSpec;
+};
+
 export const removeElementFromSpec = (
   spec: Spec | null,
   id: string
@@ -224,192 +265,20 @@ export const removeElementFromSpec = (
   };
 };
 
-const createCatalogElementKey = (
-  componentName: string,
-  elements: Spec["elements"]
-): string => {
-  const baseKey = componentName.toLocaleLowerCase();
-
-  if (!elements[baseKey]) {
-    return baseKey;
-  }
-
-  let index = 2;
-
-  while (elements[`${baseKey}-${index}`]) {
-    index += 1;
-  }
-
-  return `${baseKey}-${index}`;
-};
-
-const DEV_SPEC_ROOT_ELEMENT_ID = "default-view";
-
-export const createEmptyDevSpec = (): Spec => ({
-  root: DEV_SPEC_ROOT_ELEMENT_ID,
-  elements: {
-    [DEV_SPEC_ROOT_ELEMENT_ID]: {
-      type: "View",
-      props: {},
-      children: [],
-    },
-  },
-  state: {},
-});
-
 export const createDevVersion = (id: string): Version => ({
   id,
   prompt: "",
   raw: [],
-  spec: createEmptyDevSpec(),
+  spec: {
+    root: "view-default",
+    elements: {
+      "view-default": {
+        type: "View",
+        props: {},
+        children: [],
+      },
+    },
+  },
   status: "complete",
   usage: null,
 });
-
-export const addCatalogComponentToVersions = ({
-  component,
-  placement = "inside",
-  selectedVersionId,
-  targetParentId,
-  targetElementId,
-  versions,
-}: {
-  component: CatalogComponentInfo;
-  placement?: "inside" | "before" | "after";
-  selectedVersionId?: string;
-  targetParentId?: string | null;
-  targetElementId: string;
-  versions: Version[];
-}): {
-  nextElementKey: string;
-  selectedVersionId: string;
-  versions: Version[];
-} => {
-  const defaultProps = buildSafeDefaultProps(component);
-
-  if (!selectedVersionId || versions.length === 0) {
-    return {
-      nextElementKey: "",
-      selectedVersionId: selectedVersionId ?? "",
-      versions,
-    };
-  }
-
-  let nextElementKey = "";
-
-  const nextVersions = versions.map((version) => {
-    if (version.id !== selectedVersionId || !version.spec) {
-      return version;
-    }
-
-    nextElementKey = createCatalogElementKey(
-      component.name,
-      version.spec.elements
-    );
-
-    const targetElement = version.spec.elements[targetElementId];
-
-    if (targetElementId !== "preview" && !targetElement) {
-      nextElementKey = "";
-      return version;
-    }
-
-    const targetParent =
-      targetParentId && placement !== "inside"
-        ? version.spec.elements[targetParentId]
-        : null;
-
-    if (placement !== "inside" && !targetParent) {
-      return {
-        ...version,
-        spec: {
-          ...version.spec,
-          elements: {
-            ...version.spec.elements,
-            [nextElementKey]: {
-              type: component.name,
-              props: defaultProps,
-            },
-          },
-        },
-      };
-    }
-
-    const targetParentChildren = targetParent?.children ?? [];
-    const targetIndex = targetParentChildren.findIndex(
-      (id) => id === targetElementId
-    );
-    const nextSiblingChildren =
-      placement === "inside" || !targetParent
-        ? []
-        : [...targetParentChildren];
-
-    if (placement !== "inside" && targetIndex === -1) {
-      nextElementKey = "";
-      return version;
-    }
-
-    if (placement !== "inside") {
-      nextSiblingChildren.splice(
-        placement === "before" ? targetIndex : targetIndex + 1,
-        0,
-        nextElementKey
-      );
-    }
-
-    const rootElement = version.spec.root
-      ? version.spec.elements[version.spec.root]
-      : undefined;
-    const previewTargetsViewRoot =
-      targetElementId === "preview" && rootElement?.type === "View";
-    const shouldSetRoot =
-      targetElementId === "preview" && version.spec.root.length === 0;
-
-    return {
-      ...version,
-      spec: {
-        ...version.spec,
-        ...(shouldSetRoot ? { root: nextElementKey } : {}),
-        elements: {
-          ...version.spec.elements,
-          [nextElementKey]: {
-            type: component.name,
-            props: defaultProps,
-          },
-          ...(previewTargetsViewRoot
-            ? {
-                [version.spec.root]: {
-                  ...rootElement,
-                  children: [...(rootElement?.children ?? []), nextElementKey],
-                },
-              }
-            : targetElementId === "preview" || placement !== "inside"
-              ? {}
-              : {
-                  [targetElementId]: {
-                    ...targetElement,
-                    children: [
-                      ...(targetElement?.children ?? []),
-                      nextElementKey,
-                    ],
-                  },
-                }),
-          ...(targetParent && placement !== "inside"
-            ? {
-                [targetParentId as string]: {
-                  ...targetParent,
-                  children: nextSiblingChildren,
-                },
-              }
-            : {}),
-        },
-      },
-    };
-  });
-
-  return {
-    nextElementKey,
-    selectedVersionId,
-    versions: nextVersions,
-  };
-};
