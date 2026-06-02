@@ -29,3 +29,12 @@ export const Highlight = styled.div(
     z-index: 1000;
   `
 );
+
+export const Hover = styled.div(
+  ({ theme }) => css`
+    border: 2px solid ${theme.tokens.current.core.border.strong};
+    pointer-events: none;
+    position: absolute;
+    z-index: 1000;
+  `
+);

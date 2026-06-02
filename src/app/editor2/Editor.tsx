@@ -279,6 +279,7 @@ export const Editor: FC<EditorProps> = ({ onSave }) => {
         selectedElementID: selectedElementId,
         spec: currentSpec,
         viewportSize,
+        onElementSelect: setSelectedElementId,
       },
       draggable: false,
       origin: [0.5, 0.5] as NodeOrigin,

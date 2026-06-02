@@ -1,26 +1,18 @@
-import type { Spec } from "@json-render/core";
 import { standardDirectives } from "@json-render/directives";
 import { JSONUIProvider, Renderer as JSONUIRenderer } from "@json-render/react";
 import { useReactFlow, useViewport, ViewportPortal } from "@xyflow/react";
-import { useEffect, useMemo, useRef, useState, type FC } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState, type FC, type MouseEvent } from "react";
 import { registry, Fallback } from "../../lib/registry";
 import * as Styled from "./styled";
-
-export interface PreviewProps extends Record<string, unknown> {
-  loading: boolean;
-  selected?: boolean;
-  selectedElementID?: string;
-  spec: Spec | null;
-  viewportSize?: {
-    width?: number;
-    height?: number;
-    minWidth?: number;
-    minHeight?: number;
-    maxWidth?: number;
-  };
-}
+import type { PreviewProps, Rect } from "./types";
 
 const HIGHLIGHT_OFFSET = 4;
+
+const resolveElement = (el: EventTarget) => {
+  const target = el as HTMLElement;
+
+  return target.closest<HTMLElement>("[data-element-id]");
+};
 
 export const Preview: FC<PreviewProps> = ({
   loading,
@@ -28,16 +20,13 @@ export const Preview: FC<PreviewProps> = ({
   selectedElementID,
   spec,
   viewportSize,
+  onElementSelect,
 }) => {
   const { x, y } = useViewport();
   const { screenToFlowPosition } = useReactFlow();
 
-  const [highlightRect, setHighlightRect] = useState<{
-    top: number;
-    left: number;
-    width: number;
-    height: number;
-  } | null>(null);
+  const [highlightRect, setHighlightRect] = useState<Rect | null>(null);
+  const [hoverRect, setHoverRect] = useState<Rect | null>(null);
 
   const containerRef = useRef<HTMLDivElement | null>(null);
 
@@ -65,6 +54,55 @@ export const Preview: FC<PreviewProps> = ({
     };
   }, [spec]);
 
+  const buildRect = useCallback((el: HTMLElement, offset: number) => {
+    const rect = el.getBoundingClientRect();
+
+    const start = screenToFlowPosition({ x: rect.left, y: rect.top });
+    const end = screenToFlowPosition({ x: rect.right, y: rect.bottom });
+
+    return {
+      top: start.y - offset,
+      left: start.x - offset,
+      width: end.x - start.x + offset * 2,
+      height: end.y - start.y + offset * 2,
+    };
+  }, [screenToFlowPosition]);
+
+  //#region Handlers
+  const handleClick = useCallback((e: MouseEvent<HTMLDivElement>) => {
+    const closest = resolveElement(e.target);
+
+    if (closest === null) {
+      setHighlightRect(null);
+      return;
+    }
+
+    const id = closest.getAttribute("data-element-id");
+
+    if (id === null) return;
+
+    setHighlightRect(buildRect(closest, HIGHLIGHT_OFFSET));
+
+    onElementSelect?.(id);
+  }, []);
+
+  const handleMouseLeave = useCallback(() => {
+    setHoverRect(null);
+  }, []);
+
+  const handleMouseOver = useCallback((e: MouseEvent<HTMLDivElement>) => {
+    const closest = resolveElement(e.target);
+
+    if (closest === null) {
+      setHoverRect(null);
+      return;
+    }
+
+    setHoverRect(buildRect(closest, HIGHLIGHT_OFFSET));
+  }, []);
+  //#endregion
+
+  //#region Effects
   useEffect(() => {
     const containerElement = containerRef.current;
 
@@ -74,7 +112,7 @@ export const Preview: FC<PreviewProps> = ({
     }
 
     const updateHighlightRect = () => {
-      const targetElement = containerElement.querySelector(
+      const targetElement = containerElement.querySelector<HTMLElement>(
         `[data-element-id="${selectedElementID}"]`
       );
 
@@ -95,12 +133,7 @@ export const Preview: FC<PreviewProps> = ({
         y: rect.bottom,
       });
 
-      setHighlightRect({
-        top: start.y - HIGHLIGHT_OFFSET,
-        left: start.x - HIGHLIGHT_OFFSET,
-        width: end.x - start.x + HIGHLIGHT_OFFSET * 2,
-        height: end.y - start.y + HIGHLIGHT_OFFSET * 2,
-      });
+      setHighlightRect(buildRect(targetElement, HIGHLIGHT_OFFSET));
     };
 
     updateHighlightRect();
@@ -121,6 +154,7 @@ export const Preview: FC<PreviewProps> = ({
     y,
     screenToFlowPosition,
   ]);
+  //#endregion
 
   return (
     <Styled.Tile
@@ -129,6 +163,9 @@ export const Preview: FC<PreviewProps> = ({
       style={{
         ...viewportSize,
       }}
+      onClick={handleClick}
+      onMouseOver={handleMouseOver}
+      onMouseLeave={handleMouseLeave}
     >
       {/* eslint-disable-next-line no-nested-ternary */}
       {normalizedSpec ? (
@@ -147,6 +184,16 @@ export const Preview: FC<PreviewProps> = ({
       ) : null}
       {normalizedSpec ? (
         <ViewportPortal>
+          {hoverRect ? (
+            <Styled.Hover
+              style={{
+                top: hoverRect.top,
+                left: hoverRect.left,
+                width: hoverRect.width,
+                height: hoverRect.height,
+              }}
+            />
+          ) : null}
           {highlightRect ? (
             <Styled.Highlight
               style={{
