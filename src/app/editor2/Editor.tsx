@@ -276,7 +276,7 @@ export const Editor: FC<EditorProps> = ({ onSave }) => {
       position: { x: 0, y: 0 },
       data: {
         loading: isStreaming,
-        selectedElementId,
+        selectedElementID: selectedElementId,
         spec: currentSpec,
         viewportSize,
       },
@@ -864,7 +864,7 @@ export const Editor: FC<EditorProps> = ({ onSave }) => {
     setNodes((p) =>
       p.map((n) =>
         n.id === "n1"
-          ? { ...n, data: { loading: isStreaming, spec: currentSpec, selectedElementId, viewportSize } }
+          ? { ...n, data: { loading: isStreaming, spec: currentSpec, selectedElementID: selectedElementId, viewportSize } }
           : n
       )
     );

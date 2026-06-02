@@ -1,17 +1,16 @@
 import type { Spec } from "@json-render/core";
-import { useEffect, useMemo, type FC } from "react";
-import * as Styled from "./styled";
-import { Renderer, type RendererProps } from "../../components/Renderer";
-import { ta } from "zod/locales";
-import { JSONUIProvider, Renderer as JSONUIRenderer } from "@json-render/react";
 import { standardDirectives } from "@json-render/directives";
-import { Fallback, registry } from "../../lib/registry";
+import { JSONUIProvider, Renderer as JSONUIRenderer } from "@json-render/react";
+import { useReactFlow, useViewport, ViewportPortal } from "@xyflow/react";
+import { useEffect, useMemo, useRef, useState, type FC } from "react";
+import { registry, Fallback } from "../../lib/registry";
+import * as Styled from "./styled";
 
 export interface PreviewProps extends Record<string, unknown> {
   loading: boolean;
-  spec: Spec | null;
   selected?: boolean;
-  selectedElementId?: string;
+  selectedElementID?: string;
+  spec: Spec | null;
   viewportSize?: {
     width?: number;
     height?: number;
@@ -21,34 +20,29 @@ export interface PreviewProps extends Record<string, unknown> {
   };
 }
 
+const HIGHLIGHT_OFFSET = 4;
+
 export const Preview: FC<PreviewProps> = ({
-  spec,
   loading,
   selected = false,
-  selectedElementId,
+  selectedElementID,
+  spec,
   viewportSize,
 }) => {
-  console.log(selected);
-  const resolveHighlightElement = (targetId: string): HTMLElement | null => {
-    const markerElement = document.querySelector(
-      `[data-element-id="${targetId}"]`
-    );
+  const { x, y } = useViewport();
+  const { screenToFlowPosition } = useReactFlow();
 
-    if (!(markerElement instanceof HTMLElement)) {
-      return null;
-    }
+  const [highlightRect, setHighlightRect] = useState<{
+    top: number;
+    left: number;
+    width: number;
+    height: number;
+  } | null>(null);
 
-    if (window.getComputedStyle(markerElement).display !== "contents") {
-      return markerElement;
-    }
+  const containerRef = useRef<HTMLDivElement | null>(null);
 
-    const childElement = markerElement.firstElementChild;
-
-    return childElement instanceof HTMLElement ? childElement : null;
-  };
-
-  const markedSpec = useMemo(() => {
-    if (!spec || spec.root.length === 0) {
+  const normalizedSpec = useMemo(() => {
+    if (spec === null || spec.root.length === 0) {
       return null;
     }
 
@@ -72,37 +66,72 @@ export const Preview: FC<PreviewProps> = ({
   }, [spec]);
 
   useEffect(() => {
-    const highlightedElements = document.querySelectorAll("[data-preview-highlight]");
-    highlightedElements.forEach((element) => {
-      if (element instanceof HTMLElement) {
-        element.style.outline = "";
-        element.removeAttribute("data-preview-highlight");
-      }
-    });
+    const containerElement = containerRef.current;
 
-    if (!selectedElementId) {
+    if (containerElement === null || selectedElementID === undefined) {
+      setHighlightRect(null);
       return;
     }
 
-    const targetElement = resolveHighlightElement(selectedElementId);
+    const updateHighlightRect = () => {
+      const targetElement = containerElement.querySelector(
+        `[data-element-id="${selectedElementID}"]`
+      );
 
-    if (targetElement instanceof HTMLElement) {
-      // targetElement.style.isolation = "isolate";
-      targetElement.style.outline = "2px solid rgba(35, 111, 255, 0.9)";
-      // targetElement.style.outlineOffset = "-2px";
-      targetElement.setAttribute("data-preview-highlight", "selected");
-    }
-  }, [selectedElementId]);
+      if (targetElement === null) {
+        setHighlightRect(null);
+        return;
+      }
+
+      const rect = targetElement.getBoundingClientRect();
+
+      const start = screenToFlowPosition({
+        x: rect.left,
+        y: rect.top,
+      });
+
+      const end = screenToFlowPosition({
+        x: rect.right,
+        y: rect.bottom,
+      });
+
+      setHighlightRect({
+        top: start.y - HIGHLIGHT_OFFSET,
+        left: start.x - HIGHLIGHT_OFFSET,
+        width: end.x - start.x + HIGHLIGHT_OFFSET * 2,
+        height: end.y - start.y + HIGHLIGHT_OFFSET * 2,
+      });
+    };
+
+    updateHighlightRect();
+
+    const ro = new ResizeObserver(() => {
+      updateHighlightRect();
+    });
+
+    ro.observe(containerElement);
+
+    return () => {
+      ro.disconnect();
+    };
+  }, [
+    normalizedSpec,
+    selectedElementID,
+    x,
+    y,
+    screenToFlowPosition,
+  ]);
 
   return (
-    <Styled.Container
+    <Styled.Tile
       $selected={selected}
+      ref={containerRef}
       style={{
         ...viewportSize,
       }}
     >
       {/* eslint-disable-next-line no-nested-ternary */}
-      {markedSpec ? (
+      {normalizedSpec ? (
         <JSONUIProvider
           directives={standardDirectives}
           initialState={spec?.state}
@@ -112,10 +141,24 @@ export const Preview: FC<PreviewProps> = ({
             fallback={({ element }) => <Fallback type={element.type} />}
             loading={loading}
             registry={registry}
-            spec={markedSpec}
+            spec={normalizedSpec}
           />
         </JSONUIProvider>
       ) : null}
-    </Styled.Container>
+      {normalizedSpec ? (
+        <ViewportPortal>
+          {highlightRect ? (
+            <Styled.Highlight
+              style={{
+                top: highlightRect.top,
+                left: highlightRect.left,
+                width: highlightRect.width,
+                height: highlightRect.height,
+              }}
+            />
+          ) : null}
+        </ViewportPortal>
+      ) : null}
+    </Styled.Tile>
   );
 };

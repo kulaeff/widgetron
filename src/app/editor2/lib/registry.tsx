@@ -34,11 +34,8 @@ import { Carousel } from "../ui/Carousel";
 import { setByPath } from "@json-render/core";
 import { View } from "../ui/View";
 
-const getSpecMarkerProps = (props: unknown) => {
-  const id =
-    props && typeof props === "object"
-      ? (props as Record<string, unknown>)["data-element-id"]
-      : undefined;
+const getSpecMarkerProps = (props: Record<string, unknown>) => {
+  const id = props["data-element-id"];
 
   if (typeof id !== "string" || id.length === 0) {
     return {};
@@ -51,7 +48,7 @@ export const { registry, handlers, executeAction } = defineRegistry(catalog, {
   components: {
     Avatar: ({ props }) =>
       <Avatar
-        {...(getSpecMarkerProps(props))}
+        {...getSpecMarkerProps(props)}
         $hasBadge={props.hasBadge}
         $icon={props.url}
         $label={props.label}
@@ -60,13 +57,13 @@ export const { registry, handlers, executeAction } = defineRegistry(catalog, {
       />,
     Badge: ({ props }) =>
       <Badge
-        {...(getSpecMarkerProps(props) as any)}
+        {...getSpecMarkerProps(props)}
         $size={props.size}
         $style={props.style}
       />,
     Button: ({ props, emit }) =>
       <Button
-        {...(getSpecMarkerProps(props) as any)}
+        {...getSpecMarkerProps(props)}
         $fullWidth={props.fullWidth}
         $isLoading={props.isLoading}
         $size={props.size}
@@ -78,7 +75,7 @@ export const { registry, handlers, executeAction } = defineRegistry(catalog, {
       </Button>,
     Card: ({ props, children }) => (
       <Card
-        {...(getSpecMarkerProps(props) as any)}
+        {...getSpecMarkerProps(props)}
         $border={props.border}
         $shadow={props.shadow}
         $variant={props.variant}
@@ -88,7 +85,7 @@ export const { registry, handlers, executeAction } = defineRegistry(catalog, {
     ),
     Carousel: ({ props, children }) => (
       <Carousel
-        {...(getSpecMarkerProps(props))}
+        {...getSpecMarkerProps(props)}
         {...props}
       >
         {children}
@@ -96,7 +93,7 @@ export const { registry, handlers, executeAction } = defineRegistry(catalog, {
     ),
     Chips: ({ props, emit }) =>
       <Chips
-        {...(getSpecMarkerProps(props) as any)}
+        {...getSpecMarkerProps(props)}
         $size={props.size}
         $type={props.type}
         onClick={() => emit("press")}
@@ -104,7 +101,7 @@ export const { registry, handlers, executeAction } = defineRegistry(catalog, {
         {props.label}
       </Chips>,
     Grid: ({ props, children }) => (
-      <Grid {...(getSpecMarkerProps(props) as any)} {...props}>
+      <Grid {...getSpecMarkerProps(props)} {...props}>
         {children}
       </Grid>
     ),
@@ -122,7 +119,7 @@ export const { registry, handlers, executeAction } = defineRegistry(catalog, {
       return (
         <Radio
           {...props}
-          {...(getSpecMarkerProps(props) as any)}
+          {...getSpecMarkerProps(props)}
           checked={value === props.value}
           value={props.value}
           onChange={(e) => {
@@ -136,30 +133,30 @@ export const { registry, handlers, executeAction } = defineRegistry(catalog, {
       );
     },
     Stack: ({ props, children }) => (
-      <Stack {...(getSpecMarkerProps(props) as any)} {...props}>
+      <Stack {...getSpecMarkerProps(props)} {...props}>
         {children}
       </Stack>
     ),
     Skeleton: ({ props, children }) =>
-      <SkeletonRect {...(getSpecMarkerProps(props) as any)} {...props}>{children}</SkeletonRect>,
+      <SkeletonRect {...getSpecMarkerProps(props)} {...props}>{children}</SkeletonRect>,
     Divider: ({ props }) => <Divider {...(getSpecMarkerProps(props) as any)} />,
     // Table: ({ props }) => <Table {...props} />,
     Tag: ({ props }) =>
       <Tag
-        {...(getSpecMarkerProps(props) as any)}
+        {...getSpecMarkerProps(props)}
         $color={props.color}
         $size={props.size}
       >
         {props.label}
       </Tag>,
-    Text: ({ props }) => <Text {...(getSpecMarkerProps(props) as any)} {...props} />,
+    Text: ({ props }) => <Text {...getSpecMarkerProps(props)} {...props} />,
     Title: ({ props }) =>
-      <Title {...(getSpecMarkerProps(props) as any)} $size={props.size}>
+      <Title {...getSpecMarkerProps(props)} $size={props.size}>
         {typeof props.text !== "string"
           ? JSON.stringify(props.text)
           : props.text}
       </Title>,
-    Image: ({ props }) => <Image {...(getSpecMarkerProps(props) as any)} {...props} />,
+    Image: ({ props }) => <Image {...getSpecMarkerProps(props)} {...props} />,
     Progress: ({ props }) =>
       <div {...getSpecMarkerProps(props)}>
         {props.label ? <span>{String(props.label)}</span> : null}
@@ -185,7 +182,7 @@ export const { registry, handlers, executeAction } = defineRegistry(catalog, {
           ))}
         </tbody>
       </table>,
-    Loader: ({ props }) => <Loader {...(getSpecMarkerProps(props) as any)} />,
+    Loader: ({ props }) => <Loader {...getSpecMarkerProps(props)} />,
     BarGraph: ({ props }) =>
       <div {...getSpecMarkerProps(props)}>
         {props.title ? <strong>{String(props.title)}</strong> : null}
@@ -204,7 +201,7 @@ export const { registry, handlers, executeAction } = defineRegistry(catalog, {
           </div>
         ))}
       </div>,
-    Rating: ({ props }) => <Rating {...(getSpecMarkerProps(props) as any)} {...props} />,
+    Rating: ({ props }) => <Rating {...getSpecMarkerProps(props)} {...props} />,
     Input: ({ props, bindings, emit }) => {
       const [boundValue, setBoundValue] = useBoundProp(
         props.value,
@@ -226,7 +223,7 @@ export const { registry, handlers, executeAction } = defineRegistry(catalog, {
           <label className="flex flex-col gap-1">
             {props.label}
             <Input
-              {...(getSpecMarkerProps(props) as any)}
+              {...getSpecMarkerProps(props)}
               {...props}
               value={value}
               onChange={(e) => {
@@ -247,7 +244,7 @@ export const { registry, handlers, executeAction } = defineRegistry(catalog, {
 
       return (
         <TextArea
-          {...(getSpecMarkerProps(props) as any)}
+          {...getSpecMarkerProps(props)}
           {...props}
           value={value}
           onChange={(e) => {
@@ -263,7 +260,7 @@ export const { registry, handlers, executeAction } = defineRegistry(catalog, {
 
       return (
         <Select
-          {...(getSpecMarkerProps(props) as any)}
+          {...getSpecMarkerProps(props)}
           {...props}
           value={value}
           onChange={(value) => {
@@ -282,7 +279,7 @@ export const { registry, handlers, executeAction } = defineRegistry(catalog, {
 
       return (
         <Checkbox
-          {...(getSpecMarkerProps(props) as any)}
+          {...getSpecMarkerProps(props)}
           {...props}
           checked={checked}
           onChange={(e) => {
@@ -301,7 +298,7 @@ export const { registry, handlers, executeAction } = defineRegistry(catalog, {
 
       return (
         <Switch
-          {...(getSpecMarkerProps(props) as any)}
+          {...getSpecMarkerProps(props)}
           {...props}
           checked={checked}
           onChange={(e) => {
