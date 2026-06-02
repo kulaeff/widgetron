@@ -1,7 +1,15 @@
 import { standardDirectives } from "@json-render/directives";
 import { JSONUIProvider, Renderer as JSONUIRenderer } from "@json-render/react";
 import { useReactFlow, useViewport, ViewportPortal } from "@xyflow/react";
-import { useCallback, useEffect, useMemo, useRef, useState, type FC, type MouseEvent } from "react";
+import {
+  useCallback,
+  useEffect,
+  useMemo,
+  useRef,
+  useState,
+  type FC,
+  type MouseEvent,
+} from "react";
 import { registry, Fallback } from "../../lib/registry";
 import * as Styled from "./styled";
 import type { PreviewProps, Rect } from "./types";
@@ -15,11 +23,11 @@ const resolveElement = (el: EventTarget) => {
 };
 
 export const Preview: FC<PreviewProps> = ({
+  constraints,
   loading,
   selected = false,
   selectedElementID,
   spec,
-  viewportSize,
   onElementSelect,
 }) => {
   const { x, y } = useViewport();
@@ -161,15 +169,15 @@ export const Preview: FC<PreviewProps> = ({
       $selected={selected}
       ref={containerRef}
       style={{
-        ...viewportSize,
+        ...constraints,
       }}
       onClick={handleClick}
       onMouseOver={handleMouseOver}
       onMouseLeave={handleMouseLeave}
     >
-      {/* eslint-disable-next-line no-nested-ternary */}
       {normalizedSpec ? (
         <JSONUIProvider
+          // TODO: add custom directives
           directives={standardDirectives}
           initialState={spec?.state}
           registry={registry}

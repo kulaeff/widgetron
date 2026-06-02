@@ -1,17 +1,15 @@
 import type { Spec } from "@json-render/core";
+import type { Viewport } from "../../types";
 
 export interface PreviewProps extends Record<string, unknown> {
+  constraints?: Pick<
+    Viewport,
+    "width" | "height" | "minWidth" | "minHeight"
+  >;
   loading: boolean;
   selected?: boolean;
   selectedElementID?: string;
   spec: Spec | null;
-  viewportSize?: {
-    width?: number;
-    height?: number;
-    minWidth?: number;
-    minHeight?: number;
-    maxWidth?: number;
-  };
   onElementSelect?: (id: string) => void;
 }
 
