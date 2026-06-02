@@ -64,11 +64,12 @@ import type {
   WidgetCreatorSavePayload,
 } from "../../widgets/WidgetCreator/types";
 import {
-  createDevVersion,
+  createDefaultVersion,
   buildSpecTreeItems,
   moveElementInSpec,
   removeElementFromSpec,
   addElementToSpec,
+  createDefaultSpec,
 } from "./spec-utils";
 import {
   buildCatalogData,
@@ -323,7 +324,7 @@ export const Editor: FC<EditorProps> = ({ onSave }) => {
 
       const nextVersionId = Date.now().toString();
 
-      setVersions([createDevVersion(nextVersionId)]);
+      setVersions([createDefaultVersion(nextVersionId)]);
       setSelectedVersionId(nextVersionId);
       setSelectedElementId(undefined);
     },
@@ -586,7 +587,7 @@ export const Editor: FC<EditorProps> = ({ onSave }) => {
           id: nextId,
           prompt: value,
           raw: [],
-          spec: null,
+          spec: createDefaultSpec(),
           status: "pending",
           usage: null,
         },

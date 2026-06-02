@@ -265,20 +265,22 @@ export const removeElementFromSpec = (
   };
 };
 
-export const createDevVersion = (id: string): Version => ({
+export const createDefaultSpec = (): Spec => ({
+  root: "view-default",
+  elements: {
+    "view-default": {
+      type: "View",
+      props: {},
+      children: [],
+    },
+  },
+});
+
+export const createDefaultVersion = (id: string): Version => ({
   id,
   prompt: "",
   raw: [],
-  spec: {
-    root: "view-default",
-    elements: {
-      "view-default": {
-        type: "View",
-        props: {},
-        children: [],
-      },
-    },
-  },
+  spec: createDefaultSpec(),
   status: "complete",
   usage: null,
 });

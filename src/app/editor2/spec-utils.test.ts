@@ -3,7 +3,7 @@ import { describe, expect, it } from "vitest";
 import type { CatalogComponentInfo } from "./utils/catalog-data";
 import {
   buildSpecTreeItems,
-  createDevVersion,
+  createDefaultVersion,
   moveElementInSpec,
   removeElementFromSpec,
 } from "./spec-utils";
@@ -270,7 +270,7 @@ describe("Editor spec utils", () => {
   });
 
   it("creates a dev version with View as the root element", () => {
-    expect(createDevVersion("v1")).toEqual({
+    expect(createDefaultVersion("v1")).toEqual({
       id: "v1",
       prompt: "",
       raw: [],
