@@ -1,4 +1,4 @@
-export const Plus = () => {
+export const PlusIcon = () => {
   return (
     <svg
       height="16"
@@ -6,13 +6,8 @@ export const Plus = () => {
       width="16"
       xmlns="http://www.w3.org/2000/svg"
     >
-      <path
-        d="M8 3.5v9M3.5 8h9"
-        fill="none"
-        stroke="currentColor"
-        strokeLinecap="round"
-        strokeWidth="1.5"
-      />
+      <rect height="12" rx="1" ry="1" width="1" x="7.5" y="2" />
+      <rect height="1" rx="1" ry="1" width="12" x="2" y="7.5" />
     </svg>
   );
 };

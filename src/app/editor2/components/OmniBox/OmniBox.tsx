@@ -7,11 +7,13 @@ import {
   type KeyboardEventHandler,
 } from "react";
 import { useTranslation } from "react-i18next";
-import { Button } from "../Button";
+import { ArrowRightIcon } from "../../icons/ArrowRight";
+import { PlusIcon } from "../../icons/Plus";
+import { StopIcon } from "../../icons/Stop";
 import * as Styled from "./styled";
-import { Prompt } from "./Prompt";
 import { Dropdown } from "../Dropdown";
 import { Menu } from "../Menu";
+import { Prompt } from "./Prompt";
 
 export type OmniBoxContextTag = {
   id: string;
@@ -101,7 +103,9 @@ export const OmniBox: FC<OmniBoxProps> = ({
             trigger={(
               <IconButton
                 onClick={() => setIsDropdownOpen((prev) => !prev)}
-              >+</IconButton>
+              >
+                <PlusIcon />
+              </IconButton>
             )}
             style={{
               marginBottom: "4px",
@@ -175,39 +179,9 @@ export const OmniBox: FC<OmniBoxProps> = ({
           style={{ justifySelf: "end" }}
         >
           {loading ? (
-            /* stop */
-            <svg
-              width="16"
-              height="16"
-              viewBox="0 0 24 24"
-              fill="currentColor"
-              aria-hidden="true"
-            >
-              <rect x="6" y="6" width="12" height="12" rx="2px" ry="2px" />
-            </svg>
+            <StopIcon />
           ) : (
-            /* arrow right */
-            <svg
-              width="16"
-              height="16"
-              viewBox="0 0 24 24"
-              fill="none"
-              aria-hidden="true"
-            >
-              <path
-                d="M5 12h14"
-                stroke="currentColor"
-                strokeWidth="2"
-                strokeLinecap="round"
-              />
-              <path
-                d="M13 6l6 6-6 6"
-                stroke="currentColor"
-                strokeWidth="2"
-                strokeLinecap="round"
-                strokeLinejoin="round"
-              />
-            </svg>
+            <ArrowRightIcon />
           )}
         </IconButton>
       </Styled.Buttons>
