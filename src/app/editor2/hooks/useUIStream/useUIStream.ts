@@ -144,7 +144,7 @@ export const useUIStream = ({
               },
               {
                 role: "user",
-                content: buildUserPrompt(prompt, currentSpec, context.customRules as string[]),
+                content: buildUserPrompt(prompt, currentSpec, context.customRules as string[], context.elementID as string),
               },
             ],
             // function_call: { name: "http_request" },

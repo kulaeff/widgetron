@@ -435,13 +435,18 @@ export const buildUserPrompt = (
   prompt: string,
   currentSpec: Spec,
   customRules: string[],
+  elementID?: string,
 ) => {
   const lines = [];
 
-  lines.push("ТЕКУЩИЙ UI:");
+  lines.push(`ТЕКУЩИЙ UI:`);
   lines.push("```json");
   lines.push(JSON.stringify(currentSpec, null, 2));
   lines.push("```");
+
+  if (elementID) {
+    lines.push(`Выводи только JSON патчи, необходимые для изменения элемента "${elementID}".`);
+  }
 
   lines.push("");
 

@@ -104,7 +104,7 @@ export const buildSpecTreeItems = (
   return [...treeItems, ...detachedItems];
 };
 
-const getNextElementKey = (elements: Spec["elements"], name: string) => {
+export const getNextElementKey = (elements: Spec["elements"], name: string) => {
   const baseKey = name.toLocaleLowerCase();
 
   let index = 1;

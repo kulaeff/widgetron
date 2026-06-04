@@ -12,6 +12,7 @@ export const Droppable: FC<PropsWithChildren<DroppableProps>> = ({
   elementId,
   style,
 }) => {
+  // TODO: write custom collision detector using pointerIntersection (the innermost element should win)
   const { ref, isDropTarget } = useDroppable({
     id: `preview:${elementId}`,
     data: {

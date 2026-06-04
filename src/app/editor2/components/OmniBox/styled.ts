@@ -25,31 +25,28 @@ export const ContextTags = styled("div")`
 
 export const ContextTag = styled("span")(
   ({ theme }) => css`
-    ${theme.typography.captionRegular};
     align-items: center;
     background: ${theme.tokens.current.core.layer["01"]};
     border: 1px solid ${theme.tokens.current.core.border.strong};
-    border-radius: 999px;
+    border-radius: 4px;
     color: ${theme.tokens.current.core.text.secondary};
     display: inline-flex;
-    gap: 2px;
-    padding: 2px 4px 2px 8px;
+    gap: 8px;
+    padding: 2px 2px 2px 8px;
     white-space: nowrap;
   `
 );
 
 export const ContextTagButton = styled("button")(
   ({ theme }) => css`
-    align-items: center;
+    ${theme.typography.captionRegular};
+    appearance: none;
     background: none;
     border: none;
     color: inherit;
     cursor: pointer;
-    display: inline-flex;
-    font: inherit;
-    gap: 6px;
+    outline: none;
     padding: 0;
-
     &:hover {
       color: ${theme.tokens.current.core.text.primary};
     }
@@ -58,22 +55,18 @@ export const ContextTagButton = styled("button")(
 
 export const ContextTagRemove = styled("button")(
   ({ theme }) => css`
-    align-items: center;
     background: none;
     border: none;
-    border-radius: 999px;
+    border-radius: 2px;
     color: ${theme.tokens.current.core.text.secondary};
     cursor: pointer;
-    display: inline-flex;
-    font: inherit;
-    height: 18px;
+    height: 26px;
     justify-content: center;
     line-height: 1;
     padding: 0;
-    width: 18px;
-
+    width: 26px;
     &:hover {
-      background: ${theme.tokens.current.interactive.hover.tertiary};
+      background: ${theme.tokens.current.interactive.hover.secondary};
       color: ${theme.tokens.current.core.text.primary};
     }
   `
@@ -90,6 +83,26 @@ export const ContextTagBadge = styled("span")(
     justify-content: center;
     min-width: 18px;
     padding: 0 5px;
+  `
+);
+
+export const ElementTag = styled("span")(
+  ({ theme }) => css`
+    ${theme.typography.captionRegular};
+    align-items: center;
+    align-self: start;
+    background: ${theme.tokens.current.core.layer["01"]};
+    border: 1px solid ${theme.tokens.current.core.border.strong};
+    border-radius: 4px;
+    color: ${theme.tokens.current.core.text.secondary};
+    cursor: pointer;
+    display: block;
+    padding: 6px 8px;
+    transition: color 75ms;
+    white-space: nowrap;
+    &:hover {
+      color: ${theme.tokens.current.core.text.primary};
+    }
   `
 );
 

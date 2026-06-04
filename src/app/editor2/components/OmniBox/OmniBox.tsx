@@ -20,23 +20,25 @@ export type OmniBoxContextTag = {
 };
 
 export type OmniBoxProps = {
-  loading?: boolean;
-  placeholder?: string;
   contextTags?: OmniBoxContextTag[];
+  elementTag?: string;
+  loading?: boolean;
   onSubmit: (value: string) => void;
   onReset?: () => void;
   onToolRequest?: (tool: string) => void;
-  onContextTagRemove?: (id: string) => void;
+  onContextTagRemove: (id: string) => void;
+  onElementTagClick: () => void;
 };
 
 export const OmniBox: FC<OmniBoxProps> = ({
-  loading = false,
-  placeholder = "Опишите, что вы хотите получить...",
   contextTags = [],
+  elementTag,
+  loading = false,
   onSubmit,
   onReset,
   onToolRequest,
   onContextTagRemove,
+  onElementTagClick,
 }) => {
   const { t } = useTranslation();
 
@@ -79,9 +81,14 @@ export const OmniBox: FC<OmniBoxProps> = ({
 
   return (
     <Styled.OmniBox>
+      {elementTag ? (
+        <Styled.ElementTag onClick={onElementTagClick}>
+          {elementTag}
+        </Styled.ElementTag>
+      ) : null}
       <Prompt
         disabled={loading}
-        placeholder={placeholder}
+        placeholder={elementTag ? `Что вы хотите изменить?` : "Что вы хотите получить?"}
         value={localValue}
         onChange={handlePromptChange}
         onKeyDown={handleKeyDown}
@@ -92,12 +99,9 @@ export const OmniBox: FC<OmniBoxProps> = ({
             isOpen={isDropdownOpen}
             onChange={setIsDropdownOpen}
             trigger={(
-              <Button
-                label="+"
-                size="sm"
-                variant="secondary"
+              <IconButton
                 onClick={() => setIsDropdownOpen((prev) => !prev)}
-              />
+              >+</IconButton>
             )}
             style={{
               marginBottom: "4px",

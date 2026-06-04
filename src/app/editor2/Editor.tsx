@@ -587,7 +587,7 @@ export const Editor: FC<EditorProps> = ({ onSave }) => {
           id: nextId,
           prompt: value,
           raw: [],
-          spec: createDefaultSpec(),
+          spec: null,
           status: "pending",
           usage: null,
         },
@@ -628,6 +628,7 @@ export const Editor: FC<EditorProps> = ({ onSave }) => {
           dom: domSnapshot,
           openApi: openApiSpec,
         }),
+        elementID: selectedElementId,
         previousSpec: currentVersion?.spec ?? {
           root: "",
           elements: {},
@@ -637,7 +638,7 @@ export const Editor: FC<EditorProps> = ({ onSave }) => {
         },
       });
     },
-    [apis, currentVersion, dataSnapshot, domSnapshot, openApiSpec, tileSizeId, autoHeight, send]
+    [apis, currentVersion, dataSnapshot, domSnapshot, openApiSpec, tileSizeId, autoHeight, selectedElementId, send]
   );
 
   const handleDragStart = useCallback((event: DragStartEvent) => {
@@ -688,7 +689,7 @@ export const Editor: FC<EditorProps> = ({ onSave }) => {
 
         setVersions((p) =>
           p.map((v) =>
-            v.id === selectedVersionId
+            v.id === selectedVersionId && v.spec !== null
               ? {
                 ...v,
                 spec: addElementToSpec(v.spec, component, targetData.elementId),
@@ -929,6 +930,7 @@ export const Editor: FC<EditorProps> = ({ onSave }) => {
     </Flex>
   );
 
+  console.log('CURRENT VERSION', currentVersion);
   console.log('CURRENT SPEC', currentSpec);
 
   return (
@@ -961,6 +963,9 @@ export const Editor: FC<EditorProps> = ({ onSave }) => {
             panOnScroll
             proOptions={{ hideAttribution: true }}
             zoomActivationKeyCode={["Control", "Meta", "z"]}
+            onPaneClick={() => {
+              setSelectedElementId(undefined);
+            }}
             onNodesChange={onNodesChange}
           >
             <Background />
@@ -1115,7 +1120,7 @@ export const Editor: FC<EditorProps> = ({ onSave }) => {
                     <OmniBox
                       loading={isStreaming}
                       contextTags={omniBoxContextTags}
-                      placeholder="Что вы хотите изменить или создать?"
+                      elementTag={selectedElementId}
                       onSubmit={handleOmniBoxSubmit}
                       onReset={clear}
                       onToolRequest={handleOmniBoxToolRequest}
@@ -1128,7 +1133,7 @@ export const Editor: FC<EditorProps> = ({ onSave }) => {
             {mode === MODE.DEV && (
               <>
                 {selectedDesignToolId === "component" ? (
-                  <Panel position="bottom-center" style={{ marginBottom: 70 }}>
+                  <Panel position="bottom-center" style={{ marginBottom: 70, zIndex: 200 }}>
                     <Island height={360} width="40vw">
                       <Styled.ComponentPickerSurface
                         data-component-picker-surface

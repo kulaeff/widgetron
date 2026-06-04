@@ -20,7 +20,7 @@ export interface Version {
   id: string;
   prompt: string;
   raw: string[];
-  spec: Spec;
+  spec: Spec | null;
   status: "pending" | "complete" | "error";
   usage: {
     prompt: number;
