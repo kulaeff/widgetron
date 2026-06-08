@@ -104,6 +104,78 @@ export const buildSpecTreeItems = (
   return [...treeItems, ...detachedItems];
 };
 
+export const collectViewElementIds = (
+  spec: Spec | null | undefined
+): string[] => {
+  if (!spec) {
+    return [];
+  }
+
+  const ids: string[] = [];
+  const visited = new Set<string>();
+
+  const walk = (id: string) => {
+    if (visited.has(id)) {
+      return;
+    }
+
+    visited.add(id);
+    const node = spec.elements[id];
+
+    if (!node) {
+      return;
+    }
+
+    if (node.type === "View") {
+      ids.push(id);
+    }
+
+    (node.children ?? []).forEach(walk);
+  };
+
+  if (spec.root) {
+    walk(spec.root);
+  }
+
+  Object.keys(spec.elements).forEach((id) => {
+    if (!visited.has(id) && spec.elements[id]?.type === "View") {
+      ids.push(id);
+    }
+  });
+
+  return ids;
+};
+
+export const wrapViewAsDisplaySpec = (
+  spec: Spec | null | undefined,
+  viewId: string
+): Spec | null => {
+  if (!spec) {
+    return null;
+  }
+
+  const view = spec.elements[viewId];
+
+  if (!view || view.type !== "View") {
+    return null;
+  }
+
+  const idsToInclude = collectDescendantIds(spec.elements, viewId);
+  const elements = Object.fromEntries(
+    [...idsToInclude]
+      .map((id) => [id, spec.elements[id]] as const)
+      .filter((entry): entry is [string, Spec["elements"][string]] =>
+        Boolean(entry[1])
+      )
+  ) as Spec["elements"];
+
+  return {
+    ...spec,
+    root: viewId,
+    elements,
+  };
+};
+
 export const getNextElementKey = (elements: Spec["elements"], name: string) => {
   const baseKey = name.toLocaleLowerCase();
 
@@ -265,15 +337,50 @@ export const removeElementFromSpec = (
   };
 };
 
+export const createEmptyViewElement = (): Spec["elements"][string] => ({
+  type: "View",
+  props: {},
+  children: [],
+});
+
+export const addViewScreenToSpec = (
+  spec: Spec | null | undefined
+): { spec: Spec; viewId: string } => {
+  if (!spec?.root || Object.keys(spec.elements).length === 0) {
+    const viewId = "view-1";
+
+    return {
+      viewId,
+      spec: {
+        root: viewId,
+        elements: {
+          [viewId]: createEmptyViewElement(),
+        },
+        state: spec?.state ?? {},
+      },
+    };
+  }
+
+  const viewId = getNextElementKey(spec.elements, "View");
+
+  return {
+    viewId,
+    spec: {
+      ...spec,
+      elements: {
+        ...spec.elements,
+        [viewId]: createEmptyViewElement(),
+      },
+    },
+  };
+};
+
 export const createDefaultSpec = (): Spec => ({
   root: "view-default",
   elements: {
-    "view-default": {
-      type: "View",
-      props: {},
-      children: [],
-    },
+    "view-default": createEmptyViewElement(),
   },
+  state: {},
 });
 
 export const createDefaultVersion = (id: string): Version => ({

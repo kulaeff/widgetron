@@ -18,8 +18,14 @@ import {
   NodeProps,
   Panel,
   ReactFlow,
+  SmoothStepEdge,
+  type EdgeProps,
   useNodesState,
+  useEdgesState,
   useReactFlow,
+  getStraightPath,
+  BaseEdge,
+  Edge,
 } from "@xyflow/react";
 import {
   CSSProperties,
@@ -66,10 +72,12 @@ import type {
 import {
   createDefaultVersion,
   buildSpecTreeItems,
+  collectViewElementIds,
   moveElementInSpec,
   removeElementFromSpec,
   addElementToSpec,
-  createDefaultSpec,
+  addViewScreenToSpec,
+  wrapViewAsDisplaySpec,
 } from "./spec-utils";
 import {
   buildCatalogData,
@@ -98,18 +106,60 @@ const DESIGN_TOOLS: ToolPickerItem[] = [
   { id: "component", title: "Component" },
 ];
 
+const FLOW_NODE_GAP = 128;
+
+const getPreviewNodeWidth = (
+  constraints: PreviewProps["constraints"]
+): number => constraints?.width ?? constraints?.minWidth ?? 390;
+
+const getViewFlowNodeId = (viewId: string) => `view:${viewId}`;
+
+const getViewIdFromFlowNodeId = (nodeId: string) =>
+  nodeId.startsWith("view:") ? nodeId.slice("view:".length) : null;
+
 type PreviewNode = Node<PreviewProps, "renderer">;
 type ElementVisibilityValue =
   | Spec["elements"][string]["visible"]
   | boolean
   | undefined;
 
-const RendererNode: FC<NodeProps<PreviewNode>> = ({ data, selected }) => {
-  return <Preview {...data} selected={selected} />;
+const RendererNode: FC<NodeProps<PreviewNode>> = ({ data, dragging, selected }) => {
+  return <Preview {...data} dragging={dragging} selected={selected} />;
+};
+
+type EdgeData = Edge<Record<string, never>, "customEdge">;
+
+const CustomEdge: FC<EdgeProps<EdgeData>> = ({
+  id,
+  sourcePosition,
+  sourceX,
+  sourceY,
+  targetPosition,
+  targetX,
+  targetY,
+  label,
+}) => {
+  return (
+    <SmoothStepEdge
+      id={id}
+      sourcePosition={sourcePosition}
+      targetPosition={targetPosition}
+      sourceX={sourceX}
+      sourceY={sourceY}
+      targetX={targetX}
+      targetY={targetY}
+      label={label}
+      labelShowBg
+    />
+  );
 };
 
 const nodeTypes = {
   renderer: RendererNode,
+};
+
+const edgeTypes = {
+  customEdge: CustomEdge,
 };
 
 export interface EditorProps extends Pick<WidgetCreatorProps, "onSave"> { }
@@ -126,6 +176,7 @@ export const Editor: FC<EditorProps> = ({ onSave }) => {
   const [openApiSpec, setOpenApiSpec] = useState("");
   const [dataSnapshot, setDataSnapshot] = useState("");
   const [selectedElementId, setSelectedElementId] = useState<string>();
+  const [selectedViewId, setSelectedViewId] = useState<string>();
   const [selectedVersionId, setSelectedVersionId] = useState<string>();
   const [mode, setMode] = useState<string>(MODE.AI);
   const [versions, setVersions] = useState<Version[]>([]);
@@ -140,6 +191,7 @@ export const Editor: FC<EditorProps> = ({ onSave }) => {
   const [autoHeight, setAutoHeight] = useState(false);
 
   const generatingVersionIdRef = useRef<string>();
+  const isSyncingFlowSelectionRef = useRef(false);
   const apiModalRef = useRef<HTMLDialogElement>(null);
   const domModalRef = useRef<HTMLDialogElement>(null);
   const openApiModalRef = useRef<HTMLDialogElement>(null);
@@ -196,6 +248,36 @@ export const Editor: FC<EditorProps> = ({ onSave }) => {
   const currentState = currentSpec?.state;
   const currentSnapshotData = currentState?.data ?? null;
   const isSaveDisabled = isStreaming || !currentSpec;
+
+  const activeViewId = useMemo(() => {
+    const viewIds = collectViewElementIds(currentSpec);
+
+    if (viewIds.length === 0) {
+      return undefined;
+    }
+
+    if (selectedViewId && viewIds.includes(selectedViewId)) {
+      return selectedViewId;
+    }
+
+    return viewIds[0];
+  }, [currentSpec, selectedViewId]);
+
+  const selectedViewSpec = useMemo(() => {
+    if (!currentSpec) {
+      return null;
+    }
+
+    const viewIds = collectViewElementIds(currentSpec);
+
+    if (viewIds.length === 0) {
+      return currentSpec;
+    }
+
+    const viewId = activeViewId ?? viewIds[0];
+
+    return wrapViewAsDisplaySpec(currentSpec, viewId) ?? currentSpec;
+  }, [activeViewId, currentSpec]);
 
   const toolBarItems = useMemo(
     () =>
@@ -263,31 +345,12 @@ export const Editor: FC<EditorProps> = ({ onSave }) => {
   }, [components, currentSpec, selectedElementId]);
 
   const treeViewElementsItems = useMemo(
-    () => buildSpecTreeItems(currentSpec, components),
-    [components, currentSpec]
+    () => buildSpecTreeItems(selectedViewSpec, components),
+    [components, selectedViewSpec]
   );
 
-  const [nodes, setNodes, onNodesChange] = useNodesState<PreviewNode>([
-    {
-      id: "n1",
-      position: { x: 0, y: 0 },
-      data: {
-        constraints: viewportSize,
-        loading: isStreaming,
-        selectedElementID: selectedElementId,
-        spec: currentSpec,
-        onElementSelect: setSelectedElementId,
-      },
-      draggable: false,
-      selected: true,
-      origin: [0.5, 0.5] as NodeOrigin,
-      type: "renderer",
-    },
-  ]);
-
-  const selectedNode = useMemo(() => {
-    return nodes.find((n) => n.selected);
-  }, [nodes]);
+  const [nodes, setNodes, onNodesChange] = useNodesState<PreviewNode>([]);
+  const [edges, setEdges, onEdgesChange] = useEdgesState<EdgeData[]>([]);
 
   const handleSave = useCallback(async () => {
     const scheme = currentVersion?.spec ?? spec ?? null;
@@ -312,7 +375,93 @@ export const Editor: FC<EditorProps> = ({ onSave }) => {
   const handleVersionSelect = useCallback((id: string) => {
     setSelectedVersionId(id);
     setSelectedElementId(undefined);
+    setSelectedViewId(undefined);
   }, []);
+
+  const handleFlowSelectionChange = useCallback(
+    ({ nodes: selectedNodes }: { nodes: PreviewNode[] }) => {
+      if (isSyncingFlowSelectionRef.current) {
+        isSyncingFlowSelectionRef.current = false;
+        return;
+      }
+
+      const selectedNode = selectedNodes[0];
+
+      if (!selectedNode) {
+        return;
+      }
+
+      const viewId = getViewIdFromFlowNodeId(selectedNode.id);
+
+      if (!viewId) {
+        return;
+      }
+
+      setSelectedViewId((prev) => (prev === viewId ? prev : viewId));
+      setSelectedElementId((prev) => {
+        if (!prev || !currentSpec) {
+          return prev;
+        }
+
+        const viewSpec = wrapViewAsDisplaySpec(currentSpec, viewId);
+
+        return viewSpec?.elements[prev] ? prev : undefined;
+      });
+    },
+    [currentSpec]
+  );
+
+  const handleElementSelect = useCallback((viewId: string, elementId: string) => {
+    setSelectedViewId(viewId);
+    setSelectedElementId(elementId);
+  }, []);
+
+  const handleAddScreen = useCallback(() => {
+    if (selectedVersionId) {
+      let nextViewId: string | undefined;
+
+      setVersions((prevVersions) =>
+        prevVersions.map((version) => {
+          if (version.id !== selectedVersionId) {
+            return version;
+          }
+
+          const { spec: nextSpec, viewId } = addViewScreenToSpec(version.spec);
+
+          nextViewId = viewId;
+
+          return { ...version, spec: nextSpec };
+        })
+      );
+
+      if (nextViewId) {
+        setSelectedViewId(nextViewId);
+        setSelectedElementId(nextViewId);
+      }
+    } else {
+      const nextVersionId = Date.now().toString();
+      const { spec: nextSpec, viewId } = addViewScreenToSpec(currentSpec);
+
+      setVersions([
+        {
+          ...createDefaultVersion(nextVersionId),
+          spec: nextSpec,
+        },
+      ]);
+      setSelectedVersionId(nextVersionId);
+      setSelectedViewId(viewId);
+      setSelectedElementId(viewId);
+    }
+
+    window.setTimeout(() => {
+      void fitView({
+        duration: 120,
+        interpolate: "smooth",
+        maxZoom: 1,
+        padding: 0.15,
+      });
+    }, 0);
+  }, [currentSpec, fitView, selectedVersionId]);
 
   const handleModeChange = useCallback(
     (value: string) => {
@@ -704,6 +853,10 @@ export const Editor: FC<EditorProps> = ({ onSave }) => {
     [components, selectedVersionId, versions]
   );
 
+  const handleSizeSelectorChange = useCallback((value: string) => {
+    setTileSizeId(value);
+  }, [fitView]);
+
   const handleTreeViewElementsChange = (id: string) => {
     setSelectedElementId(id);
   };
@@ -761,6 +914,19 @@ export const Editor: FC<EditorProps> = ({ onSave }) => {
   );
 
   useEffect(() => {
+    const viewIds = collectViewElementIds(currentSpec);
+
+    if (viewIds.length === 0) {
+      setSelectedViewId(undefined);
+      return;
+    }
+
+    setSelectedViewId((prev) =>
+      prev && viewIds.includes(prev) ? prev : viewIds[0]
+    );
+  }, [currentSpec]);
+
+  useEffect(() => {
     if (generatingVersionIdRef && !isStreaming && spec) {
       setVersions((p) =>
         p.map((v) =>
@@ -779,22 +945,141 @@ export const Editor: FC<EditorProps> = ({ onSave }) => {
   }, [isStreaming, raw, spec, usage]);
 
   useEffect(() => {
-    setNodes((p) =>
-      p.map((n) =>
-        n.id === "n1"
-          ? {
-            ...n,
-            data: {
-              constraints: viewportSize,
-              loading: isStreaming,
-              selectedElementID: selectedElementId,
-              spec: currentSpec,
+    setNodes((prevNodes) => {
+      const viewIds = collectViewElementIds(currentSpec);
+      const targets =
+        viewIds.length > 0
+          ? viewIds.map((viewId) => ({ kind: "view" as const, viewId }))
+          : [{ kind: "full" as const, viewId: null as string | null }];
+
+      const nodeWidth = getPreviewNodeWidth(viewportSize);
+
+      return targets.map((target, index) => {
+        const nodeId =
+          target.kind === "view" ? getViewFlowNodeId(target.viewId) : "spec-full";
+        const existing = prevNodes.find((node) => node.id === nodeId);
+        const displaySpec =
+          target.kind === "view" && currentSpec && target.viewId
+            ? wrapViewAsDisplaySpec(currentSpec, target.viewId)
+            : currentSpec;
+
+        return {
+          id: nodeId,
+          position:
+            existing?.position ?? {
+              x: index * (nodeWidth + FLOW_NODE_GAP),
+              y: 0,
             },
-          }
-          : n
-      )
-    );
-  }, [isStreaming, currentSpec, selectedElementId, viewportSize]);
+          data: {
+            constraints: viewportSize,
+            loading: isStreaming,
+            selectedElementID: existing?.data.selectedElementID,
+            spec: displaySpec,
+            viewId: target.kind === "view" ? target.viewId : undefined,
+            onElementSelect: handleElementSelect,
+          },
+          draggable: false,
+          selected: existing?.selected ?? false,
+          type: "renderer",
+        };
+      });
+    });
+  }, [currentSpec, handleElementSelect, isStreaming, setNodes, viewportSize]);
+
+  useEffect(() => {
+    setNodes((prevNodes) => {
+      let hasChanges = false;
+
+      const nextNodes = prevNodes.map((node) => {
+        const displaySpec = node.data.spec;
+        const nextSelectedElementID =
+          selectedElementId && displaySpec?.elements[selectedElementId]
+            ? selectedElementId
+            : undefined;
+
+        if (node.data.selectedElementID === nextSelectedElementID) {
+          return node;
+        }
+
+        hasChanges = true;
+
+        return {
+          ...node,
+          data: {
+            ...node.data,
+            selectedElementID: nextSelectedElementID,
+          },
+        };
+      });
+
+      return hasChanges ? nextNodes : prevNodes;
+    });
+  }, [selectedElementId, setNodes]);
+
+  useEffect(() => {
+    if (!activeViewId) {
+      return;
+    }
+
+    setNodes((prevNodes) => {
+      let hasChanges = false;
+
+      const nextNodes = prevNodes.map((node) => {
+        const viewId = getViewIdFromFlowNodeId(node.id);
+
+        if (!viewId) {
+          return node;
+        }
+
+        const shouldSelect = viewId === activeViewId;
+
+        if (node.selected === shouldSelect) {
+          return node;
+        }
+
+        hasChanges = true;
+
+        return {
+          ...node,
+          selected: shouldSelect,
+        };
+      });
+
+      if (!hasChanges) {
+        return prevNodes;
+      }
+
+      isSyncingFlowSelectionRef.current = true;
+
+      return nextNodes;
+    });
+  }, [activeViewId, setNodes]);
+
+  useEffect(() => {
+    const viewIds = collectViewElementIds(currentSpec);
+
+    if (viewIds.length < 2) {
+      setEdges([]);
+      return;
+    }
+
+    const nextEdges = viewIds.slice(1).map((viewId, index) => {
+      const prevViewId = viewIds[index];
+
+      return {
+        id: `screen-chain:${prevViewId}->${viewId}`,
+        source: getViewFlowNodeId(prevViewId),
+        target: getViewFlowNodeId(viewId),
+        type: "customEdge",
+        label: viewId,
+        data: {},
+        selectable: false,
+        deletable: false,
+      };
+    });
+
+    setEdges(nextEdges);
+  }, [currentSpec, setEdges]);
 
   useEffect(() => {
     if (mode !== MODE.DEV || selectedDesignToolId !== "component") {
@@ -930,9 +1215,6 @@ export const Editor: FC<EditorProps> = ({ onSave }) => {
     </Flex>
   );
 
-  console.log('CURRENT VERSION', currentVersion);
-  console.log('CURRENT SPEC', currentSpec);
-
   return (
     <DragDropProvider
       onDragStart={handleDragStart}
@@ -958,7 +1240,9 @@ export const Editor: FC<EditorProps> = ({ onSave }) => {
               maxZoom: 1,
             }}
             nodes={nodes}
+            edges={edges}
             nodeTypes={nodeTypes}
+            edgeTypes={edgeTypes}
             panOnDrag={false}
             panOnScroll
             proOptions={{ hideAttribution: true }}
@@ -967,6 +1251,8 @@ export const Editor: FC<EditorProps> = ({ onSave }) => {
               setSelectedElementId(undefined);
             }}
             onNodesChange={onNodesChange}
+            onEdgesChange={onEdgesChange}
+            onSelectionChange={handleFlowSelectionChange}
           >
             <Background />
             <Panel position="top-center">
@@ -975,7 +1261,7 @@ export const Editor: FC<EditorProps> = ({ onSave }) => {
                   <Island unstyled>
                     <SizeSelector
                       value={tileSizeId}
-                      onChange={setTileSizeId}
+                      onChange={handleSizeSelectorChange}
                     />
                   </Island>
                 </Item>
@@ -988,6 +1274,19 @@ export const Editor: FC<EditorProps> = ({ onSave }) => {
                     />
                   </Island>
                 </Item>
+                {mode === MODE.DEV ? (
+                  <Item>
+                    <Island unstyled>
+                      <Button
+                        disabled={isStreaming}
+                        label="+ Экран"
+                        type="button"
+                        variant="secondary"
+                        onClick={handleAddScreen}
+                      />
+                    </Island>
+                  </Item>
+                ) : null}
               </Flex>
             </Panel>
             <Panel position="bottom-right" style={{ zIndex: 10 }}>

@@ -2,10 +2,13 @@ import type { Spec } from "@json-render/react";
 import { describe, expect, it } from "vitest";
 import type { CatalogComponentInfo } from "./utils/catalog-data";
 import {
+  addViewScreenToSpec,
   buildSpecTreeItems,
+  collectViewElementIds,
   createDefaultVersion,
   moveElementInSpec,
   removeElementFromSpec,
+  wrapViewAsDisplaySpec,
 } from "./spec-utils";
 
 const components: CatalogComponentInfo[] = [
@@ -267,6 +270,144 @@ describe("Editor spec utils", () => {
     expect(next?.elements.root).toBeUndefined();
     expect(next?.elements.child).toBeUndefined();
     expect(next?.root).toBe("detached");
+  });
+
+  it("collects View ids in tree order and appends detached views", () => {
+    const spec: Spec = {
+      root: "root-view",
+      elements: {
+        "root-view": {
+          type: "View",
+          props: {},
+          children: ["nested-view"],
+        },
+        "nested-view": {
+          type: "View",
+          props: {},
+          children: ["text"],
+        },
+        text: {
+          type: "Text",
+          props: { text: "Hello" },
+        },
+        "detached-view": {
+          type: "View",
+          props: {},
+          children: [],
+        },
+      },
+    };
+
+    expect(collectViewElementIds(spec)).toEqual([
+      "root-view",
+      "nested-view",
+      "detached-view",
+    ]);
+  });
+
+  it("wraps a View subtree as a display spec with that View as root", () => {
+    const spec: Spec = {
+      root: "root-view",
+      state: { count: 1 },
+      elements: {
+        "root-view": {
+          type: "View",
+          props: { gap: 8 },
+          children: ["nested-view", "text"],
+        },
+        "nested-view": {
+          type: "View",
+          props: {},
+          children: [],
+        },
+        text: {
+          type: "Text",
+          props: { text: "Hello" },
+        },
+        sibling: {
+          type: "Button",
+          props: { label: "Outside" },
+        },
+      },
+    };
+
+    expect(wrapViewAsDisplaySpec(spec, "nested-view")).toEqual({
+      root: "nested-view",
+      state: { count: 1 },
+      elements: {
+        "nested-view": {
+          type: "View",
+          props: {},
+          children: [],
+        },
+      },
+    });
+
+    expect(wrapViewAsDisplaySpec(spec, "root-view")).toEqual({
+      root: "root-view",
+      state: { count: 1 },
+      elements: {
+        "root-view": {
+          type: "View",
+          props: { gap: 8 },
+          children: ["nested-view", "text"],
+        },
+        "nested-view": {
+          type: "View",
+          props: {},
+          children: [],
+        },
+        text: {
+          type: "Text",
+          props: { text: "Hello" },
+        },
+      },
+    });
+  });
+
+  it("adds a detached View screen to an existing spec", () => {
+    const spec: Spec = {
+      root: "view-1",
+      elements: {
+        "view-1": {
+          type: "View",
+          props: {},
+          children: ["text"],
+        },
+        text: {
+          type: "Text",
+          props: { text: "Hello" },
+        },
+      },
+    };
+
+    const { spec: nextSpec, viewId } = addViewScreenToSpec(spec);
+
+    expect(viewId).toBe("view-2");
+    expect(nextSpec.elements["view-2"]).toEqual({
+      type: "View",
+      props: {},
+      children: [],
+    });
+    expect(nextSpec.root).toBe("view-1");
+    expect(collectViewElementIds(nextSpec)).toEqual(["view-1", "view-2"]);
+  });
+
+  it("creates the first View screen when spec is empty", () => {
+    expect(addViewScreenToSpec(null)).toEqual({
+      viewId: "view-1",
+      spec: {
+        root: "view-1",
+        elements: {
+          "view-1": {
+            type: "View",
+            props: {},
+            children: [],
+          },
+        },
+        state: {},
+      },
+    });
   });
 
   it("creates a dev version with View as the root element", () => {

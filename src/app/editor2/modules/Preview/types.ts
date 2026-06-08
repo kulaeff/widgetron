@@ -10,7 +10,8 @@ export interface PreviewProps extends Record<string, unknown> {
   selected?: boolean;
   selectedElementID?: string;
   spec: Spec | null;
-  onElementSelect?: (id: string) => void;
+  viewId?: string;
+  onElementSelect?: (viewId: string, elementId: string) => void;
 }
 
 export interface Droppable {

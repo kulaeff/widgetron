@@ -1,6 +1,6 @@
 import { standardDirectives } from "@json-render/directives";
 import { JSONUIProvider, Renderer as JSONUIRenderer } from "@json-render/react";
-import { useReactFlow, useViewport, ViewportPortal } from "@xyflow/react";
+import { Handle, Position, useReactFlow, ViewportPortal } from "@xyflow/react";
 import {
   useCallback,
   useEffect,
@@ -25,13 +25,14 @@ const resolveElement = (el: EventTarget) => {
 
 export const Preview: FC<PreviewProps> = ({
   constraints,
+  dragging = false,
   loading,
   selected = false,
   selectedElementID,
   spec,
+  viewId,
   onElementSelect,
 }) => {
-  const { x, y } = useViewport();
   const { screenToFlowPosition } = useReactFlow();
 
   const [dropppables, setDroppables] = useState<Droppable[]>([]);
@@ -93,8 +94,10 @@ export const Preview: FC<PreviewProps> = ({
 
     setHighlightRect(buildRect(closest, HIGHLIGHT_OFFSET));
 
-    onElementSelect?.(id);
-  }, []);
+    if (viewId) {
+      onElementSelect?.(viewId, id);
+    }
+  }, [buildRect, onElementSelect, viewId]);
 
   const handleMouseLeave = useCallback(() => {
     setHoverRect(null);
@@ -109,14 +112,18 @@ export const Preview: FC<PreviewProps> = ({
     }
 
     setHoverRect(buildRect(closest, HIGHLIGHT_OFFSET));
-  }, []);
+  }, [buildRect]);
   //#endregion
 
   //#region Effects
   useEffect(() => {
     const containerElement = containerRef.current;
 
-    if (containerElement === null || selectedElementID === undefined) {
+    if (
+      containerElement === null ||
+      selectedElementID === undefined ||
+      !normalizedSpec?.elements[selectedElementID]
+    ) {
       setHighlightRect(null);
       return;
     }
@@ -146,11 +153,9 @@ export const Preview: FC<PreviewProps> = ({
       ro.disconnect();
     };
   }, [
-    normalizedSpec, // FIXME: need when spec changes but selectedElementID not
+    buildRect,
+    normalizedSpec,
     selectedElementID,
-    x,
-    y,
-    screenToFlowPosition,
   ]);
 
   useEffect(() => {
@@ -167,7 +172,13 @@ export const Preview: FC<PreviewProps> = ({
     }));
 
     setDroppables(rects);
-  }, [normalizedSpec]);
+  }, [buildRect, normalizedSpec]);
+
+  useEffect(() => {
+    if (dragging) {
+      setHoverRect(null);
+    }
+  }, [dragging]);
   //#endregion
 
   return (
@@ -232,6 +243,8 @@ export const Preview: FC<PreviewProps> = ({
           ))}
         </ViewportPortal>
       ) : null}
+      <Handle type="target" position={Position.Left} />
+      <Handle type="source" position={Position.Right} />
     </Styled.Tile>
   );
 };

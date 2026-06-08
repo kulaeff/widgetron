@@ -26,7 +26,7 @@ export const Droppable = styled.div<{ $active?: boolean }>(
     border: ${$active ? `2px dotted ${theme.tokens.current.core.border.strong}` : "none"};
     // pointer-events: none;
     position: absolute;
-    z-index: 120;
+    z-index: 1200;
   `
 );
 
@@ -35,7 +35,7 @@ export const Highlight = styled.div(
     border: 2px solid ${theme.tokens.current.core.accent.primary};
     pointer-events: none;
     position: absolute;
-    z-index: 110;
+    z-index: 1100;
   `
 );
 
@@ -44,6 +44,6 @@ export const Hover = styled.div(
     border: 2px solid ${theme.tokens.current.core.border.strong};
     pointer-events: none;
     position: absolute;
-    z-index: 100;
+    z-index: 1000;
   `
 );
